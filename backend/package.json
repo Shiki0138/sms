@@ -1,0 +1,63 @@
+{
+  "name": "salon-management-backend",
+  "version": "1.0.0",
+  "description": "美容室向けSaaS統合管理システム - バックエンドAPI",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon src/server-demo.ts",
+    "dev-full": "nodemon src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1",
+    "@prisma/client": "^5.6.0",
+    "zod": "^3.22.4",
+    "multer": "^1.4.5-lts.1",
+    "axios": "^1.6.0",
+    "winston": "^3.11.0",
+    "express-rate-limit": "^7.1.5",
+    "googleapis": "^126.0.1",
+    "google-auth-library": "^9.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.9.0",
+    "typescript": "^5.2.2",
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.1",
+    "prisma": "^5.6.0",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.8"
+  },
+  "keywords": [
+    "salon",
+    "management",
+    "saas",
+    "api",
+    "typescript",
+    "express"
+  ],
+  "author": "Salon Management Team",
+  "license": "UNLICENSED"
+}

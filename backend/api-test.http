@@ -1,0 +1,189 @@
+### Health Check
+GET http://localhost:4001/health
+
+### ===== 認証関連 =====
+
+### 管理者登録 (初回セットアップ)
+POST http://localhost:4001/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "admin@salon.test",
+  "password": "AdminPass123!",
+  "name": "システム管理者",
+  "tenantId": "test-tenant-id",
+  "role": "ADMIN"
+}
+
+### ログイン
+POST http://localhost:4001/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@salon.test",
+  "password": "AdminPass123!"
+}
+
+### プロファイル取得
+GET http://localhost:4001/api/v1/auth/profile
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### ===== 顧客管理 =====
+
+### 顧客一覧取得
+GET http://localhost:4001/api/v1/customers
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### 顧客作成
+POST http://localhost:4001/api/v1/customers
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "name": "田中花子",
+  "phone": "090-1234-5678",
+  "email": "tanaka@example.com",
+  "birthDate": "1990-05-15",
+  "instagramId": "tanaka_hanako",
+  "lineId": "line_tanaka_123"
+}
+
+### 顧客詳細取得
+GET http://localhost:4001/api/v1/customers/CUSTOMER_ID
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### ===== メッセージ管理 =====
+
+### スレッド一覧取得（統合インボックス）
+GET http://localhost:4001/api/v1/messages/threads
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### スレッド作成
+POST http://localhost:4001/api/v1/messages/threads
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "customerId": "CUSTOMER_ID",
+  "channel": "INSTAGRAM",
+  "channelThreadId": "instagram_user_123"
+}
+
+### メッセージ送信
+POST http://localhost:4001/api/v1/messages/send
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "threadId": "THREAD_ID",
+  "content": "こんにちは！ご予約の件でご連絡いたします。",
+  "mediaType": "TEXT"
+}
+
+### メッセージ統計
+GET http://localhost:4001/api/v1/messages/stats
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### ===== 予約管理 =====
+
+### 予約一覧取得
+GET http://localhost:4001/api/v1/reservations
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### 予約作成
+POST http://localhost:4001/api/v1/reservations
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "startTime": "2024-12-15T10:00:00.000Z",
+  "endTime": "2024-12-15T11:30:00.000Z",
+  "menuContent": "カット＋カラー",
+  "customerName": "田中花子",
+  "customerId": "CUSTOMER_ID",
+  "customerPhone": "090-1234-5678",
+  "customerEmail": "tanaka@example.com",
+  "source": "MANUAL",
+  "status": "CONFIRMED",
+  "notes": "明るめのブラウンカラー希望"
+}
+
+### ホットペッパーCSVインポート
+POST http://localhost:4001/api/v1/reservations/import/hotpepper
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "csvData": "予約日,予約時間,メニュー,顧客名,電話番号,メールアドレス,担当者,ステータス\n2024-12-15,10:00,カット,山田太郎,090-1111-2222,yamada@test.com,スタッフA,確定\n2024-12-15,14:00,カラー,佐藤美香,090-3333-4444,sato@test.com,スタッフB,確定"
+}
+
+### Google Calendar同期
+POST http://localhost:4001/api/v1/reservations/sync/google-calendar
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "startDate": "2024-12-01T00:00:00.000Z",
+  "endDate": "2024-12-31T23:59:59.000Z",
+  "calendarId": "primary"
+}
+
+### 予約統計
+GET http://localhost:4001/api/v1/reservations/stats
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### ===== Webhookエンドポイント（テスト用） =====
+
+### Instagram Webhook検証
+GET http://localhost:4001/api/v1/webhooks/instagram?hub.mode=subscribe&hub.verify_token=demo-verify-token&hub.challenge=test-challenge
+
+### Instagram Webhook（メッセージ受信シミュレーション）
+POST http://localhost:4001/api/v1/webhooks/instagram
+Content-Type: application/json
+X-Hub-Signature-256: sha256=test-signature
+
+{
+  "object": "instagram",
+  "entry": [
+    {
+      "messaging": [
+        {
+          "sender": {
+            "id": "instagram_user_123"
+          },
+          "recipient": {
+            "id": "your_instagram_business_account"
+          },
+          "timestamp": 1701234567890,
+          "message": {
+            "mid": "msg_123",
+            "text": "予約を取りたいのですが"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+### LINE Webhook（メッセージ受信シミュレーション）
+POST http://localhost:4001/api/v1/webhooks/line
+Content-Type: application/json
+X-Line-Signature: test-signature
+
+{
+  "events": [
+    {
+      "type": "message",
+      "timestamp": 1701234567890,
+      "source": {
+        "userId": "line_user_123"
+      },
+      "destination": "your_line_channel_id",
+      "message": {
+        "id": "line_msg_123",
+        "type": "text",
+        "text": "こんにちは！予約状況を教えてください"
+      }
+    }
+  ]
+}
