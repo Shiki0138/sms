@@ -24,6 +24,18 @@
     @apply bg-white rounded-lg border border-gray-200 p-6 shadow-sm;
   }
   
+  .card:hover {
+    @apply shadow-md;
+  }
+  
+  .card.clickable {
+    @apply cursor-pointer transition-all duration-200;
+  }
+  
+  .card.clickable:hover {
+    @apply shadow-lg transform scale-105;
+  }
+  
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }

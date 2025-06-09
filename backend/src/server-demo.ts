@@ -8,7 +8,7 @@ import { rateLimit } from 'express-rate-limit';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 4001;
+const port = process.env.PORT || 4002;
 
 // Rate limiting
 const limiter = rateLimit({
@@ -101,7 +101,7 @@ app.get(`${apiPrefix}/customers`, (req, res) => {
         name: '田中花子',
         phone: '090-1234-5678',
         email: 'tanaka@example.com',
-        instagramId: 'tanaka_hanako',
+        instagramId: 'shiki_fp_138',
         lineId: 'line_tanaka_123',
         visitCount: 5,
         lastVisitDate: '2024-12-01T10:00:00.000Z',
@@ -112,7 +112,7 @@ app.get(`${apiPrefix}/customers`, (req, res) => {
         name: '山田太郎',
         phone: '090-9876-5432',
         email: 'yamada@example.com',
-        instagramId: 'yamada_taro',
+        instagramId: 'shiki_fp_138',
         lineId: 'line_yamada_456',
         visitCount: 3,
         lastVisitDate: '2024-11-15T14:00:00.000Z',
@@ -149,7 +149,7 @@ app.get(`${apiPrefix}/messages/threads`, (req, res) => {
         customer: {
           id: 'customer-1',
           name: '田中花子',
-          instagramId: 'tanaka_hanako'
+          instagramId: 'shiki_fp_138'
         },
         channel: 'INSTAGRAM',
         status: 'OPEN',
