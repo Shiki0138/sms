@@ -1,11 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { createError, asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
-import { PERMISSIONS } from '../utils/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../database';
 
 // Validation schemas
 const createCustomerSchema = z.object({

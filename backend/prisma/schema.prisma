@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -31,6 +31,8 @@ model Tenant {
   auditLogs    AuditLog[]
   settings     TenantSetting[]
   tags         Tag[]
+  autoMessageTemplates AutoMessageTemplate[]
+  autoMessageLogs      AutoMessageLog[]
 
   @@map("tenants")
 }
@@ -54,7 +56,7 @@ model Staff {
   email        String    @unique
   password     String
   name         String
-  role         StaffRole @default(STAFF)
+  role         String    @default("STAFF") // ADMIN, MANAGER, STAFF
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   tenantId     String
@@ -72,18 +74,19 @@ model Staff {
   @@map("staff")
 }
 
-enum StaffRole {
-  ADMIN
-  MANAGER
-  STAFF
-}
+// enum StaffRole {
+//   ADMIN
+//   MANAGER
+//   STAFF
+// }
+// SQLite doesn't support enums, using String instead
 
 // 顧客
 model Customer {
   id              String    @id @default(cuid())
   name            String?
   nameKana        String?
-  gender          Gender?
+  gender          String? // MALE, FEMALE, OTHER
   birthDate       DateTime?
   phone           String?
   email           String?
@@ -103,22 +106,24 @@ model Customer {
   threads      MessageThread[]
   reservations Reservation[]
   customerTags CustomerTag[]
+  autoMessageLogs AutoMessageLog[]
 
   @@map("customers")
 }
 
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
-}
+// enum Gender {
+//   MALE
+//   FEMALE
+//   OTHER
+// }
+// SQLite doesn't support enums, using String instead
 
 // タグ
 model Tag {
   id          String @id @default(cuid())
   name        String
   color       String @default("#3B82F6")
-  type        TagType
+  type        String // CUSTOMER, THREAD
   tenantId    String
   createdAt   DateTime @default(now())
 
@@ -131,10 +136,11 @@ model Tag {
   @@map("tags")
 }
 
-enum TagType {
-  CUSTOMER
-  THREAD
-}
+// enum TagType {
+//   CUSTOMER
+//   THREAD
+// }
+// SQLite doesn't support enums, using String instead
 
 // 顧客タグの中間テーブル
 model CustomerTag {
@@ -153,10 +159,10 @@ model CustomerTag {
 model MessageThread {
   id                String            @id @default(cuid())
   customerId        String?
-  channel           MessageChannel
+  channel           String // INSTAGRAM, LINE
   channelThreadId   String            // Instagram thread ID or LINE user ID
   assignedStaffId   String?
-  status            ThreadStatus      @default(OPEN)
+  status            String            @default("OPEN") // OPEN, IN_PROGRESS, CLOSED
   tenantId          String
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -172,16 +178,16 @@ model MessageThread {
   @@map("message_threads")
 }
 
-enum MessageChannel {
-  INSTAGRAM
-  LINE
-}
-
-enum ThreadStatus {
-  OPEN
-  IN_PROGRESS
-  CLOSED
-}
+// enum MessageChannel {
+//   INSTAGRAM
+//   LINE
+// }
+// enum ThreadStatus {
+//   OPEN
+//   IN_PROGRESS
+//   CLOSED
+// }
+// SQLite doesn't support enums, using String instead
 
 // スレッドタグの中間テーブル
 model ThreadTag {
@@ -201,9 +207,9 @@ model Message {
   id           String      @id @default(cuid())
   threadId     String
   senderId     String?     // Staff ID if sent by staff, null if sent by customer
-  senderType   SenderType
+  senderType   String // CUSTOMER, STAFF
   content      String
-  mediaType    MediaType   @default(TEXT)
+  mediaType    String      @default("TEXT") // TEXT, IMAGE, STICKER, FILE
   mediaUrl     String?
   externalId   String?     // External platform message ID
   isRead       Boolean     @default(false)
@@ -216,17 +222,17 @@ model Message {
   @@map("messages")
 }
 
-enum SenderType {
-  CUSTOMER
-  STAFF
-}
-
-enum MediaType {
-  TEXT
-  IMAGE
-  STICKER
-  FILE
-}
+// enum SenderType {
+//   CUSTOMER
+//   STAFF
+// }
+// enum MediaType {
+//   TEXT
+//   IMAGE
+//   STICKER
+//   FILE
+// }
+// SQLite doesn't support enums, using String instead
 
 // 予約
 model Reservation {
@@ -239,37 +245,42 @@ model Reservation {
   customerPhone String?
   customerEmail String?
   staffId       String?
-  source        ReservationSource
+  source        String // HOTPEPPER, GOOGLE_CALENDAR, PHONE, WALK_IN, MANUAL
   sourceId      String?           // External system ID
-  status        ReservationStatus @default(CONFIRMED)
+  status        String            @default("CONFIRMED") // TENTATIVE, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW
   notes         String?
   tenantId      String
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
+  nextVisitDate     DateTime?
+  reminderSentAt    DateTime?
+  followUpSentAt    DateTime?
+
   // Relations
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   staff    Staff?    @relation("HandledBy", fields: [staffId], references: [id], onDelete: SetNull)
+  autoMessageLogs AutoMessageLog[]
 
   @@map("reservations")
 }
 
-enum ReservationSource {
-  HOTPEPPER
-  GOOGLE_CALENDAR
-  PHONE
-  WALK_IN
-  MANUAL
-}
-
-enum ReservationStatus {
-  TENTATIVE
-  CONFIRMED
-  COMPLETED
-  CANCELLED
-  NO_SHOW
-}
+// enum ReservationSource {
+//   HOTPEPPER
+//   GOOGLE_CALENDAR
+//   PHONE
+//   WALK_IN
+//   MANUAL
+// }
+// enum ReservationStatus {
+//   TENTATIVE
+//   CONFIRMED
+//   COMPLETED
+//   CANCELLED
+//   NO_SHOW
+// }
+// SQLite doesn't support enums, using String instead
 
 // テンプレート
 model Template {
@@ -307,4 +318,44 @@ model AuditLog {
   staff  Staff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
+}
+
+// 自動メッセージテンプレート
+model AutoMessageTemplate {
+  id          String   @id @default(cuid())
+  type        String   // REMINDER_1_WEEK, REMINDER_3_DAYS, FOLLOWUP_VISIT
+  title       String
+  content     String
+  isActive    Boolean  @default(true)
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, type])
+  @@map("auto_message_templates")
+}
+
+// 自動メッセージ送信ログ
+model AutoMessageLog {
+  id              String   @id @default(cuid())
+  reservationId   String?
+  customerId      String
+  templateType    String   // REMINDER_1_WEEK, REMINDER_3_DAYS, FOLLOWUP_VISIT
+  channel         String   // LINE, INSTAGRAM, EMAIL
+  messageContent  String
+  status          String   // SENT, FAILED, SCHEDULED
+  sentAt          DateTime?
+  errorMessage    String?
+  tenantId        String
+  createdAt       DateTime @default(now())
+
+  // Relations
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@map("auto_message_logs")
 }

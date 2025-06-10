@@ -24,7 +24,43 @@ const createReservationSchema = z.object({
   notes: z.string().optional(),
 });
 
-const updateReservationSchema = createReservationSchema.partial();
+// More flexible update schema with better date handling
+const updateReservationSchema = z.object({
+  startTime: z.string().optional().transform((str) => {
+    if (!str) return undefined;
+    const date = new Date(str);
+    if (isNaN(date.getTime())) {
+      throw new Error(`Invalid startTime format: ${str}`);
+    }
+    return date;
+  }),
+  endTime: z.string().optional().transform((str) => {
+    if (!str) return undefined;
+    const date = new Date(str);
+    if (isNaN(date.getTime())) {
+      throw new Error(`Invalid endTime format: ${str}`);
+    }
+    return date;
+  }),
+  menuContent: z.string().optional(),
+  customerName: z.string().optional(),
+  customerId: z.string().optional(),
+  customerPhone: z.string().optional(),
+  customerEmail: z.string().email().optional().or(z.literal('')),
+  staffId: z.string().optional(),
+  source: z.enum(['HOTPEPPER', 'GOOGLE_CALENDAR', 'PHONE', 'WALK_IN', 'MANUAL']).optional(),
+  sourceId: z.string().optional(),
+  status: z.enum(['TENTATIVE', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).optional(),
+  notes: z.string().optional(),
+  nextVisitDate: z.string().optional().transform((str) => {
+    if (!str) return undefined;
+    const date = new Date(str);
+    if (isNaN(date.getTime())) {
+      throw new Error(`Invalid nextVisitDate format: ${str}`);
+    }
+    return date;
+  }),
+});
 
 const reservationQuerySchema = z.object({
   startDate: z.string().optional().transform((str) => str ? new Date(str) : undefined),
@@ -274,96 +310,114 @@ export const createReservation = asyncHandler(async (req: Request, res: Response
  */
 export const updateReservation = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const data = updateReservationSchema.parse(req.body);
-  const tenantId = req.user!.tenantId;
-
-  // Check if reservation exists
-  const existingReservation = await prisma.reservation.findFirst({
-    where: { id, tenantId },
+  
+  // Log incoming request for debugging
+  logger.info(`Updating reservation ${id}`, {
+    reservationId: id,
+    requestBody: req.body,
+    tenantId: req.user!.tenantId,
   });
 
-  if (!existingReservation) {
-    throw createError('Reservation not found', 404);
-  }
+  try {
+    const data = updateReservationSchema.parse(req.body);
+    const tenantId = req.user!.tenantId;
 
-  // Verify customer exists if provided
-  if (data.customerId) {
-    const customer = await prisma.customer.findFirst({
-      where: { id: data.customerId, tenantId },
+    // Check if reservation exists
+    const existingReservation = await prisma.reservation.findFirst({
+      where: { id, tenantId },
     });
 
-    if (!customer) {
-      throw createError('Customer not found', 404);
+    if (!existingReservation) {
+      throw createError('Reservation not found', 404);
     }
-  }
 
-  // Verify staff exists if provided
-  if (data.staffId) {
-    const staff = await prisma.staff.findFirst({
-      where: { id: data.staffId, tenantId },
+    // Verify customer exists if provided
+    if (data.customerId) {
+      const customer = await prisma.customer.findFirst({
+        where: { id: data.customerId, tenantId },
+      });
+
+      if (!customer) {
+        throw createError('Customer not found', 404);
+      }
+    }
+
+    // Verify staff exists if provided
+    if (data.staffId) {
+      const staff = await prisma.staff.findFirst({
+        where: { id: data.staffId, tenantId },
+      });
+
+      if (!staff) {
+        throw createError('Staff member not found', 404);
+      }
+    }
+
+    const reservation = await prisma.reservation.update({
+      where: { id },
+      data,
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+          },
+        },
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            },
+        },
+      },
     });
 
-    if (!staff) {
-      throw createError('Staff member not found', 404);
+    // Update customer visit info if reservation is completed
+    if (data.status === 'COMPLETED' && reservation.customerId) {
+      await prisma.customer.update({
+        where: { id: reservation.customerId },
+        data: {
+          lastVisitDate: reservation.startTime,
+          visitCount: { increment: 1 },
+        },
+      });
     }
-  }
 
-  const reservation = await prisma.reservation.update({
-    where: { id },
-    data,
-    include: {
-      customer: {
-        select: {
-          id: true,
-          name: true,
-          phone: true,
-          email: true,
-        },
-      },
-      staff: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  });
-
-  // Update customer visit info if reservation is completed
-  if (data.status === 'COMPLETED' && reservation.customerId) {
-    await prisma.customer.update({
-      where: { id: reservation.customerId },
+    // Log audit event
+    await prisma.auditLog.create({
       data: {
-        lastVisitDate: reservation.startTime,
-        visitCount: { increment: 1 },
+        action: 'RESERVATION_UPDATED',
+        entityType: 'Reservation',
+        entityId: reservation.id,
+        description: `Reservation updated: status=${reservation.status}`,
+        staffId: req.user!.userId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        tenantId,
       },
     });
-  }
 
-  // Log audit event
-  await prisma.auditLog.create({
-    data: {
-      action: 'RESERVATION_UPDATED',
-      entityType: 'Reservation',
-      entityId: reservation.id,
-      description: `Reservation updated: status=${reservation.status}`,
-      staffId: req.user!.userId,
-      ipAddress: req.ip,
-      userAgent: req.get('user-agent'),
+    logger.info(`Reservation updated: ${reservation.id}`, {
+      reservationId: reservation.id,
       tenantId,
-    },
-  });
+      updatedBy: req.user!.userId,
+    });
 
-  logger.info(`Reservation updated: ${reservation.id}`, {
-    reservationId: reservation.id,
-    tenantId,
-    updatedBy: req.user!.userId,
-  });
+    res.status(200).json({ 
+      message: 'Reservation updated successfully',
+      reservation,
+    });
 
-  res.status(200).json({ 
-    message: 'Reservation updated successfully',
-    reservation,
-  });
+  } catch (parseError) {
+    logger.error(`Reservation update parse error for ${id}`, {
+      reservationId: id,
+      error: parseError,
+      requestBody: req.body,
+    });
+    throw createError(`Validation error: ${parseError instanceof Error ? parseError.message : 'Invalid data format'}`, 400);
+  }
 });
 
 /**
@@ -477,7 +531,7 @@ export const importHotpepperReservations = asyncHandler(async (req: Request, res
       if (staffName) {
         staff = await prisma.staff.findFirst({
           where: {
-            name: { contains: staffName, mode: 'insensitive' },
+            name: { contains: staffName },
             tenantId,
           },
         });
