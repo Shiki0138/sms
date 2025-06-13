@@ -7,6 +7,13 @@ import {
   sendMessage,
   markMessagesAsRead,
   getThreadStats,
+  performRFMAnalysis,
+  createSegment,
+  getSegmentCustomers,
+  createBroadcastCampaign,
+  getBroadcastAnalytics,
+  getBroadcastCampaigns,
+  testPersonalization,
 } from '../controllers/messageController';
 import { 
   authenticate, 
@@ -96,6 +103,85 @@ router.put(
   '/threads/:threadId/read',
   requirePermission(PERMISSIONS.MESSAGE_READ),
   markMessagesAsRead
+);
+
+// Broadcast Routes
+
+/**
+ * @route   POST /api/v1/messages/broadcast/segments
+ * @desc    Create customer segment
+ * @access  Private (requires message:write permission)
+ */
+router.post(
+  '/broadcast/segments',
+  requirePermission(PERMISSIONS.MESSAGE_WRITE),
+  createSegment
+);
+
+/**
+ * @route   GET /api/v1/messages/broadcast/segments
+ * @desc    Get customers in a segment
+ * @access  Private (requires message:read permission)
+ */
+router.get(
+  '/broadcast/segments',
+  requirePermission(PERMISSIONS.MESSAGE_READ),
+  getSegmentCustomers
+);
+
+/**
+ * @route   POST /api/v1/messages/broadcast/send
+ * @desc    Create and send broadcast campaign
+ * @access  Private (requires message:write permission)
+ */
+router.post(
+  '/broadcast/send',
+  requirePermission(PERMISSIONS.MESSAGE_WRITE),
+  createBroadcastCampaign
+);
+
+/**
+ * @route   GET /api/v1/messages/broadcast/analytics/:campaignId
+ * @desc    Get broadcast campaign analytics
+ * @access  Private (requires message:read permission)
+ */
+router.get(
+  '/broadcast/analytics/:campaignId',
+  requirePermission(PERMISSIONS.MESSAGE_READ),
+  getBroadcastAnalytics
+);
+
+/**
+ * @route   GET /api/v1/messages/broadcast/campaigns
+ * @desc    Get broadcast campaigns list
+ * @access  Private (requires message:read permission)
+ */
+router.get(
+  '/broadcast/campaigns',
+  requirePermission(PERMISSIONS.MESSAGE_READ),
+  getBroadcastCampaigns
+);
+
+/**
+ * @route   POST /api/v1/messages/broadcast/rfm-analysis
+ * @desc    Perform RFM analysis for customer segmentation
+ * @access  Private (requires message:read permission)
+ */
+router.post(
+  '/broadcast/rfm-analysis',
+  requirePermission(PERMISSIONS.MESSAGE_READ),
+  performRFMAnalysis
+);
+
+/**
+ * @route   POST /api/v1/messages/broadcast/test-personalization
+ * @desc    Test message personalization
+ * @access  Private (requires message:read permission)
+ */
+router.post(
+  '/broadcast/test-personalization',
+  requirePermission(PERMISSIONS.MESSAGE_READ),
+  testPersonalization
 );
 
 export default router;

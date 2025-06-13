@@ -1,10 +1,18 @@
 export interface JWTPayload {
-  userId: string;
+  staffId: string;
+  userId?: string; // Backward compatibility
   email: string;
   tenantId: string;
   role: 'ADMIN' | 'MANAGER' | 'STAFF';
   iat?: number;
   exp?: number;
+}
+
+// Session type extension
+declare module 'express-session' {
+  interface SessionData {
+    temp2FASecret?: string;
+  }
 }
 
 export interface LoginRequest {

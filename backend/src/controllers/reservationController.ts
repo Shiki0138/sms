@@ -5,6 +5,7 @@ import { createError, asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { PERMISSIONS } from '../utils/auth';
 import { createGoogleCalendarService } from '../services/googleCalendarService';
+import SmartBookingService from '../services/smartBookingService';
 
 const prisma = new PrismaClient();
 
@@ -80,6 +81,47 @@ const googleCalendarSyncSchema = z.object({
   startDate: z.string().transform((str) => new Date(str)),
   endDate: z.string().transform((str) => new Date(str)),
   calendarId: z.string().optional().default('primary'),
+});
+
+// Smart booking schemas
+const optimizeBookingSchema = z.object({
+  menuContent: z.string(),
+  estimatedDuration: z.number().min(15).max(480), // 15 minutes to 8 hours
+  preferredDate: z.string().transform((str) => new Date(str)),
+  preferredTimeRange: z.object({
+    start: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/), // HH:MM format
+    end: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  }).optional(),
+  customerId: z.string().optional(),
+  customerPriority: z.enum(['VIP', 'REGULAR', 'NEW']).default('REGULAR'),
+  flexibility: z.number().min(0).max(1).default(0.5),
+});
+
+const smartBookSchema = z.object({
+  startTime: z.string().transform((str) => new Date(str)),
+  endTime: z.string().transform((str) => new Date(str)),
+  menuContent: z.string(),
+  customerId: z.string().optional(),
+  customerName: z.string().optional(),
+  customerPhone: z.string().optional(),
+  customerEmail: z.string().email().optional().or(z.literal('')),
+  staffId: z.string(),
+  useOptimization: z.boolean().default(true),
+  notes: z.string().optional(),
+});
+
+const availabilityQuerySchema = z.object({
+  date: z.string().transform((str) => new Date(str)),
+});
+
+const demandPredictionSchema = z.object({
+  startDate: z.string().transform((str) => new Date(str)),
+  endDate: z.string().transform((str) => new Date(str)),
+});
+
+const noShowPredictionSchema = z.object({
+  customerId: z.string(),
+  reservationDate: z.string().transform((str) => new Date(str)),
 });
 
 /**
@@ -724,5 +766,295 @@ export const syncGoogleCalendar = asyncHandler(async (req: Request, res: Respons
     });
 
     throw createError('Failed to sync Google Calendar', 500);
+  }
+});
+
+/**
+ * Optimize booking suggestions using smart booking algorithm
+ */
+export const optimizeBooking = asyncHandler(async (req: Request, res: Response) => {
+  const data = optimizeBookingSchema.parse(req.body);
+  const tenantId = req.user!.tenantId;
+
+  const smartBookingService = new SmartBookingService(tenantId);
+  
+  try {
+    const suggestions = await smartBookingService.optimizeBooking({
+      menuContent: data.menuContent,
+      estimatedDuration: data.estimatedDuration,
+      preferredDate: data.preferredDate,
+      preferredTimeRange: data.preferredTimeRange,
+      customerId: data.customerId,
+      customerPriority: data.customerPriority,
+      flexibility: data.flexibility,
+    });
+
+    logger.info('Booking optimization completed', {
+      tenantId,
+      suggestionsCount: suggestions.length,
+      requestedBy: req.user!.userId,
+    });
+
+    res.status(200).json({
+      message: 'Booking optimization completed',
+      suggestions,
+      metadata: {
+        requestedDate: data.preferredDate.toISOString(),
+        menuContent: data.menuContent,
+        estimatedDuration: data.estimatedDuration,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Booking optimization failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      tenantId,
+      data,
+    });
+    throw createError('Failed to optimize booking', 500);
+  }
+});
+
+/**
+ * Get availability analysis for a specific date
+ */
+export const getAvailabilityAnalysis = asyncHandler(async (req: Request, res: Response) => {
+  const { date } = availabilityQuerySchema.parse({ date: req.params.date });
+  const tenantId = req.user!.tenantId;
+
+  const smartBookingService = new SmartBookingService(tenantId);
+  
+  try {
+    const analysis = await smartBookingService.getAvailabilityAnalysis(date);
+
+    res.status(200).json({
+      message: 'Availability analysis completed',
+      date: date.toISOString(),
+      analysis,
+    });
+
+  } catch (error) {
+    logger.error('Availability analysis failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      tenantId,
+      date,
+    });
+    throw createError('Failed to analyze availability', 500);
+  }
+});
+
+/**
+ * Create smart booking with optimization
+ */
+export const createSmartBooking = asyncHandler(async (req: Request, res: Response) => {
+  const data = smartBookSchema.parse(req.body);
+  const tenantId = req.user!.tenantId;
+
+  // Verify customer exists if provided
+  if (data.customerId) {
+    const customer = await prisma.customer.findFirst({
+      where: { id: data.customerId, tenantId },
+    });
+
+    if (!customer) {
+      throw createError('Customer not found', 404);
+    }
+  }
+
+  // Verify staff exists
+  const staff = await prisma.staff.findFirst({
+    where: { id: data.staffId, tenantId },
+  });
+
+  if (!staff) {
+    throw createError('Staff member not found', 404);
+  }
+
+  // Check for conflicts
+  const conflictingReservations = await prisma.reservation.findMany({
+    where: {
+      staffId: data.staffId,
+      tenantId,
+      status: { in: ['CONFIRMED', 'TENTATIVE'] },
+      OR: [
+        {
+          AND: [
+            { startTime: { lte: data.startTime } },
+            { endTime: { gte: data.startTime } },
+          ],
+        },
+        {
+          AND: [
+            { startTime: { lte: data.endTime } },
+            { endTime: { gte: data.endTime } },
+          ],
+        },
+      ],
+    },
+  });
+
+  if (conflictingReservations.length > 0) {
+    throw createError('Time slot conflicts with existing reservation', 409);
+  }
+
+  // Predict no-show if customer ID is provided
+  let noShowPrediction = null;
+  if (data.customerId && data.useOptimization) {
+    const smartBookingService = new SmartBookingService(tenantId);
+    try {
+      noShowPrediction = await smartBookingService.predictNoShow(
+        data.customerId,
+        data.startTime
+      );
+    } catch (error) {
+      logger.warn('No-show prediction failed, continuing with booking', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        customerId: data.customerId,
+      });
+    }
+  }
+
+  const reservation = await prisma.reservation.create({
+    data: {
+      startTime: data.startTime,
+      endTime: data.endTime,
+      menuContent: data.menuContent,
+      customerName: data.customerName,
+      customerId: data.customerId,
+      customerPhone: data.customerPhone,
+      customerEmail: data.customerEmail,
+      staffId: data.staffId,
+      source: 'MANUAL',
+      status: 'CONFIRMED',
+      notes: data.notes,
+      tenantId,
+    },
+    include: {
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+        },
+      },
+      staff: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  // Log audit event
+  await prisma.auditLog.create({
+    data: {
+      action: 'SMART_RESERVATION_CREATED',
+      entityType: 'Reservation',
+      entityId: reservation.id,
+      description: `Smart reservation created: ${data.customerName || reservation.customer?.name || 'Unknown'} - ${data.menuContent}`,
+      staffId: req.user!.userId,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      tenantId,
+    },
+  });
+
+  logger.info(`Smart reservation created: ${reservation.id}`, {
+    reservationId: reservation.id,
+    tenantId,
+    createdBy: req.user!.userId,
+    noShowPrediction: noShowPrediction?.probability,
+  });
+
+  res.status(201).json({
+    message: 'Smart reservation created successfully',
+    reservation,
+    predictions: noShowPrediction ? {
+      noShowProbability: noShowPrediction.probability,
+      recommendations: noShowPrediction.recommendations,
+    } : null,
+  });
+});
+
+/**
+ * Get demand predictions for a date range
+ */
+export const getDemandPredictions = asyncHandler(async (req: Request, res: Response) => {
+  const { startDate, endDate } = demandPredictionSchema.parse(req.query);
+  const tenantId = req.user!.tenantId;
+
+  // Validate date range
+  const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysDiff > 30) {
+    throw createError('Date range cannot exceed 30 days', 400);
+  }
+
+  const smartBookingService = new SmartBookingService(tenantId);
+  
+  try {
+    const predictions = await smartBookingService.predictDemand(startDate, endDate);
+
+    res.status(200).json({
+      message: 'Demand prediction completed',
+      dateRange: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        days: daysDiff,
+      },
+      predictions,
+    });
+
+  } catch (error) {
+    logger.error('Demand prediction failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      tenantId,
+      startDate,
+      endDate,
+    });
+    throw createError('Failed to predict demand', 500);
+  }
+});
+
+/**
+ * Predict no-show probability for a customer
+ */
+export const predictNoShow = asyncHandler(async (req: Request, res: Response) => {
+  const { customerId, reservationDate } = noShowPredictionSchema.parse(req.body);
+  const tenantId = req.user!.tenantId;
+
+  // Verify customer exists
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, tenantId },
+  });
+
+  if (!customer) {
+    throw createError('Customer not found', 404);
+  }
+
+  const smartBookingService = new SmartBookingService(tenantId);
+  
+  try {
+    const prediction = await smartBookingService.predictNoShow(customerId, reservationDate);
+
+    res.status(200).json({
+      message: 'No-show prediction completed',
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        visitCount: customer.visitCount,
+      },
+      prediction,
+    });
+
+  } catch (error) {
+    logger.error('No-show prediction failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      tenantId,
+      customerId,
+      reservationDate,
+    });
+    throw createError('Failed to predict no-show', 500);
   }
 });

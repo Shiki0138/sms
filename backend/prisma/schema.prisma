@@ -33,6 +33,16 @@ model Tenant {
   tags         Tag[]
   autoMessageTemplates AutoMessageTemplate[]
   autoMessageLogs      AutoMessageLog[]
+  menus                Menu[]
+  menuCategories       MenuCategory[]
+  menuHistory          MenuHistory[]
+  recommendations      MenuRecommendation[]
+  notifications        Notification[]
+  analyticsMetrics     AnalyticsMetric[]
+  predictionData       PredictionData[]
+  customerBehaviors    CustomerBehavior[]
+  loginHistory         LoginHistory[]
+  securityEvents       SecurityEvent[]
 
   @@map("tenants")
 }
@@ -63,6 +73,20 @@ model Staff {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // 2FA関連
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+  backupCodes      String? // JSON配列形式
+  
+  // セッション管理
+  refreshTokens    RefreshToken[]
+  
+  // セキュリティ
+  loginAttempts    Int      @default(0)
+  lockedUntil      DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+
   // Relations
   tenant                  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   assignedThreads         MessageThread[] @relation("AssignedStaff")
@@ -70,6 +94,9 @@ model Staff {
   handledReservations     Reservation[]   @relation("HandledBy")
   createdTemplates        Template[]
   auditLogs               AuditLog[]
+  notifications           Notification[]
+  loginHistory            LoginHistory[] @relation("LoginHistory")
+  securityEvents          SecurityEvent[] @relation("SecurityEvents")
 
   @@map("staff")
 }
@@ -107,6 +134,10 @@ model Customer {
   reservations Reservation[]
   customerTags CustomerTag[]
   autoMessageLogs AutoMessageLog[]
+  menuHistory  MenuHistory[]
+  recommendations MenuRecommendation[]
+  notifications Notification[]
+  customerBehavior CustomerBehavior?
 
   @@map("customers")
 }
@@ -359,3 +390,243 @@ model AutoMessageLog {
 
   @@map("auto_message_logs")
 }
+
+// メニューカテゴリー
+model MenuCategory {
+  id          String   @id @default(cuid())
+  name        String
+  displayOrder Int     @default(0)
+  isActive    Boolean  @default(true)
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  menus  Menu[]
+
+  @@unique([tenantId, name])
+  @@map("menu_categories")
+}
+
+// メニュー
+model Menu {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  price        Int      // 円単位
+  duration     Int      // 分単位
+  categoryId   String
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  tenantId     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // AI推奨用データ
+  popularity     Int @default(0) // 人気度スコア
+  seasonality    String? // SPRING, SUMMER, AUTUMN, WINTER, ALL
+  ageGroup       String? // TEENS, TWENTIES, THIRTIES, FORTIES_PLUS, ALL
+  genderTarget   String? // MALE, FEMALE, ALL
+
+  // Relations
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category       MenuCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  menuHistory    MenuHistory[]
+  recommendations MenuRecommendation[]
+
+  @@map("menus")
+}
+
+// 顧客メニュー履歴
+model MenuHistory {
+  id          String   @id @default(cuid())
+  customerId  String
+  menuId      String
+  visitDate   DateTime
+  satisfaction Int?    // 1-5 満足度スコア
+  notes       String?
+  tenantId    String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("menu_history")
+}
+
+// AIメニュー推奨
+model MenuRecommendation {
+  id         String   @id @default(cuid())
+  customerId String
+  menuId     String
+  tenantId   String
+  score      Float    // 0.0-1.0 推奨スコア
+  reasoning  String   // 推奨理由
+  factors    String   // JSON形式で推奨要因データ
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime // 推奨の有効期限
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("menu_recommendations")
+}
+
+// 通知
+model Notification {
+  id         String   @id @default(cuid())
+  type       String   // NEW_MESSAGE, RESERVATION_CHANGE, URGENT_ALERT, SYSTEM_NOTIFICATION
+  title      String
+  message    String
+  tenantId   String
+  staffId    String?
+  customerId String?
+  metadata   String?  // JSON形式でメタデータ保存
+  priority   String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  isRead     Boolean  @default(false)
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  tenant   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff    Staff?     @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, isRead])
+  @@index([staffId, isRead])
+  @@map("notifications")
+}
+
+// 分析メトリクス
+model AnalyticsMetric {
+  id        String   @id @default(cuid())
+  tenantId  String
+  metricKey String   // revenue_daily, customers_new, reservations_count, etc.
+  value     Float
+  date      DateTime
+  metadata  String?  // JSON形式で詳細データ
+  createdAt DateTime @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, metricKey, date])
+  @@index([tenantId, metricKey])
+  @@index([date])
+  @@map("analytics_metrics")
+}
+
+// 予測データ
+model PredictionData {
+  id           String   @id @default(cuid())
+  tenantId     String
+  predictionType String // revenue_forecast, customer_churn, demand_forecast
+  targetDate   DateTime
+  predictedValue Float
+  confidence   Float    // 0.0-1.0 信頼度
+  actualValue  Float?   // 後から実績値を記録
+  features     String   // JSON形式で予測に使用した特徴量
+  modelVersion String   @default("v1.0")
+  createdAt    DateTime @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, predictionType, targetDate, modelVersion])
+  @@index([tenantId, predictionType])
+  @@index([targetDate])
+  @@map("prediction_data")
+}
+
+// 顧客行動分析
+model CustomerBehavior {
+  id                String   @id @default(cuid())
+  customerId        String
+  tenantId          String
+  lastVisitDate     DateTime?
+  visitFrequency    Float?   // 平均来店間隔（日）
+  averageSpending   Float?   // 平均客単価
+  preferredTimeSlot String?  // 好みの時間帯
+  churnProbability  Float?   // 0.0-1.0 離脱確率
+  lifetimeValue     Float?   // 顧客生涯価値
+  riskScore         Float?   // 0.0-1.0 リスクスコア
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId])
+  @@index([tenantId, churnProbability])
+  @@index([tenantId, lifetimeValue])
+  @@map("customer_behaviors")
+}
+
+// リフレッシュトークン
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  staffId   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  isRevoked Boolean  @default(false)
+  
+  // デバイス情報
+  userAgent String?
+  ipAddress String?
+  
+  // Relations
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  @@map("refresh_tokens")
+}
+
+// ログイン履歴
+model LoginHistory {
+  id         String   @id @default(cuid())
+  staffId    String?
+  tenantId   String
+  email      String
+  success    Boolean
+  ipAddress  String?
+  userAgent  String?
+  failReason String?
+  createdAt  DateTime @default(now())
+  
+  // Relations
+  staff  Staff?  @relation("LoginHistory", fields: [staffId], references: [id], onDelete: SetNull)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([staffId])
+  @@index([tenantId, createdAt])
+  @@map("login_history")
+}
+
+// セキュリティイベント
+model SecurityEvent {
+  id          String   @id @default(cuid())
+  tenantId    String
+  staffId     String?
+  eventType   String   // LOGIN_FAILED, ACCOUNT_LOCKED, PASSWORD_RESET, 2FA_ENABLED, etc.
+  description String
+  ipAddress   String?
+  userAgent   String?
+  metadata    String?  // JSON形式
+  severity    String   @default("INFO") // INFO, WARNING, CRITICAL
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff? @relation("SecurityEvents", fields: [staffId], references: [id], onDelete: SetNull)
+  
+  @@index([tenantId, severity])
+  @@index([eventType])
+  @@map("security_events")
+}
+

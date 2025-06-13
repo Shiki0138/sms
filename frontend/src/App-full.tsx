@@ -37,7 +37,7 @@ import axios from 'axios'
 import { format, isToday, isTomorrow } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
-const API_BASE_URL = 'http://localhost:4002/api/v1'
+const API_BASE_URL = 'http://localhost:8080/api/v1'
 
 interface MessageThread {
   id: string

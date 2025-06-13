@@ -1,0 +1,49 @@
+# Node modules
+node_modules
+npm-debug.log*
+
+# Build outputs
+dist
+
+# Environment files
+.env*
+
+# Log files
+logs
+*.log
+
+# Database files
+*.db
+*.sqlite
+dev.db
+
+# Uploads
+uploads/
+
+# Development files
+src/**/*.ts
+!dist/**/*
+tsconfig.json
+nodemon.json
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+__tests__/
+coverage/
+
+# Documentation
+*.md
+docs/
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# IDE
+.vscode
+.idea

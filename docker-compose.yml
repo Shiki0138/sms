@@ -17,6 +17,11 @@ services:
       - ./database/init:/docker-entrypoint-initdb.d
     networks:
       - salon_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salon_user -d salon_management"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Redis for caching and sessions
   redis:
@@ -30,6 +35,58 @@ services:
       - redis_data:/data
     networks:
       - salon_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: salon_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://salon_user:salon_password@postgres:5432/salon_management
+      REDIS_URL: redis://redis:6379
+      PORT: 4002
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production-make-it-long-and-random}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-refresh-key-change-this-in-production-make-it-different}
+      SESSION_SECRET: ${SESSION_SECRET:-your-super-secret-session-key-change-this-in-production-for-2fa-setup}
+      ACCESS_TOKEN_EXPIRY: 15m
+      REFRESH_TOKEN_EXPIRY: 7d
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+    ports:
+      - "4002:4002"
+    networks:
+      - salon_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: salon_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - salon_network
+    depends_on:
+      - backend
 
   # pgAdmin for database management (development only)
   pgadmin:
@@ -47,6 +104,8 @@ services:
       - salon_network
     depends_on:
       - postgres
+    profiles:
+      - development
 
 volumes:
   postgres_data:
