@@ -35,10 +35,6 @@ module.exports = {
   clearMocks: true,
   restoreMocks: true,
   verbose: true,
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/backend/src/$1',
-    '^@frontend/(.*)$': '<rootDir>/frontend/src/$1'
-  },
   testEnvironmentOptions: {
     globals: {
       'ts-jest': {

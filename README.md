@@ -1,6 +1,8 @@
-# 美容室統合管理システム (Salon Management System)
+# 🏪 美容室統合管理システム
 
-完全な美容室向けSaaS管理システムです。顧客管理、予約管理、メッセージ統合管理、自動リマインダー機能を備えています。
+[![Deploy to GCP](https://github.com/YOUR_USERNAME/salon-management-system/actions/workflows/deploy-gcp.yml/badge.svg)](https://github.com/YOUR_USERNAME/salon-management-system/actions/workflows/deploy-gcp.yml)
+
+AI搭載の次世代美容室統合管理システム。200店舗規模まで対応可能な本格的なSaaSソリューションです。
 
 ## 🌟 主要機能
 
