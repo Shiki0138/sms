@@ -1,69 +1,51 @@
-# 🐳 美容室統合管理システム - 本番用Dockerファイル
+# 🐳 美容室統合管理システム - 本番用Dockerfile (Finalized)
 
-# ===== Multi-stage Build for Production =====
-
-# Stage 1: Base image with common dependencies
+# ===== Stage 1: Base image =====
 FROM node:18-alpine AS base
 LABEL maintainer="Team C - QA & Deploy <qa@salon-system.com>"
 LABEL description="美容室統合管理システム - 本番環境用"
 
-# セキュリティ強化
 RUN addgroup -g 1001 -S salon && \
     adduser -S salon -u 1001 -G salon
 
-# 作業ディレクトリ設定
 WORKDIR /app
 
-# システム依存関係のインストール
 RUN apk add --no-cache \
     dumb-init \
     tzdata \
     curl \
     && rm -rf /var/cache/apk/*
 
-# タイムゾーン設定
 ENV TZ=Asia/Tokyo
 
-# Stage 2: Backend build
+# ===== Stage 2: Backend builder =====
 FROM base AS backend-builder
 
-# バックエンドソースコピー
-COPY backend/package*.json ./backend/
-COPY backend/prisma ./backend/prisma/
-
-# 依存関係インストール（プロダクション用）
-RUN cd backend && \
-    npm ci --only=production && \
-    npm cache clean --force
-
-# バックエンドソースコピー・ビルド
 COPY backend/ ./backend/
-RUN cd backend && \
-    npm run build && \
-    npx prisma generate
 
-# Stage 3: Frontend build
+RUN cd backend && \
+    npm ci && \
+    npm run build && \
+    npx prisma generate && \
+    rm -rf node_modules && \
+    npm ci --omit=dev --silent
+
+# ===== Stage 3: Frontend builder =====
 FROM base AS frontend-builder
 
-# フロントエンド依存関係インストール
-COPY frontend/package*.json ./frontend/
+COPY frontend/ ./frontend/
+
 RUN cd frontend && \
     npm ci && \
+    npm run build && \
     npm cache clean --force
 
-# フロントエンドソースコピー・ビルド
-COPY frontend/ ./frontend/
-RUN cd frontend && \
-    npm run build
-
-# Stage 4: Production runtime
+# ===== Stage 4: Production runtime =====
 FROM node:18-alpine AS production
 
-# セキュリティ強化
 RUN addgroup -g 1001 -S salon && \
     adduser -S salon -u 1001 -G salon
 
-# 必要なシステムパッケージ
 RUN apk add --no-cache \
     dumb-init \
     tzdata \
@@ -72,47 +54,40 @@ RUN apk add --no-cache \
     supervisor \
     && rm -rf /var/cache/apk/*
 
-# 作業ディレクトリ
 WORKDIR /app
 
-# バックエンド成果物コピー
+# Backend
 COPY --from=backend-builder --chown=salon:salon /app/backend/dist ./backend/dist
 COPY --from=backend-builder --chown=salon:salon /app/backend/node_modules ./backend/node_modules
 COPY --from=backend-builder --chown=salon:salon /app/backend/prisma ./backend/prisma
 COPY --from=backend-builder --chown=salon:salon /app/backend/package.json ./backend/
 
-# フロントエンド成果物コピー
+# Frontend
 COPY --from=frontend-builder --chown=salon:salon /app/frontend/dist ./frontend/dist
 
-# Nginx設定
+# Nginx & Supervisor
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisor.conf /etc/supervisor/conf.d/supervisord.conf
 
-# 環境変数設定
+# Healthcheck
+COPY docker/healthcheck.js /app/healthcheck.js
+RUN chmod +x /app/healthcheck.js
+
 ENV NODE_ENV=production
 ENV PORT=4002
 ENV FRONTEND_PORT=80
 
-# ヘルスチェックスクリプト
-COPY docker/healthcheck.js /app/healthcheck.js
-RUN chmod +x /app/healthcheck.js
-
-# ポート公開
 EXPOSE 80 4002
 
-# ヘルスチェック設定
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node /app/healthcheck.js
+  CMD node /app/healthcheck.js
 
-# 権限設定
 RUN chown -R salon:salon /app
 USER salon
 
-# プロセス起動（Supervisor使用）
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
-# メタデータ
 LABEL version="1.0.0"
 LABEL release="production"
 LABEL org.opencontainers.image.title="美容室統合管理システム"

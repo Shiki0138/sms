@@ -21,9 +21,9 @@ dev.db
 uploads/
 
 # Development files
-src/**/*.ts
+# src/**/*.ts
 !dist/**/*
-tsconfig.json
+# tsconfig.json
 nodemon.json
 
 # Test files

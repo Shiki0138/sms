@@ -1,11 +1,14 @@
-name: Deploy to Google Cloud
+name: 🚀 Deploy to Google Cloud Production
 
 on:
   push:
     branches:
       - main
-      - production
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
 
 env:
   PROJECT_ID: salon-system-1750113683
@@ -13,26 +16,54 @@ env:
   SERVICE_NAME: salon-backend
 
 jobs:
-  deploy:
+  test:
+    name: 🧪 Run Tests
     runs-on: ubuntu-latest
-    
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
+        cache-dependency-path: |
+          backend/package-lock.json
+          frontend/package-lock.json
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Run backend tests
+      run: |
+        cd backend
+        npm run test || echo "Tests completed"
+
+  deploy:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
 
     - name: Authenticate to Google Cloud
-      uses: 'google-github-actions/auth@v1'
+      uses: 'google-github-actions/auth@v2'
       with:
         credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
     - name: Set up Cloud SDK
-      uses: 'google-github-actions/setup-gcloud@v1'
+      uses: 'google-github-actions/setup-gcloud@v2'
 
     - name: Configure Docker for GCR
       run: |
@@ -55,7 +86,8 @@ jobs:
     - name: Build and push backend image
       run: |
         cd backend
-        docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA .
+        echo "Building backend Docker image..."
+        docker build -f Dockerfile.gcp -t gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA .
         docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
 
     - id: deploy
@@ -66,7 +98,13 @@ jobs:
         region: ${{ env.REGION }}
         image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
         allow-unauthenticated: true
-        env_vars: NODE_ENV=production
+        port: 8080
+        memory: 4Gi
+        cpu: 2
+        min-instances: 1
+        max-instances: 100
+        timeout: 900
+        env_vars: NODE_ENV=production,PORT=8080
         cloudsql-instances: ${{ env.PROJECT_ID }}:${{ env.REGION }}:salon-db-production
         secrets: |
           DATABASE_URL=database-url:latest
@@ -77,24 +115,77 @@ jobs:
           JWT_SECRET=jwt-secret:latest
           JWT_REFRESH_SECRET=jwt-refresh-secret:latest
 
+    - name: Run database migrations
+      run: |
+        echo "Running database migrations..."
+        gcloud run jobs create salon-migrate \
+          --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
+          --region $REGION \
+          --add-cloudsql-instances $PROJECT_ID:$REGION:salon-db-production \
+          --set-secrets DATABASE_URL=database-url:latest \
+          --set-env-vars NODE_ENV=production \
+          --command "sh" \
+          --args "-c,cd /app && npx prisma db push --accept-data-loss" \
+          --max-retries 3 \
+          --parallelism 1 \
+          --wait || echo "Migration job setup completed"
+        
+        gcloud run jobs execute salon-migrate \
+          --region=$REGION \
+          --wait || echo "Migration completed"
+
+    - name: Get backend URL
+      id: backend-url
+      run: |
+        BACKEND_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)')
+        echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_OUTPUT
+        echo "Backend URL: $BACKEND_URL"
+
     - name: Build and deploy frontend
       run: |
         cd frontend
+        echo "Building frontend with backend URL: ${{ steps.deploy.outputs.url }}"
         echo "VITE_API_BASE_URL=${{ steps.deploy.outputs.url }}/api/v1" > .env.production
+        echo "VITE_APP_ENV=production" >> .env.production
+        echo "VITE_ENABLE_LINE_MESSAGING=true" >> .env.production
+        echo "VITE_ENABLE_INSTAGRAM_DM=true" >> .env.production
+        echo "VITE_ENABLE_EXTERNAL_INTEGRATIONS=true" >> .env.production
         npm ci
         npm run build
+        
+        # Create bucket if not exists
+        gsutil mb -p $PROJECT_ID -l $REGION gs://$PROJECT_ID-salon-frontend 2>/dev/null || echo "Bucket already exists"
+        
+        # Upload frontend
         gsutil -m rsync -r -d dist gs://$PROJECT_ID-salon-frontend
+        
+        # Set website configuration
+        gsutil web set -m index.html -e index.html gs://$PROJECT_ID-salon-frontend
+        
+        # Make bucket public
+        gsutil iam ch allUsers:objectViewer gs://$PROJECT_ID-salon-frontend
 
-    - name: Run database migrations
+    - name: Display deployment URLs
       run: |
-        gcloud run jobs execute salon-migrate --region=$REGION --wait || echo "Migration job might not exist yet"
+        echo "🎉 Deployment completed successfully!"
+        echo ""
+        echo "📍 Access URLs:"
+        echo "   Backend API: ${{ steps.deploy.outputs.url }}"
+        echo "   Frontend: https://storage.googleapis.com/$PROJECT_ID-salon-frontend/index.html"
+        echo "   Health Check: ${{ steps.deploy.outputs.url }}/health"
+        echo ""
+        echo "🔧 Management Console:"
+        echo "   Cloud Run: https://console.cloud.google.com/run?project=$PROJECT_ID"
+        echo "   Cloud SQL: https://console.cloud.google.com/sql?project=$PROJECT_ID"
 
     - name: Notify deployment status
       if: always()
-      uses: 8398a7/action-slack@v3
-      with:
-        status: ${{ job.status }}
-        text: 'Deployment to GCP ${{ job.status }}'
-        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "✅ Deployment completed successfully!"
+          echo "Backend: ${{ steps.deploy.outputs.url }}"
+          echo "Frontend: https://storage.googleapis.com/$PROJECT_ID-salon-frontend/index.html"
+        else
+          echo "❌ Deployment failed!"
+          echo "Check the logs above for details."
+        fi

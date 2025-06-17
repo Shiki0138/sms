@@ -1,32 +1,34 @@
-# Frontend Dockerfile
+# 📁 Frontend Dockerfile (Finalized)
+
+# ===== Stage 1: Build =====
 FROM node:20-alpine AS builder
 
-# Set working directory
+# ワーキングディレクトリ設定
 WORKDIR /app
 
-# Install dependencies
+# 依存関係のインストール
 COPY package*.json ./
 RUN npm ci
 
-# Copy source code and build
+# ソースコードのコピーとビルド
 COPY . .
 RUN npm run build
 
-# Production stage with nginx
-FROM nginx:alpine
+# ===== Stage 2: Production (nginx) =====
+FROM nginx:alpine AS production
 
-# Copy built app from builder stage
+# ビルド結果を nginx 配置先にコピー
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
+# nginx設定ファイルのコピー
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose port
+# ポート開放
 EXPOSE 80
 
-# Health check
+# Healthcheck 設定
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
 
-# Start nginx
+# nginx 起動
 CMD ["nginx", "-g", "daemon off;"]

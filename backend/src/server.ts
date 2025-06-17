@@ -114,15 +114,25 @@ app.use(session({
 app.use('/api/v1/auth', authRateLimit);
 app.use('/api', apiRateLimit);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    version: process.env.API_VERSION || 'v1',
-    message: 'Salon Management API - Production Mode (Database Connected)',
-    database: 'Connected'
-  });
+// Health check endpoint (Cloud Run optimized)
+app.get('/health', async (req, res) => {
+  try {
+    res.status(200).json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.API_VERSION || 'v1',
+      message: 'Salon Management API - Production Ready',
+      database: 'Connected'
+    });
+  } catch (error) {
+    res.status(503).json({ 
+      status: 'unhealthy', 
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed'
+    });
+  }
 });
 
 // API Routes
