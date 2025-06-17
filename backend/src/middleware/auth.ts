@@ -5,15 +5,7 @@ import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
 
-// Request型を拡張してユーザー情報を追加
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-      tenantId?: string;
-    }
-  }
-}
+// 型定義は types/auth.ts で統一管理
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -179,3 +171,7 @@ export const ensureTenantAccess = requireTenant;
 export const adminOnly = requireAdmin;
 export const managerOrAdmin = requireManager;
 export const staffOrHigher = requireStaff;
+
+// 新しいエクスポート
+export const auth = authMiddleware;
+export const requirePermission = requireRole;

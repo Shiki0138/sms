@@ -241,7 +241,7 @@ export class AuthController {
           id: staff.id,
           tenantId: staff.tenantId,
           email: staff.email,
-          role: staff.role,
+          role: staff.role as 'ADMIN' | 'MANAGER' | 'STAFF',
         },
         ipAddress,
         userAgent
@@ -364,9 +364,10 @@ export class AuthController {
       // 新しいアクセストークン生成
       const newAccessToken = JWTService.generateAccessToken({
         staffId: staff.id,
+        userId: staff.id,
         tenantId: staff.tenantId,
         email: staff.email,
-        role: staff.role,
+        role: staff.role as 'ADMIN' | 'MANAGER' | 'STAFF',
       });
 
       await SecurityService.logSecurityEvent(

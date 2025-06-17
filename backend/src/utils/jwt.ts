@@ -2,24 +2,18 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { logger } from './logger';
+import { JWTPayload } from '../types/auth';
+
+export { JWTPayload };
 
 const prisma = new PrismaClient();
-
-export interface JWTPayload {
-  staffId: string;
-  tenantId: string;
-  email: string;
-  role: string;
-  iat?: number;
-  exp?: number;
-}
 
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+const JWT_SECRET: string = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-this-in-production';
 const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '15m';
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
@@ -29,11 +23,23 @@ export class JWTService {
    * アクセストークン生成
    */
   static generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-    return jwt.sign(payload, JWT_SECRET, {
+    const jwtPayload = {
+      ...payload,
+      // Ensure all required fields are present
+      staffId: payload.staffId,
+      userId: payload.userId,
+      email: payload.email,
+      tenantId: payload.tenantId,
+      role: payload.role
+    };
+    
+    const options = {
       expiresIn: ACCESS_TOKEN_EXPIRY,
       issuer: 'salon-management-system',
       audience: 'salon-management-client',
-    });
+    } as jwt.SignOptions;
+    
+    return jwt.sign(jwtPayload, JWT_SECRET, options);
   }
 
   /**
@@ -65,12 +71,13 @@ export class JWTService {
    * トークンペア生成
    */
   static async generateTokenPair(
-    staff: { id: string; tenantId: string; email: string; role: string },
+    staff: { id: string; tenantId: string; email: string; role: 'ADMIN' | 'MANAGER' | 'STAFF' },
     ipAddress?: string,
     userAgent?: string
   ): Promise<TokenPair> {
     const accessToken = this.generateAccessToken({
       staffId: staff.id,
+      userId: staff.id,
       tenantId: staff.tenantId,
       email: staff.email,
       role: staff.role,
@@ -106,7 +113,7 @@ export class JWTService {
    * リフレッシュトークン検証・使用
    */
   static async verifyAndUseRefreshToken(token: string): Promise<{
-    staff: { id: string; tenantId: string; email: string; role: string } | null;
+    staff: { id: string; tenantId: string; email: string; role: 'ADMIN' | 'MANAGER' | 'STAFF' } | null;
     tokenRecord: any;
   }> {
     try {
@@ -141,7 +148,13 @@ export class JWTService {
         return { staff: null, tokenRecord: null };
       }
 
-      return { staff: tokenRecord.staff, tokenRecord };
+      return { 
+        staff: {
+          ...tokenRecord.staff,
+          role: tokenRecord.staff.role as 'ADMIN' | 'STAFF' | 'MANAGER'
+        }, 
+        tokenRecord 
+      };
     } catch (error) {
       logger.error('Refresh token verification failed:', error);
       return { staff: null, tokenRecord: null };

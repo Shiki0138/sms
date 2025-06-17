@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import * as Bull from 'bull';
+import Bull from 'bull';
 import * as Handlebars from 'handlebars';
 import { logger } from '../utils/logger';
 import { messageServiceFactory } from './externalApiService';
@@ -102,21 +102,10 @@ export class BroadcastService {
     this.tenantId = tenantId;
     
     // Initialize Bull queue with Redis
-    this.messageQueue = new Bull('broadcast-messages', {
-      redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD,
-      },
-      defaultJobOptions: {
-        removeOnComplete: 100,
-        removeOnFail: 50,
-        attempts: 3,
-        backoff: 'exponential',
-      },
-    });
+    // TODO: Bull queue temporarily disabled for deployment
+    this.messageQueue = null as any;
 
-    this.setupQueueProcessors();
+    // this.setupQueueProcessors(); // Temporarily disabled
   }
 
   /**

@@ -1,0 +1,83 @@
+name: Deploy to Google Cloud
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: salon-system-1750113683
+  REGION: asia-northeast1
+  SERVICE_NAME: salon-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Authenticate to Google Cloud
+      uses: 'google-github-actions/auth@v1'
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: 'google-github-actions/setup-gcloud@v1'
+
+    - name: Configure Docker for GCR
+      run: |
+        gcloud auth configure-docker
+
+    - name: Build and push backend image
+      run: |
+        cd backend
+        docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA .
+        docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy $SERVICE_NAME \
+          --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
+          --region $REGION \
+          --platform managed \
+          --port 8080 \
+          --memory 2Gi \
+          --cpu 2 \
+          --min-instances 1 \
+          --max-instances 100 \
+          --allow-unauthenticated \
+          --set-env-vars NODE_ENV=production \
+          --set-cloudsql-instances $PROJECT_ID:$REGION:salon-db-production \
+          --set-secrets "DATABASE_URL=database-url:latest,OPENAI_API_KEY=openai-api-key:latest,LINE_CHANNEL_ACCESS_TOKEN=line-channel-access-token:latest,LINE_CHANNEL_SECRET=line-channel-secret:latest,INSTAGRAM_ACCESS_TOKEN=instagram-access-token:latest,JWT_SECRET=jwt-secret:latest,JWT_REFRESH_SECRET=jwt-refresh-secret:latest"
+
+    - name: Build and deploy frontend
+      run: |
+        cd frontend
+        echo "VITE_API_BASE_URL=https://salon-backend-xxxxxxxxxxxx.a.run.app/api/v1" > .env.production
+        npm ci
+        npm run build
+        gsutil -m rsync -r -d dist gs://$PROJECT_ID-salon-frontend
+
+    - name: Run database migrations
+      run: |
+        gcloud run jobs execute salon-migrate --region=$REGION --wait || echo "Migration job might not exist yet"
+
+    - name: Notify deployment status
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: 'Deployment to GCP ${{ job.status }}'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

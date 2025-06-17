@@ -665,7 +665,6 @@ function App() {
           </div>
         </div>
       ) : (
-        {/* Time Slot Views (Day, 3-Day, Week) */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="flex">
             {/* Time column */}

@@ -13,12 +13,18 @@ import {
   requirePermission,
 } from '../middleware/auth';
 import { PERMISSIONS } from '../utils/auth';
+import { 
+  limitCustomerCreation,
+  requireAnalytics,
+  addPlanInfo 
+} from '../middleware/planRestriction';
 
 const router = Router();
 
 // Apply authentication and tenant access to all routes
 router.use(authenticate);
 router.use(ensureTenantAccess);
+router.use(addPlanInfo);
 
 /**
  * @route   GET /api/v1/customers
@@ -34,11 +40,12 @@ router.get(
 /**
  * @route   GET /api/v1/customers/stats
  * @desc    Get customer statistics
- * @access  Private (requires customer:read permission)
+ * @access  Private (requires customer:read permission and analytics feature)
  */
 router.get(
   '/stats',
   requirePermission(PERMISSIONS.CUSTOMER_READ),
+  requireAnalytics,
   getCustomerStats
 );
 
@@ -56,11 +63,12 @@ router.get(
 /**
  * @route   POST /api/v1/customers
  * @desc    Create new customer
- * @access  Private (requires customer:write permission)
+ * @access  Private (requires customer:write permission and respects customer limits)
  */
 router.post(
   '/',
   requirePermission(PERMISSIONS.CUSTOMER_WRITE),
+  limitCustomerCreation,
   createCustomer
 );
 

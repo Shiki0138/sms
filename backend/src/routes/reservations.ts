@@ -20,12 +20,21 @@ import {
   requirePermission,
 } from '../middleware/auth';
 import { PERMISSIONS } from '../utils/auth';
+import { 
+  limitReservationCreation,
+  requireAnalytics,
+  requireExternalIntegrations,
+  requireAI,
+  requireBulkOperations,
+  addPlanInfo 
+} from '../middleware/planRestriction';
 
 const router = Router();
 
 // Apply authentication and tenant access to all routes
 router.use(authenticate);
 router.use(ensureTenantAccess);
+router.use(addPlanInfo);
 
 /**
  * @route   GET /api/v1/reservations
@@ -41,11 +50,12 @@ router.get(
 /**
  * @route   GET /api/v1/reservations/stats
  * @desc    Get reservation statistics
- * @access  Private (requires reservation:read permission)
+ * @access  Private (requires reservation:read permission and analytics feature)
  */
 router.get(
   '/stats',
   requirePermission(PERMISSIONS.RESERVATION_READ),
+  requireAnalytics,
   getReservationStats
 );
 
@@ -63,33 +73,37 @@ router.get(
 /**
  * @route   POST /api/v1/reservations
  * @desc    Create new reservation
- * @access  Private (requires reservation:write permission)
+ * @access  Private (requires reservation:write permission and respects reservation limits)
  */
 router.post(
   '/',
   requirePermission(PERMISSIONS.RESERVATION_WRITE),
+  limitReservationCreation,
   createReservation
 );
 
 /**
  * @route   POST /api/v1/reservations/import/hotpepper
  * @desc    Import Hot Pepper reservations from CSV
- * @access  Private (requires reservation:write permission)
+ * @access  Private (requires reservation:write permission and external integrations)
  */
 router.post(
   '/import/hotpepper',
   requirePermission(PERMISSIONS.RESERVATION_WRITE),
+  requireExternalIntegrations,
+  requireBulkOperations,
   importHotpepperReservations
 );
 
 /**
  * @route   POST /api/v1/reservations/sync/google-calendar
  * @desc    Sync Google Calendar events to reservations
- * @access  Private (requires reservation:write permission)
+ * @access  Private (requires reservation:write permission and external integrations)
  */
 router.post(
   '/sync/google-calendar',
   requirePermission(PERMISSIONS.RESERVATION_WRITE),
+  requireExternalIntegrations,
   syncGoogleCalendar
 );
 
@@ -120,11 +134,12 @@ router.delete(
 /**
  * @route   POST /api/v1/reservations/optimize
  * @desc    Get optimal booking suggestions
- * @access  Private (requires reservation:read permission)
+ * @access  Private (requires reservation:read permission and AI features)
  */
 router.post(
   '/optimize',
   requirePermission(PERMISSIONS.RESERVATION_READ),
+  requireAI,
   optimizeBooking
 );
 
@@ -142,33 +157,37 @@ router.get(
 /**
  * @route   POST /api/v1/reservations/smart-book
  * @desc    Create smart booking with optimization
- * @access  Private (requires reservation:write permission)
+ * @access  Private (requires reservation:write permission and AI features)
  */
 router.post(
   '/smart-book',
   requirePermission(PERMISSIONS.RESERVATION_WRITE),
+  requireAI,
+  limitReservationCreation,
   createSmartBooking
 );
 
 /**
  * @route   GET /api/v1/reservations/predictions
  * @desc    Get demand predictions for a date range
- * @access  Private (requires reservation:read permission)
+ * @access  Private (requires reservation:read permission and AI features)
  */
 router.get(
   '/predictions',
   requirePermission(PERMISSIONS.RESERVATION_READ),
+  requireAI,
   getDemandPredictions
 );
 
 /**
  * @route   POST /api/v1/reservations/predict-noshow
  * @desc    Predict no-show probability for a customer
- * @access  Private (requires reservation:read permission)
+ * @access  Private (requires reservation:read permission and AI features)
  */
 router.post(
   '/predict-noshow',
   requirePermission(PERMISSIONS.RESERVATION_READ),
+  requireAI,
   predictNoShow
 );
 

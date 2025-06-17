@@ -1,4 +1,32 @@
 import { useState, useEffect } from 'react'
+import { AuthProvider } from './contexts/AuthContext'
+import { SubscriptionProvider } from './contexts/SubscriptionContext'
+import LimitWarning from './components/Common/LimitWarning'
+import PlanBadge from './components/Common/PlanBadge'
+import PlanLimitNotifications from './components/Common/PlanLimitNotifications'
+import { useSubscription } from './contexts/SubscriptionContext'
+import ProtectedRoute from './components/Auth/ProtectedRoute'
+import UserProfile from './components/Auth/UserProfile'
+import CustomerAnalyticsDashboard from './components/Analytics/CustomerAnalyticsDashboard'
+import PremiumMarketingDashboard from './components/Analytics/PremiumMarketingDashboard'
+import AnalyticsExport from './components/Analytics/AnalyticsExport'
+import { getEnvironmentConfig, logEnvironmentInfo } from './utils/environment'
+import AdvancedHolidaySettings from './components/Settings/AdvancedHolidaySettings'
+import ExternalAPISettings from './components/Settings/ExternalAPISettings'
+import OpenAISettings from './components/Settings/OpenAISettings'
+import NotificationSettings from './components/Settings/NotificationSettings'
+import { ReminderSettings } from './components/Settings/ReminderSettings'
+import DataBackupSettings from './components/Settings/DataBackupSettings'
+import MenuManagement from './components/Settings/MenuManagement'
+import UpgradePlan from './components/Settings/UpgradePlan'
+import SalonCalendar from './components/Calendar/SalonCalendar'
+import MonthCalendar from './components/Calendar/MonthCalendar'
+import NewReservationModal from './components/Calendar/NewReservationModal'
+import CSVImporter from './components/CSVImporter'
+import BulkMessageSender from './components/BulkMessageSender'
+import ServiceHistoryModal from './components/ServiceHistoryModal'
+import FeatureRequestForm from './components/FeatureRequestForm'
+import FilteredCustomerView from './components/FilteredCustomerView'
 import { 
   MessageSquare, 
   Calendar, 
@@ -22,6 +50,7 @@ import {
   RefreshCw,
   Link,
   User,
+  UserCheck,
   MapPin,
   Calendar as CalendarIcon,
   FileText,
@@ -31,27 +60,32 @@ import {
   Palette,
   Star,
   Sparkles,
-  LogOut,
+  Bot,
+  Loader2,
   Shield,
-  TrendingUp,
-  Activity,
-  DollarSign,
-  UserCheck,
-  Search,
-  Filter,
-  SortAsc,
-  SortDesc,
-  Bookmark,
-  Hash
+  Lightbulb
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { format, isToday, isTomorrow, startOfMonth, endOfMonth, subMonths } from 'date-fns'
+import { format, isToday, isTomorrow, getDay, getWeekOfMonth } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import toast from 'react-hot-toast'
-import Login from './components/Login'
+import { 
+  dummyCustomers, 
+  serviceHistory, 
+  pastReservations,
+  futureReservations, 
+  messageThreads,
+  calculateCustomerStats 
+} from './data/dummyData'
+
+// ダミーデータをグローバルに登録（分析画面で使用）
+if (typeof window !== 'undefined') {
+  (window as any).dummyCustomers = dummyCustomers;
+  (window as any).serviceHistory = serviceHistory;
+}
 
 const API_BASE_URL = 'http://localhost:8080/api/v1'
+const USE_DUMMY_DATA = true // ダミーデータ使用フラグ
 
 interface MessageThread {
   id: string
@@ -78,6 +112,7 @@ interface MessageThread {
 
 interface Customer {
   id: string
+  customerNumber: string  // 顧客番号
   name: string
   phone?: string
   email?: string
@@ -86,6 +121,19 @@ interface Customer {
   visitCount: number
   lastVisitDate?: string
   createdAt: string
+  // ホットペッパービューティー関連データ
+  furigana?: string
+  birthDate?: string
+  gender?: string
+  zipCode?: string
+  address?: string
+  registrationDate?: string
+  memberNumber?: string
+  couponHistory?: string
+  menuHistory?: string
+  source?: 'HOTPEPPER' | 'MANUAL' | 'LINE' | 'INSTAGRAM'
+  notes?: string
+  stylistNotes?: string
 }
 
 interface Reservation {
@@ -106,222 +154,142 @@ interface Reservation {
   source: 'HOTPEPPER' | 'GOOGLE_CALENDAR' | 'PHONE' | 'WALK_IN' | 'MANUAL'
   status: 'TENTATIVE' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
   notes?: string
+  price?: number
+  stylistNotes?: string
 }
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [currentStaff, setCurrentStaff] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState('dashboard')
+  // 環境設定の初期化
+  const config = getEnvironmentConfig()
+
+  useEffect(() => {
+    // 環境情報をログ出力
+    logEnvironmentInfo()
+    
+    // 開発環境での警告表示
+    if (config.isDevelopment && config.showProductionWarnings) {
+      console.warn('🚧 Development Environment - Some features are restricted')
+    }
+  }, [])
+
+  const [activeTab, setActiveTab] = useState('messages')
+  const [activeView, setActiveView] = useState<'main' | 'upgrade'>('main')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [replyMessage, setReplyMessage] = useState('')
   const [replyingToThread, setReplyingToThread] = useState<string | null>(null)
-  const [aiSuggestions, setAiSuggestions] = useState<any[]>([])
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
-  const [customerIdentification, setCustomerIdentification] = useState<{[key: string]: any}>({})
-  const [showCustomerRegistration, setShowCustomerRegistration] = useState<{[key: string]: boolean}>({})
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [showCustomerModal, setShowCustomerModal] = useState(false)
+  const [isGeneratingAIReply, setIsGeneratingAIReply] = useState<string | null>(null)
+  const [customerNotes, setCustomerNotes] = useState('')
+  const [showCustomerMessages, setShowCustomerMessages] = useState(false)
+  const [showCustomerReservations, setShowCustomerReservations] = useState(false)
+  
+  // Filtered customer view states
+  const [showFilteredCustomerView, setShowFilteredCustomerView] = useState(false)
+  const [filteredCustomerViewType, setFilteredCustomerViewType] = useState<'messages' | 'reservations'>('messages')
+  const [filteredCustomerId, setFilteredCustomerId] = useState<string>('')
+  const [filteredCustomerName, setFilteredCustomerName] = useState<string>('')
+  
+  // Feature requests state for admin notifications
+  const [featureRequests, setFeatureRequests] = useState<any[]>([])
+  const [unreadFeatureRequests, setUnreadFeatureRequests] = useState(0)
+  
+  // New customer registration modal state
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false)
   const [newCustomerData, setNewCustomerData] = useState({
     name: '',
     phone: '',
     email: '',
+    instagramId: '',
+    lineId: '',
     notes: ''
   })
   
-  // Search and Filter state
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState({
-    status: 'all',
-    channel: 'all',
-    assignedStaff: 'all',
-    unreadOnly: false,
-    dateFrom: '',
-    dateTo: '',
-    sortBy: 'updatedAt',
-    sortOrder: 'desc'
-  })
-  const [savedFilters, setSavedFilters] = useState<any[]>([])
-  const [filterMetadata, setFilterMetadata] = useState<any>(null)
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
-  const [showCustomerModal, setShowCustomerModal] = useState(false)
+  // CSV Import modal state
+  const [showCSVImporter, setShowCSVImporter] = useState(false)
+  
+  // Bulk Message Sender state
+  const [showBulkMessageSender, setShowBulkMessageSender] = useState(false)
+  
+  // Service History Modal state
+  const [showServiceHistoryModal, setShowServiceHistoryModal] = useState(false)
+  const [selectedServiceHistory, setSelectedServiceHistory] = useState<Reservation | null>(null)
+  
+  // New reservation modal state
+  const [showNewReservationModal, setShowNewReservationModal] = useState(false)
+  const [selectedReservationDate, setSelectedReservationDate] = useState<Date | undefined>()
+  const [selectedReservationTime, setSelectedReservationTime] = useState<string | undefined>()
+  
+  // Reservations state for live updates
+  const [liveReservations, setLiveReservations] = useState<Reservation[]>([])
+  
+  // Initialize live reservations from dummy data
+  useEffect(() => {
+    const allReservations = [...pastReservations, ...futureReservations]
+    setLiveReservations(allReservations)
+  }, [])
   
   // Settings state
-  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
-  const [calendarSettings, setCalendarSettings] = useState({
-    googleClientId: '',
-    googleClientSecret: '',
-    autoSync: true,
-    syncInterval: 15, // minutes
-  })
   
   // Business settings state
   const [businessSettings, setBusinessSettings] = useState({
     openHour: 9,
     closeHour: 18,
     timeSlotMinutes: 30,
-    closedDays: [0], // Sunday = 0, Monday = 1, etc.
-    customClosedDates: [] as string[] // YYYY-MM-DD format
+    closedDays: [1], // Sunday = 0, Monday = 1, etc. (月曜日定休)
+    nthWeekdayRules: [{ nth: [2, 4], weekday: 2 }] as Array<{nth: number[], weekday: number}>, // 毎月第2・第4火曜日
+    customClosedDates: ['2025-01-01', '2025-12-31'] as string[] // YYYY-MM-DD format
   })
   
   // Calendar view state
   const [calendarView, setCalendarView] = useState<'day' | 'threeDay' | 'week' | 'month'>('week')
   const [calendarDate, setCalendarDate] = useState(new Date())
 
-  // Check authentication on mount
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    const staffData = localStorage.getItem('staff')
-    
-    if (token && staffData) {
-      setIsAuthenticated(true)
-      setCurrentStaff(JSON.parse(staffData))
-    }
-  }, [])
-
-  // Handle login
-  const handleLogin = (token: string, staff: any) => {
-    setIsAuthenticated(true)
-    setCurrentStaff(staff)
-  }
-
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('staff')
-    setIsAuthenticated(false)
-    setCurrentStaff(null)
-    toast.success('ログアウトしました')
-  }
-
-  // AI返信提案を取得
-  const getAiReplySuggestions = async (threadId: string, messageContent: string, customerContext?: any) => {
-    setLoadingSuggestions(true)
-    try {
-      const response = await axios.post(`${API_BASE_URL}/messages/ai-reply-suggestions`, {
-        threadId,
-        messageContent,
-        customerContext
-      })
-      setAiSuggestions(response.data.suggestions)
-    } catch (error) {
-      console.error('AI返信提案の取得に失敗:', error)
-      toast.error('AI返信提案の取得に失敗しました')
-    } finally {
-      setLoadingSuggestions(false)
-    }
-  }
-
-  // 顧客識別機能
-  const identifyCustomer = async (thread: MessageThread) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/customers/identify`, {
-        instagramId: thread.customer.instagramId,
-        lineId: thread.customer.lineId,
-        name: thread.customer.name
-      })
-      
-      setCustomerIdentification(prev => ({
-        ...prev,
-        [thread.id]: response.data
-      }))
-    } catch (error) {
-      console.error('顧客識別に失敗:', error)
-    }
-  }
-
-  // 新規顧客登録
-  const registerNewCustomer = async (threadId: string, thread: MessageThread) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/customers/register`, {
-        name: newCustomerData.name || thread.customer.name,
-        phone: newCustomerData.phone,
-        email: newCustomerData.email,
-        instagramId: thread.customer.instagramId,
-        lineId: thread.customer.lineId,
-        notes: newCustomerData.notes
-      })
-      
-      toast.success('新規顧客を登録しました')
-      setShowCustomerRegistration(prev => ({ ...prev, [threadId]: false }))
-      setNewCustomerData({ name: '', phone: '', email: '', notes: '' })
-      
-      // 顧客リストを更新
-      window.location.reload()
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || '顧客登録に失敗しました'
-      toast.error(errorMessage)
-    }
-  }
-
-  // Fetch data with filters
-  const { data: threadsData } = useQuery({
-    queryKey: ['threads', searchQuery, filters],
+  // Fetch data
+  const { data: threads } = useQuery<{ threads: MessageThread[] }>({
+    queryKey: ['threads'],
     queryFn: () => {
-      const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
-      if (filters.status !== 'all') params.append('status', filters.status);
-      if (filters.channel !== 'all') params.append('channel', filters.channel);
-      if (filters.assignedStaff !== 'all') params.append('assignedStaff', filters.assignedStaff);
-      if (filters.unreadOnly) params.append('unreadOnly', 'true');
-      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-      if (filters.dateTo) params.append('dateTo', filters.dateTo);
-      params.append('sortBy', filters.sortBy);
-      params.append('sortOrder', filters.sortOrder);
-      
-      return axios.get(`${API_BASE_URL}/messages/threads?${params.toString()}`).then(res => res.data);
-    },
-    enabled: isAuthenticated
+      if (USE_DUMMY_DATA) {
+        // メッセージスレッドを新しい順にソート
+        const sortedThreads = [...messageThreads].sort((a, b) => 
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        )
+        return Promise.resolve({ threads: sortedThreads })
+      }
+      return axios.get(`${API_BASE_URL}/messages/threads`).then(res => res.data)
+    }
   })
-  
-  const threads = threadsData
 
   const { data: customers } = useQuery<{ customers: Customer[] }>({
     queryKey: ['customers'],
-    queryFn: () => axios.get(`${API_BASE_URL}/customers`).then(res => res.data),
-    enabled: isAuthenticated
+    queryFn: () => {
+      if (USE_DUMMY_DATA) {
+        return Promise.resolve({ customers: dummyCustomers })
+      }
+      return axios.get(`${API_BASE_URL}/customers`).then(res => res.data)
+    }
   })
 
   const { data: reservations } = useQuery<{ reservations: Reservation[] }>({
     queryKey: ['reservations'],
-    queryFn: () => axios.get(`${API_BASE_URL}/reservations`).then(res => res.data),
-    enabled: isAuthenticated
+    queryFn: () => {
+      if (USE_DUMMY_DATA) {
+        // 過去の予約と未来の予約を結合
+        return Promise.resolve({ 
+          reservations: [...pastReservations, ...futureReservations] 
+        })
+      }
+      return axios.get(`${API_BASE_URL}/reservations`).then(res => res.data)
+    }
   })
 
-  const { data: segments } = useQuery({
-    queryKey: ['analytics', 'segments'],
-    queryFn: () => axios.get(`${API_BASE_URL}/analytics/segments`).then(res => res.data),
-    enabled: isAuthenticated
-  })
-
-  const { data: menus } = useQuery({
-    queryKey: ['menus'],
-    queryFn: () => axios.get(`${API_BASE_URL}/menus`).then(res => res.data),
-    enabled: isAuthenticated
-  })
-
-  const { data: autoMessageTemplates } = useQuery({
-    queryKey: ['auto-messages', 'templates'],
-    queryFn: () => axios.get(`${API_BASE_URL}/auto-messages/templates`).then(res => res.data),
-    enabled: isAuthenticated
-  })
-
-  // Fetch filter metadata and saved filters
-  const { data: filterMetadataData } = useQuery({
-    queryKey: ['messages', 'filter-metadata'],
-    queryFn: () => axios.get(`${API_BASE_URL}/messages/filter-metadata`).then(res => res.data),
-    enabled: isAuthenticated
-  })
-
-  const { data: savedFiltersData } = useQuery({
-    queryKey: ['messages', 'saved-filters'],
-    queryFn: () => axios.get(`${API_BASE_URL}/messages/saved-filters`).then(res => res.data),
-    enabled: isAuthenticated
-  })
-
-  // Update local state when data is fetched
-  useEffect(() => {
-    if (filterMetadataData) setFilterMetadata(filterMetadataData)
-    if (savedFiltersData) setSavedFilters(savedFiltersData.filters)
-  }, [filterMetadataData, savedFiltersData])
+  // Staff list (demo data)
+  const staffList = [
+    { id: 'staff1', name: '田中 美咲' },
+    { id: 'staff2', name: '佐藤 麗子' },
+    { id: 'staff3', name: '山田 花音' },
+    { id: 'staff4', name: '鈴木 あゆみ' }
+  ]
 
   // Calculate unread count
   const unreadCount = threads?.threads.reduce((sum, t) => sum + t.unreadCount, 0) || 0
@@ -402,15 +370,61 @@ function App() {
   
   // Check if a date is a closed day
   const isClosedDay = (date: Date) => {
-    const dayOfWeek = date.getDay()
+    const dayOfWeek = getDay(date)
     const dateString = format(date, 'yyyy-MM-dd')
-    return businessSettings.closedDays.includes(dayOfWeek) || 
-           businessSettings.customClosedDates.includes(dateString)
+    
+    // 毎週の定休日チェック
+    if (businessSettings.closedDays.includes(dayOfWeek)) {
+      return true
+    }
+    
+    // 毎月第◯◯曜日チェック
+    for (const rule of businessSettings.nthWeekdayRules) {
+      if (dayOfWeek === rule.weekday) {
+        const weekOfMonth = getWeekOfMonth(date, { weekStartsOn: 1 })
+        if (rule.nth.includes(weekOfMonth)) {
+          return true
+        }
+      }
+    }
+    
+    // 特定日チェック
+    return businessSettings.customClosedDates.includes(dateString)
+  }
+
+  // Get holiday type for display
+  const getHolidayType = (date: Date) => {
+    const dayOfWeek = getDay(date)
+    const dateString = format(date, 'yyyy-MM-dd')
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土']
+    
+    // 毎週の定休日チェック
+    if (businessSettings.closedDays.includes(dayOfWeek)) {
+      return `定休日（${dayNames[dayOfWeek]}曜日）`
+    }
+    
+    // 毎月第◯◯曜日チェック
+    for (const rule of businessSettings.nthWeekdayRules) {
+      if (dayOfWeek === rule.weekday) {
+        const weekOfMonth = getWeekOfMonth(date, { weekStartsOn: 1 })
+        if (rule.nth.includes(weekOfMonth)) {
+          const nthText = rule.nth.map(n => `第${n}`).join('・')
+          return `定休日（${nthText}${dayNames[dayOfWeek]}曜日）`
+        }
+      }
+    }
+    
+    // 特定日チェック
+    if (businessSettings.customClosedDates.includes(dateString)) {
+      return '特別休業日'
+    }
+    
+    return null
   }
   
   // Get reservations for a specific date and time slot
   const getReservationsForSlot = (date: Date, timeSlot: string) => {
-    return reservations?.reservations.filter(r => {
+    return liveReservations.filter(r => {
       const reservationDate = new Date(r.startTime)
       const reservationTime = format(reservationDate, 'HH:mm')
       const reservationDateStr = format(reservationDate, 'yyyy-MM-dd')
@@ -448,6 +462,29 @@ function App() {
     return dates
   }
   
+  // Handle stylist notes update
+  const handleUpdateStylistNotes = (reservationId: string, notes: string) => {
+    // In a real app, this would make an API call to update the notes
+    console.log('Updating stylist notes for reservation:', reservationId, notes)
+    
+    // For demo purposes, we'll just update the selected service history
+    if (selectedServiceHistory && selectedServiceHistory.id === reservationId) {
+      setSelectedServiceHistory({
+        ...selectedServiceHistory,
+        stylistNotes: notes
+      })
+    }
+    
+    // Show success message
+    alert('美容師メモが更新されました！')
+  }
+
+  // Handle service history click
+  const handleServiceHistoryClick = (reservation: Reservation) => {
+    setSelectedServiceHistory(reservation)
+    setShowServiceHistoryModal(true)
+  }
+
   // Handle LINE app launch
   const handleLineAppClick = (lineId?: string) => {
     // Try to open LINE app with specific user if lineId is provided
@@ -469,15 +506,244 @@ function App() {
     }
   }
 
-  // Handle Google Calendar connection
-  const handleGoogleCalendarConnect = async () => {
+
+  // Handle AI reply generation
+  const handleAIReplyClick = async (threadId: string) => {
+    setIsGeneratingAIReply(threadId)
+    
     try {
-      // Demo mode - simulate connection
-      setGoogleCalendarConnected(true)
-      alert('Google Calendarに接続しました（デモモード）')
+      // AI返信生成（デモ用）
+      const thread = threads?.threads.find(t => t.id === threadId)
+      if (!thread) return
+      
+      const lastMessage = thread.lastMessage.content
+      const customerName = thread.customer.name
+      
+      // デモ用の返信生成ロジック
+      await new Promise(resolve => setTimeout(resolve, 1500)) // 生成中の演出
+      
+      let generatedReply = ''
+      if (lastMessage.includes('予約') || lastMessage.includes('空いて')) {
+        generatedReply = `${customerName}様、お問い合わせありがとうございます。ご希望のお日にちをお聞かせください。お客様に最適なお時間をご提案させていただきます。`
+      } else if (lastMessage.includes('カット') || lastMessage.includes('カラー')) {
+        generatedReply = `${customerName}様、いつもありがとうございます。ご希望のスタイルについて詳しくお聞かせください。`
+      } else if (lastMessage.includes('料金') || lastMessage.includes('値段')) {
+        generatedReply = `${customerName}様、お問い合わせありがとうございます。当店のメニュー料金についてご案内いたします。詳細はお気軽にお尋ねください。`
+      } else {
+        generatedReply = `${customerName}様、いつもありがとうございます。お気軽にご相談ください。スタッフ一同、心よりお待ちしております。`
+      }
+      
+      setReplyMessage(generatedReply)
     } catch (error) {
-      alert('接続に失敗しました')
+      console.error('AI reply generation error:', error)
+      alert('AI返信の生成に失敗しました')
+    } finally {
+      setIsGeneratingAIReply(null)
     }
+  }
+
+  // Handle new reservation creation
+  const handleNewReservation = () => {
+    setSelectedReservationDate(undefined)
+    setSelectedReservationTime(undefined)
+    setShowNewReservationModal(true)
+  }
+
+  const handleTimeSlotClick = (date: Date, hour: number, minute: number) => {
+    setSelectedReservationDate(date)
+    setSelectedReservationTime(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
+    setShowNewReservationModal(true)
+  }
+
+  const handleSaveReservation = (newReservation: any) => {
+    // デモ用：実際の実装では、サーバーに保存する
+    console.log('新規予約作成:', newReservation)
+    alert('予約が正常に作成されました！')
+    
+    // 予約データを更新（デモ用）
+    // 実際の実装では、React Queryのinvalidateを使用
+  }
+
+  // Handle customer notes update
+  const handleUpdateCustomerNotes = () => {
+    if (!selectedCustomer) return
+    
+    // デモ用：実際の実装では、サーバーに保存する
+    console.log('カルテ更新:', { customerId: selectedCustomer.id, notes: customerNotes })
+    alert(`${selectedCustomer.name}様のカルテを更新しました！`)
+    
+    // 実際の実装では、React Queryのinvalidateを使用してデータを更新
+  }
+
+  // Handle showing customer messages
+  const handleShowCustomerMessages = () => {
+    if (!selectedCustomer) return
+    
+    // モーダルを閉じて、フィルタービューに切り替え
+    setShowCustomerModal(false)
+    setFilteredCustomerId(selectedCustomer.id)
+    setFilteredCustomerName(selectedCustomer.name)
+    setFilteredCustomerViewType('messages')
+    setShowFilteredCustomerView(true)
+    setSelectedCustomer(null)
+  }
+
+  // Handle showing customer reservations
+  const handleShowCustomerReservations = () => {
+    if (!selectedCustomer) return
+    
+    // モーダルを閉じて、フィルタービューに切り替え
+    setShowCustomerModal(false)
+    setFilteredCustomerId(selectedCustomer.id)
+    setFilteredCustomerName(selectedCustomer.name)
+    setFilteredCustomerViewType('reservations')
+    setShowFilteredCustomerView(true)
+    setSelectedCustomer(null)
+  }
+
+  // Handle going back from filtered customer view
+  const handleBackFromFilteredView = () => {
+    setShowFilteredCustomerView(false)
+    setFilteredCustomerId('')
+    setFilteredCustomerName('')
+    setActiveTab('customers')
+  }
+
+  // Handle new feature request submission
+  const handleNewFeatureRequest = (request: any) => {
+    setFeatureRequests(prev => [request, ...prev])
+    setUnreadFeatureRequests(prev => prev + 1)
+  }
+
+  // Handle new customer registration
+  const handleNewCustomerRegistration = () => {
+    setShowNewCustomerModal(true)
+  }
+
+  // Handle save new customer
+  const handleSaveNewCustomer = () => {
+    if (!newCustomerData.name.trim()) {
+      alert('顧客名を入力してください')
+      return
+    }
+
+    // デモ用：実際の実装では、サーバーに保存する
+    const nextCustomerNumber = `C${String(customers?.customers.length + 1 || 1).padStart(3, '0')}`
+    
+    console.log('新規顧客登録:', {
+      customerNumber: nextCustomerNumber,
+      ...newCustomerData,
+      id: `cust${String(Date.now()).slice(-6)}`,
+      visitCount: 0,
+      createdAt: new Date().toISOString()
+    })
+
+    alert(`${newCustomerData.name}様（${nextCustomerNumber}）を新規登録しました！`)
+    
+    // フォームをリセット
+    setNewCustomerData({
+      name: '',
+      phone: '',
+      email: '',
+      instagramId: '',
+      lineId: '',
+      notes: ''
+    })
+    setShowNewCustomerModal(false)
+    
+    // 実際の実装では、React Queryのinvalidateを使用してデータを更新
+  }
+
+  // Handle cancel new customer registration
+  const handleCancelNewCustomer = () => {
+    setNewCustomerData({
+      name: '',
+      phone: '',
+      email: '',
+      instagramId: '',
+      lineId: '',
+      notes: ''
+    })
+    setShowNewCustomerModal(false)
+  }
+
+  // Handle CSV import
+  const handleCSVImport = (importedCustomers: any[]) => {
+    console.log('CSV Import:', importedCustomers)
+    
+    // デモ用：実際の実装では、サーバーに送信して一括登録
+    const successCount = importedCustomers.length
+    alert(`${successCount}件の顧客データをインポートしました！\n\n内訳:\n・ホットペッパービューティー: ${importedCustomers.filter(c => c.source === 'HOTPEPPER').length}件\n・手動追加: ${importedCustomers.filter(c => c.source === 'MANUAL').length}件`)
+    
+    setShowCSVImporter(false)
+    
+    // 実際の実装では、React Queryのinvalidateを使用してデータを更新
+  }
+
+  // Handle new reservation save
+  const handleSaveNewReservation = (reservationData: any) => {
+    // 重複チェック
+    const isDuplicate = liveReservations.some(existing => 
+      existing.startTime === reservationData.startTime &&
+      existing.customerName === reservationData.customerName &&
+      existing.menuContent === reservationData.menuContent
+    )
+    
+    if (isDuplicate) {
+      alert('同じ予約が既に存在します。')
+      return
+    }
+    
+    // 新しい予約オブジェクトを作成
+    const newReservation: Reservation = {
+      id: reservationData.id || `res_${Date.now()}`,
+      startTime: reservationData.startTime,
+      endTime: reservationData.endTime,
+      menuContent: reservationData.menuContent,
+      customerName: reservationData.customerName,
+      customer: reservationData.customer,
+      staff: reservationData.staff,
+      source: reservationData.source as any,
+      status: reservationData.status as any,
+      notes: reservationData.notes,
+      price: reservationData.price,
+      stylistNotes: ''
+    }
+    
+    // ライブ予約データに追加
+    setLiveReservations(prev => [...prev, newReservation])
+    
+    // モーダルを閉じる
+    setShowNewReservationModal(false)
+    setSelectedReservationDate(undefined)
+    setSelectedReservationTime(undefined)
+    
+    alert(`${reservationData.customerName}様の予約を登録しました！\n日時: ${format(new Date(newReservation.startTime), 'M月d日 HH:mm', { locale: ja })}\nメニュー: ${reservationData.menuContent}`)
+  }
+
+  // Handle bulk message send
+  const handleBulkMessageSend = (selectedCustomers: any[], message: string, channels: string[]) => {
+    console.log('Bulk Message Send:', {
+      recipients: selectedCustomers.length,
+      message,
+      channels: channels.reduce((acc: any, channel: string) => {
+        acc[channel] = (acc[channel] || 0) + 1
+        return acc
+      }, {})
+    })
+    
+    // デモ用：実際の実装では、各チャンネルのAPIに送信
+    const channelCounts = channels.reduce((acc: any, channel: string) => {
+      acc[channel] = (acc[channel] || 0) + 1
+      return acc
+    }, {})
+    
+    let resultMessage = `${selectedCustomers.length}名にメッセージを送信しました！\n\n送信内訳:\n`
+    if (channelCounts['LINE']) resultMessage += `・LINE: ${channelCounts['LINE']}名\n`
+    if (channelCounts['Instagram']) resultMessage += `・Instagram: ${channelCounts['Instagram']}名\n`
+    if (channelCounts['Email']) resultMessage += `・Email: ${channelCounts['Email']}名\n`
+    
+    // 実際の実装では、LINEメッセージAPI、Instagram Graph API、SMTPなどを使用
   }
 
   const formatDate = (dateString: string) => {
@@ -523,208 +789,27 @@ function App() {
     )
   }
 
-  const MessagesList = () => {
-    // 初回読み込み時に顧客識別を実行
-    useEffect(() => {
-      if (threads?.threads) {
-        threads.threads.forEach(thread => {
-          if (!customerIdentification[thread.id]) {
-            identifyCustomer(thread)
-          }
-        })
-      }
-    }, [threads])
-
-    return (
-      <div className="space-y-4">
-        {/* Header with Stats */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900">統合インボックス</h2>
-          <div className="flex flex-wrap gap-2">
-            <span className="badge badge-danger text-xs">{filterMetadata?.stats.unread || 0} 未読</span>
-            <span className="badge badge-primary text-xs">{filterMetadata?.stats.total || 0} 総件数</span>
-            <span className="badge badge-success text-xs">{filterMetadata?.stats.todayMessages || 0} 今日</span>
-          </div>
+  const MessagesList = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900">メッセージ管理</h2>
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            {threads?.threads.filter(t => t.status === 'OPEN').length || 0} 未対応
+          </span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            {threads?.threads.filter(t => t.status === 'IN_PROGRESS').length || 0} 対応中
+          </span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            {threads?.threads.filter(t => t.status === 'CLOSED').length || 0} 完了
+          </span>
         </div>
-
-        {/* Search and Filter Bar */}
-        <div className="card mb-4">
-          <div className="space-y-4">
-            {/* Search Bar */}
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="顧客名、メッセージ内容、担当者で検索..."
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`btn btn-secondary btn-sm flex items-center ${showFilters ? 'bg-blue-50 text-blue-700' : ''}`}
-                >
-                  <Filter className="w-4 h-4 mr-1" />
-                  フィルター
-                </button>
-                <button
-                  onClick={clearFilters}
-                  className="btn btn-secondary btn-sm"
-                >
-                  クリア
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Filter Tags */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setFilters(prev => ({ ...prev, unreadOnly: !prev.unreadOnly }))}
-                className={`text-xs px-2 py-1 rounded-full transition-colors ${
-                  filters.unreadOnly 
-                    ? 'bg-red-100 text-red-800' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <Hash className="w-3 h-3 inline mr-1" />
-                未読のみ
-              </button>
-              {filterMetadata?.statuses.map((status: any) => (
-                <button
-                  key={status.value}
-                  onClick={() => setFilters(prev => ({ 
-                    ...prev, 
-                    status: prev.status === status.value ? 'all' : status.value 
-                  }))}
-                  className={`text-xs px-2 py-1 rounded-full transition-colors ${
-                    filters.status === status.value
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {status.label} ({status.count})
-                </button>
-              ))}
-            </div>
-
-            {/* Advanced Filters Panel */}
-            {showFilters && (
-              <div className="border-t pt-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Channel Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">チャネル</label>
-                    <select
-                      value={filters.channel}
-                      onChange={(e) => setFilters(prev => ({ ...prev, channel: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">すべて</option>
-                      {filterMetadata?.channels.map((channel: any) => (
-                        <option key={channel.value} value={channel.value}>
-                          {channel.label} ({channel.count})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Staff Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">担当者</label>
-                    <select
-                      value={filters.assignedStaff}
-                      onChange={(e) => setFilters(prev => ({ ...prev, assignedStaff: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">すべて</option>
-                      {filterMetadata?.staff.map((staff: any) => (
-                        <option key={staff.id} value={staff.id}>
-                          {staff.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Date From */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">開始日</label>
-                    <input
-                      type="date"
-                      value={filters.dateFrom}
-                      onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* Date To */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">終了日</label>
-                    <input
-                      type="date"
-                      value={filters.dateTo}
-                      onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Sort Options */}
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-gray-700">並び順:</label>
-                    <select
-                      value={filters.sortBy}
-                      onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
-                      className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="updatedAt">更新日時</option>
-                      <option value="customerName">顧客名</option>
-                      <option value="status">ステータス</option>
-                      <option value="unreadCount">未読数</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={() => setFilters(prev => ({ 
-                      ...prev, 
-                      sortOrder: prev.sortOrder === 'asc' ? 'desc' : 'asc' 
-                    }))}
-                    className="flex items-center text-sm text-gray-600 hover:text-gray-800"
-                  >
-                    {filters.sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-                    {filters.sortOrder === 'asc' ? '昇順' : '降順'}
-                  </button>
-                </div>
-
-                {/* Saved Filters */}
-                {savedFilters.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">保存済みフィルター</label>
-                    <div className="flex flex-wrap gap-2">
-                      {savedFilters.map((savedFilter) => (
-                        <button
-                          key={savedFilter.id}
-                          onClick={() => applySavedFilter(savedFilter)}
-                          className="flex items-center text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1 rounded-md transition-colors"
-                        >
-                          <Bookmark className="w-3 h-3 mr-1" />
-                          {savedFilter.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+      </div>
       
       <div className="space-y-3">
         {threads?.threads.map((thread) => (
-          <div key={thread.id} className="card hover:shadow-md transition-shadow">
-            <div className="space-y-3">
+          <div key={thread.id} className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="p-4 space-y-3">
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1 min-w-0">
@@ -738,19 +823,8 @@ function App() {
                       </h3>
                       {getStatusBadge(thread.status)}
                       {thread.unreadCount > 0 && (
-                        <span className="badge badge-danger">{thread.unreadCount}</span>
-                      )}
-                      
-                      {/* Customer Identification Badge */}
-                      {customerInfo && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          customerInfo.isExisting 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          {customerInfo.isExisting 
-                            ? `既存顧客 (ID: ${customerInfo.customer.id})` 
-                            : '新規'}
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          {thread.unreadCount}
                         </span>
                       )}
                     </div>
@@ -762,46 +836,29 @@ function App() {
                         <Clock className="w-3 h-3 mr-1" />
                         {formatDate(thread.lastMessage.createdAt)}
                       </div>
-                      {thread.assignedStaff && (
+                      {thread.assignedStaff && thread.customer.id && (
                         <div className="flex items-center">
-                          <span>担当: {thread.assignedStaff.name}</span>
+                          <UserCheck className="w-3 h-3 mr-1" />
+                          <span className="text-xs">担当: {thread.assignedStaff.name}</span>
+                        </div>
+                      )}
+                      {!thread.customer.id && (
+                        <div className="flex items-center text-yellow-600">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          <span className="text-xs">新規問い合わせ</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
                 
-                {/* Reply Button and Customer Actions */}
-                <div className="flex-shrink-0 ml-2 flex items-center space-x-2">
-                  {/* Customer Registration Button for New Customers */}
-                  {customerInfo && !customerInfo.isExisting && (
-                    <button
-                      onClick={() => setShowCustomerRegistration(prev => ({ 
-                        ...prev, 
-                        [thread.id]: !prev[thread.id] 
-                      }))}
-                      className="btn btn-secondary btn-sm flex items-center text-xs px-2 py-1"
-                    >
-                      <User className="w-3 h-3 mr-1" />
-                      顧客登録
-                    </button>
-                  )}
-                  
+                {/* Reply Button */}
+                <div className="flex-shrink-0 ml-2">
                   <button
-                    onClick={() => {
-                      setReplyingToThread(replyingToThread === thread.id ? null : thread.id)
-                      if (replyingToThread !== thread.id) {
-                        // AI返信提案を取得
-                        getAiReplySuggestions(
-                          thread.id, 
-                          thread.lastMessage.content,
-                          { customerName: thread.customer.name }
-                        )
-                      }
-                    }}
-                    className="btn btn-primary btn-sm flex items-center text-xs px-3 py-1.5"
+                    onClick={() => setReplyingToThread(replyingToThread === thread.id ? null : thread.id)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                   >
-                    <Send className="w-3 h-3 mr-1" />
+                    <Send className="w-4 h-4 mr-1 inline" />
                     返信
                   </button>
                 </div>
@@ -809,137 +866,84 @@ function App() {
 
               {/* Reply Form */}
               {replyingToThread === thread.id && (
-                <div className="border-t pt-3 space-y-3">
-                  {/* AI Reply Suggestions */}
-                  {loadingSuggestions ? (
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>AI返信案を生成中...</span>
-                    </div>
-                  ) : aiSuggestions.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-gray-700">🤖 AI返信提案:</p>
-                      <div className="grid gap-2">
-                        {aiSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion.id}
-                            onClick={() => setReplyMessage(suggestion.text)}
-                            className="text-left p-2 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-blue-600 font-medium">
-                                {suggestion.tone === 'formal' ? '丁寧' : 
-                                 suggestion.tone === 'friendly' ? 'フレンドリー' : 'プロフェッショナル'}
-                              </span>
-                              <span className="text-xs text-gray-500">{suggestion.category}</span>
-                            </div>
-                            <p className="text-sm text-gray-700">{suggestion.text}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={replyMessage}
-                      onChange={(e) => setReplyMessage(e.target.value)}
-                      placeholder="メッセージを入力..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleSendReply(thread.id)
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => handleSendReply(thread.id)}
-                      disabled={!replyMessage.trim()}
-                      className="btn btn-primary btn-sm px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="flex justify-end mt-2">
-                    <button
-                      onClick={() => {
-                        setReplyingToThread(null)
-                        setReplyMessage('')
-                        setAiSuggestions([])
-                      }}
-                      className="text-xs text-gray-500 hover:text-gray-700"
-                    >
-                      キャンセル
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Customer Registration Form */}
-              {showCustomerRegistration[thread.id] && (
                 <div className="border-t pt-3">
-                  <p className="text-sm font-medium text-gray-700 mb-3">新規顧客登録</p>
                   <div className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">顧客名</label>
-                        <input
-                          type="text"
-                          value={newCustomerData.name}
-                          onChange={(e) => setNewCustomerData(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder={thread.customer.name}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">電話番号</label>
-                        <input
-                          type="tel"
-                          value={newCustomerData.phone}
-                          onChange={(e) => setNewCustomerData(prev => ({ ...prev, phone: e.target.value }))}
-                          placeholder="090-1234-5678"
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">メールアドレス</label>
-                      <input
-                        type="email"
-                        value={newCustomerData.email}
-                        onChange={(e) => setNewCustomerData(prev => ({ ...prev, email: e.target.value }))}
-                        placeholder="example@email.com"
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">メモ</label>
+                    <div className="flex items-start space-x-2">
                       <textarea
-                        value={newCustomerData.notes}
-                        onChange={(e) => setNewCustomerData(prev => ({ ...prev, notes: e.target.value }))}
-                        placeholder="特記事項など..."
-                        rows={2}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => registerNewCustomer(thread.id, thread)}
-                        className="btn btn-primary btn-sm"
-                      >
-                        顧客登録
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCustomerRegistration(prev => ({ ...prev, [thread.id]: false }))
-                          setNewCustomerData({ name: '', phone: '', email: '', notes: '' })
+                        value={replyMessage}
+                        onChange={(e) => setReplyMessage(e.target.value)}
+                        placeholder="メッセージを入力..."
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        rows={3}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            handleSendReply(thread.id)
+                          }
                         }}
-                        className="btn btn-secondary btn-sm"
+                      />
+                      <button
+                        onClick={() => handleAIReplyClick(thread.id)}
+                        disabled={isGeneratingAIReply === thread.id}
+                        className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-2 rounded-md transition-colors flex-shrink-0 flex items-center space-x-1 text-sm"
+                        title="AI返信生成"
                       >
-                        キャンセル
+                        {isGeneratingAIReply === thread.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>生成中...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Bot className="w-4 h-4" />
+                            <span>AI返信</span>
+                          </>
+                        )}
                       </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Enter で送信、Shift+Enter で改行</span>
+                      
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => {
+                            setReplyingToThread(null)
+                            setReplyMessage('')
+                          }}
+                          className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                          キャンセル
+                        </button>
+                        <button
+                          onClick={() => handleSendReply(thread.id)}
+                          disabled={!replyMessage.trim()}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1 rounded-md text-sm font-medium transition-colors"
+                        >
+                          送信
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Quick Templates */}
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-600 mb-2">よく使うテンプレート:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        'いつもありがとうございます',
+                        'お疲れ様でした',
+                        'ご来店ありがとうございました',
+                        'お気軽にご連絡ください'
+                      ].map((template, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setReplyMessage(template)}
+                          className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition-colors"
+                        >
+                          {template}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -947,15 +951,58 @@ function App() {
             </div>
           </div>
         ))}
+        
+        {(!threads?.threads || threads.threads.length === 0) && (
+          <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
+            <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <h3 className="text-lg font-medium text-gray-700 mb-2">
+              メッセージがありません
+            </h3>
+            <p className="text-gray-500">
+              新しいメッセージが届くとここに表示されます
+            </p>
+          </div>
+        )}
       </div>
     </div>
-  }
+  )
 
   const CustomersList = () => (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h2 className="text-xl md:text-2xl font-bold text-gray-900">顧客管理</h2>
-        <button className="btn btn-primary text-sm">新規顧客登録</button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button 
+            onClick={() => setShowCSVImporter(true)}
+            className="btn btn-secondary text-sm flex items-center"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            CSVインポート
+          </button>
+          <button 
+            onClick={handleNewCustomerRegistration}
+            className="btn btn-primary text-sm"
+          >
+            新規顧客登録
+          </button>
+        </div>
+      </div>
+      
+      {/* 検索バー */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="顧客名、顧客番号、電話番号で検索..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <button className="btn btn-secondary text-sm">
+            <Users className="w-4 h-4 mr-1" />
+            検索
+          </button>
+        </div>
       </div>
       
       <div className="space-y-4">
@@ -968,10 +1015,15 @@ function App() {
                     onClick={() => {
                       setSelectedCustomer(customer)
                       setShowCustomerModal(true)
+                      // Load existing customer notes (demo implementation)
+                      setCustomerNotes(`${customer.name}様の過去のカルテ情報がここに表示されます。\n\n例：\n- アレルギー: なし\n- 好みのスタイル: ショートカット\n- 注意事項: カラー剤に敏感`)
                     }}
                     className="text-lg font-medium text-gray-900 mb-2 break-words hover:text-blue-600 transition-colors text-left"
                   >
-                    {customer.name}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded">{customer.customerNumber}</span>
+                      <span>{customer.name}</span>
+                    </div>
                   </button>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                     {customer.phone && (
@@ -1006,6 +1058,21 @@ function App() {
               </div>
               
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
+                {/* Data Source Badge */}
+                {customer.source === 'HOTPEPPER' && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800">
+                    <FileText className="w-3 h-3 mr-1" />
+                    ホットペッパー
+                  </span>
+                )}
+                {customer.source === 'MANUAL' && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                    <Users className="w-3 h-3 mr-1" />
+                    手動登録
+                  </span>
+                )}
+                
+                {/* SNS Links */}
                 {customer.instagramId && (
                   <button
                     onClick={() => handleInstagramClick(customer.instagramId!)}
@@ -1026,6 +1093,13 @@ function App() {
                     <ExternalLink className="w-3 h-3 ml-1" />
                   </button>
                 )}
+
+                {/* Member Number for Hotpepper customers */}
+                {customer.memberNumber && (
+                  <span className="text-xs text-gray-500 font-mono">
+                    会員: {customer.memberNumber}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -1035,298 +1109,206 @@ function App() {
   )
 
   const ReservationsList = () => (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-900">予約管理</h2>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Calendar View Selector */}
-          <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-            {[{ value: 'day', label: '日' }, { value: 'threeDay', label: '3日' }, { value: 'week', label: '週' }, { value: 'month', label: '月' }].map((view) => (
-              <button
-                key={view.value}
-                onClick={() => setCalendarView(view.value as any)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  calendarView === view.value
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {view.label}
-              </button>
-            ))}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-lg p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              予約管理
+            </h2>
+            <p className="text-gray-600">
+              予約の確認と管理を行います
+            </p>
           </div>
-          <button className="btn btn-primary text-sm">新規予約</button>
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <div className="flex items-center bg-blue-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-200">
+            <Calendar className="w-4 h-4 mr-2" />
+            <span className="font-medium">今日: {reservations?.reservations.filter(r => isToday(new Date(r.startTime))).length || 0}件</span>
+          </div>
+          <div className="flex items-center bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200">
+            <CheckCircle className="w-4 h-4 mr-2" />
+            <span className="font-medium">確定済み</span>
+          </div>
+          <div className="flex items-center bg-yellow-50 text-yellow-700 px-4 py-2 rounded-lg border border-yellow-200">
+            <Clock className="w-4 h-4 mr-2" />
+            <span className="font-medium">仮予約</span>
+          </div>
         </div>
       </div>
-      
-      {/* Calendar Navigation */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => {
-              const newDate = new Date(calendarDate)
-              if (calendarView === 'day') newDate.setDate(newDate.getDate() - 1)
-              else if (calendarView === 'threeDay') newDate.setDate(newDate.getDate() - 3)
-              else if (calendarView === 'week') newDate.setDate(newDate.getDate() - 7)
-              else newDate.setMonth(newDate.getMonth() - 1)
-              setCalendarDate(newDate)
-            }}
-            className="p-2 hover:bg-gray-100 rounded-md"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+
+      {/* Calendar Controls */}
+      <div className="bg-white rounded-lg p-6 border border-gray-200">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center space-x-4">
+            <h3 className="text-lg font-medium text-gray-900">カレンダー表示</h3>
+            
+            {/* View Selector */}
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              {[
+                { value: 'day', label: '日' }, 
+                { value: 'threeDay', label: '3日' }, 
+                { value: 'week', label: '週' }, 
+                { value: 'month', label: '月' }
+              ].map((view) => (
+                <button
+                  key={view.value}
+                  onClick={() => setCalendarView(view.value as any)}
+                  className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                    calendarView === view.value
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {view.label}
+                </button>
+              ))}
+            </div>
+          </div>
           
-          <h3 className="text-lg font-medium text-gray-900">
-            {calendarView === 'month' 
-              ? format(calendarDate, 'yyyy年M月', { locale: ja })
-              : calendarView === 'week'
-                ? `${format(calendarDate, 'M月d日', { locale: ja })} 週`
-                : calendarView === 'threeDay'
-                  ? `${format(calendarDate, 'M月d日', { locale: ja })} (3日間)`
-                  : format(calendarDate, 'M月d日', { locale: ja })
-            }
-          </h3>
-          
-          <button
-            onClick={() => {
-              const newDate = new Date(calendarDate)
-              if (calendarView === 'day') newDate.setDate(newDate.getDate() + 1)
-              else if (calendarView === 'threeDay') newDate.setDate(newDate.getDate() + 3)
-              else if (calendarView === 'week') newDate.setDate(newDate.getDate() + 7)
-              else newDate.setMonth(newDate.getMonth() + 1)
-              setCalendarDate(newDate)
-            }}
-            className="p-2 hover:bg-gray-100 rounded-md"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={handleNewReservation}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              新規予約
+            </button>
+            <button 
+              onClick={() => {
+                setLiveReservations([...pastReservations, ...futureReservations])
+                alert('予約データをリセットしました')
+              }}
+              className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+            >
+              <X className="w-4 h-4 mr-2" />
+              リセット
+            </button>
+          </div>
+        </div>
+        
+        {/* Calendar Navigation */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                const newDate = new Date(calendarDate)
+                if (calendarView === 'day') newDate.setDate(newDate.getDate() - 1)
+                else if (calendarView === 'threeDay') newDate.setDate(newDate.getDate() - 3)
+                else if (calendarView === 'week') newDate.setDate(newDate.getDate() - 7)
+                else newDate.setMonth(newDate.getMonth() - 1)
+                setCalendarDate(newDate)
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900">
+                {calendarView === 'month' 
+                  ? format(calendarDate, 'yyyy年M月', { locale: ja })
+                  : calendarView === 'week'
+                    ? `${format(calendarDate, 'M月d日', { locale: ja })} 週`
+                    : calendarView === 'threeDay'
+                      ? `${format(calendarDate, 'M月d日', { locale: ja })} (3日間)`
+                      : format(calendarDate, 'M月d日', { locale: ja })
+                }
+              </h3>
+            </div>
+            
+            <button
+              onClick={() => {
+                const newDate = new Date(calendarDate)
+                if (calendarView === 'day') newDate.setDate(newDate.getDate() + 1)
+                else if (calendarView === 'threeDay') newDate.setDate(newDate.getDate() + 3)
+                else if (calendarView === 'week') newDate.setDate(newDate.getDate() + 7)
+                else newDate.setMonth(newDate.getMonth() + 1)
+                setCalendarDate(newDate)
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
           
           <button
             onClick={() => setCalendarDate(new Date())}
-            className="btn btn-secondary btn-sm"
+            className="flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
           >
             今日
           </button>
         </div>
       </div>
       
-      {/* Calendar Views */}
+      {/* Calendar Display */}
       {calendarView === 'month' ? (
-        /* Month View - Original implementation */
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-gray-200">
-            {['日', '月', '火', '水', '木', '金', '土'].map((day) => (
-              <div key={day} className="p-3 text-center text-sm font-medium text-gray-500 bg-gray-50">
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 h-96">
-            {Array.from({ length: 42 }, (_, i) => {
-              const startOfMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1)
-              const startOfCalendar = new Date(startOfMonth)
-              startOfCalendar.setDate(startOfCalendar.getDate() - startOfMonth.getDay())
-              const currentDate = new Date(startOfCalendar)
-              currentDate.setDate(currentDate.getDate() + i)
-              
-              const dayReservations = reservations?.reservations.filter(r => 
-                format(new Date(r.startTime), 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd')
-              ) || []
-              
-              const isClosed = isClosedDay(currentDate)
-              
-              return (
-                <div key={i} className={`border-r border-b border-gray-200 p-1 min-h-24 ${
-                  isClosed ? 'bg-red-50' : ''
-                }`}>
-                  <div className={`text-sm flex items-center justify-between ${
-                    currentDate.getMonth() !== calendarDate.getMonth() 
-                      ? 'text-gray-400' 
-                      : isToday(currentDate) 
-                        ? 'text-blue-600 font-bold'
-                        : 'text-gray-900'
-                  }`}>
-                    <span>{currentDate.getDate()}</span>
-                    {isClosed && <span className="text-xs text-red-500">定休</span>}
-                  </div>
-                  <div className="space-y-1 mt-1">
-                    {dayReservations.slice(0, 2).map((reservation) => (
-                      <div key={reservation.id} className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded truncate">
-                        <div className="font-medium">{reservation.customerName}</div>
-                        <div className="flex items-center text-xs">
-                          {getMenuIcon(reservation.menuContent)}
-                          <span className="ml-1 truncate">{reservation.menuContent}</span>
-                        </div>
-                        {reservation.staff && (
-                          <div className="text-xs text-blue-600">{reservation.staff.name}</div>
-                        )}
-                      </div>
-                    ))}
-                    {dayReservations.length > 2 && (
-                      <div className="text-xs text-gray-500">+{dayReservations.length - 2} more</div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        <MonthCalendar
+          currentDate={calendarDate}
+          onDateChange={setCalendarDate}
+          reservations={liveReservations}
+          isHoliday={isClosedDay}
+          getHolidayType={getHolidayType}
+          onDayClick={(date) => {
+            setCalendarDate(date)
+            setCalendarView('day')
+          }}
+        />
       ) : (
-        /* Time Slot Views (Day, 3-Day, Week) */
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="flex">
-            {/* Time column */}
-            <div className="w-20 border-r border-gray-200">
-              <div className="h-12 border-b border-gray-200 bg-gray-50 flex items-center justify-center text-sm font-medium text-gray-500">
-                時間
-              </div>
-              {generateTimeSlots().map((timeSlot) => (
-                <div key={timeSlot} className="h-16 border-b border-gray-200 flex items-center justify-center text-xs text-gray-600">
-                  {timeSlot}
-                </div>
-              ))}
-            </div>
-            
-            {/* Date columns */}
-            <div className="flex-1 overflow-x-auto">
-              <div className="flex min-w-full">
-                {getViewDates().map((date, dateIndex) => {
-                  const isClosed = isClosedDay(date)
-                  const isToday_ = isToday(date)
-                  
-                  return (
-                    <div key={dateIndex} className={`flex-1 min-w-48 border-r border-gray-200 ${
-                      isClosed ? 'bg-red-50' : ''
-                    }`}>
-                      {/* Date header */}
-                      <div className={`h-12 border-b border-gray-200 flex flex-col items-center justify-center text-sm ${
-                        isClosed 
-                          ? 'bg-red-100 text-red-700'
-                          : isToday_
-                            ? 'bg-blue-100 text-blue-700 font-medium'
-                            : 'bg-gray-50 text-gray-700'
-                      }`}>
-                        <div className="font-medium">
-                          {format(date, 'M/d', { locale: ja })}
-                        </div>
-                        <div className="text-xs">
-                          {format(date, 'E', { locale: ja })}
-                          {isClosed && <span className="ml-1 text-red-600">(定休)</span>}
-                        </div>
-                      </div>
-                      
-                      {/* Time slots */}
-                      {generateTimeSlots().map((timeSlot) => {
-                        const slotReservations = getReservationsForSlot(date, timeSlot)
-                        
-                        return (
-                          <div key={timeSlot} className={`h-16 border-b border-gray-200 p-1 ${
-                            isClosed ? 'bg-red-25' : 'hover:bg-gray-50'
-                          }`}>
-                            {slotReservations.map((reservation) => (
-                              <div key={reservation.id} className="bg-blue-100 text-blue-800 rounded p-1 mb-1 text-xs">
-                                <div className="font-medium truncate">{reservation.customerName}</div>
-                                <div className="flex items-center">
-                                  {getMenuIcon(reservation.menuContent)}
-                                  <span className="ml-1 truncate">{reservation.menuContent}</span>
-                                </div>
-                                {reservation.staff && (
-                                  <div className="text-xs text-blue-600 truncate">{reservation.staff.name}</div>
-                                )}
-                              </div>
-                            ))}
-                            
-                            {/* Click area to add new reservation */}
-                            {!isClosed && slotReservations.length === 0 && (
-                              <button className="w-full h-full text-gray-400 hover:text-gray-600 hover:bg-blue-50 rounded transition-colors text-xs">
-                                +
-                              </button>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
+        <SalonCalendar
+          reservations={liveReservations}
+          view={calendarView}
+          currentDate={calendarDate}
+          onDateChange={setCalendarDate}
+          onReservationClick={handleServiceHistoryClick}
+          onTimeSlotClick={handleTimeSlotClick}
+          businessHours={businessSettings}
+          isHoliday={isClosedDay}
+          getHolidayType={getHolidayType}
+        />
       )}
     </div>
   )
 
   const Dashboard = () => {
     const totalThreads = threads?.threads.length || 0
-    const todayReservations = reservations?.reservations.filter(r => 
+    const todayReservations = liveReservations.filter(r => 
       isToday(new Date(r.startTime))
-    ).length || 0
-    
-    // 分析用のダミーデータ
-    const monthlyRevenue = 1250000 // 今月の売上
-    const monthlyGrowth = 12.5 // 前月比成長率
-    const activeCustomers = customers?.customers.filter(c => 
-      c.lastVisitDate && new Date(c.lastVisitDate) > subMonths(new Date(), 3)
-    ).length || 0
-    const newCustomersThisMonth = customers?.customers.filter(c =>
-      new Date(c.createdAt) > startOfMonth(new Date())
     ).length || 0
     
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">ダッシュボード</h2>
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <Activity className="w-4 h-4" />
-            <span>リアルタイム更新</span>
-          </div>
+          <PlanBadge onUpgradeClick={() => setActiveView('upgrade')} />
         </div>
+        
+        {/* プラン制限情報 */}
+        <PlanLimitNotifications />
         
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Revenue Card */}
-          <div className="card hover:shadow-lg transition-all duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="w-5 h-5 text-green-500" />
-                  <p className="text-sm font-medium text-gray-600">今月の売上</p>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  ¥{monthlyRevenue.toLocaleString()}
-                </p>
-                <div className="flex items-center mt-2">
-                  <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                  <span className="text-sm text-green-600 font-medium">
-                    +{monthlyGrowth}%
-                  </span>
-                  <span className="text-xs text-gray-500 ml-1">前月比</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Active Customers */}
-          <div 
-            onClick={() => setActiveTab('customers')}
-            className="card hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
-          >
-            <div className="flex items-center">
-              <UserCheck className="w-8 h-8 text-purple-500" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">アクティブ顧客</p>
-                <p className="text-2xl font-bold text-gray-900">{activeCustomers}</p>
-                <p className="text-xs text-gray-500 mt-1">過去3ヶ月以内</p>
-              </div>
-            </div>
-          </div>
-
           <button
             onClick={() => setActiveTab('messages')}
-            className="card hover:shadow-lg transition-all duration-200 hover:scale-105 text-left cursor-pointer"
+            className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left cursor-pointer"
           >
             <div className="flex items-center">
-              <MessageSquare className="w-8 h-8 text-blue-500" />
+              <MessageSquare className="w-8 h-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">総メッセージ数</p>
+                <p className="text-2xl font-bold text-gray-900">{totalThreads}</p>
+              </div>
+            </div>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('messages')}
+            className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left cursor-pointer"
+          >
+            <div className="flex items-center">
+              <AlertCircle className="w-8 h-8 text-red-500" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">未読メッセージ</p>
                 <p className="text-2xl font-bold text-gray-900">{unreadCount}</p>
@@ -1336,10 +1318,10 @@ function App() {
           
           <button
             onClick={() => setActiveTab('reservations')}
-            className="card hover:shadow-lg transition-all duration-200 hover:scale-105 text-left cursor-pointer"
+            className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left cursor-pointer"
           >
             <div className="flex items-center">
-              <Calendar className="w-8 h-8 text-green-500" />
+              <Calendar className="w-8 h-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">今日の予約</p>
                 <p className="text-2xl font-bold text-gray-900">{todayReservations}</p>
@@ -1349,10 +1331,10 @@ function App() {
           
           <button
             onClick={() => setActiveTab('customers')}
-            className="card hover:shadow-lg transition-all duration-200 hover:scale-105 text-left cursor-pointer"
+            className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left cursor-pointer"
           >
             <div className="flex items-center">
-              <Users className="w-8 h-8 text-purple-500" />
+              <Users className="w-8 h-8 text-purple-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">総顧客数</p>
                 <p className="text-2xl font-bold text-gray-900">{customers?.customers.length || 0}</p>
@@ -1363,7 +1345,7 @@ function App() {
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card">
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">最近のメッセージ</h3>
               <button
@@ -1378,7 +1360,7 @@ function App() {
                 <button
                   key={thread.id}
                   onClick={() => setActiveTab('messages')}
-                  className="w-full flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
                 >
                   {getChannelIcon(thread.channel)}
                   <div className="flex-1 min-w-0">
@@ -1402,7 +1384,7 @@ function App() {
             </div>
           </div>
           
-          <div className="card">
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">今日の予約</h3>
               <button
@@ -1413,14 +1395,14 @@ function App() {
               </button>
             </div>
             <div className="space-y-3">
-              {reservations?.reservations
+              {liveReservations
                 .filter(r => isToday(new Date(r.startTime)))
                 .slice(0, 3)
                 .map((reservation) => (
                 <button
                   key={reservation.id}
                   onClick={() => setActiveTab('reservations')}
-                  className="w-full flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
                 >
                   <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -1436,8 +1418,7 @@ function App() {
                   </div>
                 </button>
               ))}
-              {(!reservations?.reservations || 
-                reservations.reservations.filter(r => isToday(new Date(r.startTime))).length === 0) && (
+              {liveReservations.filter(r => isToday(new Date(r.startTime))).length === 0 && (
                 <div className="text-center py-4 text-gray-500 text-sm">
                   今日の予約はありません
                 </div>
@@ -1449,146 +1430,6 @@ function App() {
     )
   }
 
-  const AnalyticsView = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl md:text-2xl font-bold text-gray-900">分析・レポート</h2>
-      
-      {/* Customer Segmentation */}
-      <div className="card">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">顧客セグメンテーション（RFM分析）</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {segments && Object.entries(segments.segments).map(([key, segment]: [string, any]) => (
-            <div key={key} className={`p-4 rounded-lg border-2 ${segment.count > 0 ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-900">{segment.name}</h4>
-                <span className={`text-lg font-bold ${segment.count > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
-                  {segment.count}
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">{segment.description}</p>
-              {segment.count > 0 && (
-                <p className="text-xs text-gray-500">
-                  平均単価: ¥{segment.avgValue.toLocaleString()}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Revenue Trend */}
-      <div className="card">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">売上トレンド</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-sm text-gray-600">今月の売上</p>
-            <p className="text-2xl font-bold text-gray-900">¥1,250,000</p>
-            <p className="text-sm text-green-600">+12.5% 前月比</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-600">先月の売上</p>
-            <p className="text-2xl font-bold text-gray-900">¥1,111,000</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-600">今年累計</p>
-            <p className="text-2xl font-bold text-gray-900">¥12,450,000</p>
-            <p className="text-sm text-blue-600">+8.3% 前年比</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Popular Services */}
-      <div className="card">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">人気メニューランキング</h3>
-        <div className="space-y-3">
-          {[
-            { name: 'カット + カラー', bookings: 45, revenue: 360000 },
-            { name: 'カット', bookings: 38, revenue: 171000 },
-            { name: 'デジタルパーマ', bookings: 22, revenue: 264000 },
-            { name: 'プレミアムトリートメント', bookings: 15, revenue: 75000 }
-          ].map((service, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <span className="text-lg font-bold text-gray-400">#{index + 1}</span>
-                <div>
-                  <p className="font-medium text-gray-900">{service.name}</p>
-                  <p className="text-sm text-gray-600">{service.bookings}回予約</p>
-                </div>
-              </div>
-              <p className="font-bold text-gray-900">¥{service.revenue.toLocaleString()}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-
-  const MenusView = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-900">メニュー管理</h2>
-        <button className="btn btn-primary text-sm">新規メニュー追加</button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {menus?.menus.map((menu: any) => (
-          <div key={menu.id} className="card hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                {getMenuIcon(menu.category)}
-                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                  {menu.category}
-                </span>
-              </div>
-              <span className="text-lg font-bold text-gray-900">¥{menu.price.toLocaleString()}</span>
-            </div>
-            
-            <h3 className="text-lg font-medium text-gray-900 mb-2">{menu.name}</h3>
-            <p className="text-sm text-gray-600 mb-3">{menu.description}</p>
-            
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <div className="flex items-center space-x-1">
-                <Clock className="w-4 h-4" />
-                <span>{menu.duration}分</span>
-              </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium">
-                編集
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      {/* AI Recommendations Section */}
-      <div className="card">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">AIメニューレコメンド</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          顧客の来店履歴と好みを分析して、最適なメニューを提案します
-        </p>
-        <div className="space-y-3">
-          {customers?.customers.slice(0, 2).map((customer) => (
-            <div key={customer.id} className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-medium text-gray-900">{customer.name}様</p>
-                <button className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
-                  レコメンド表示
-                </button>
-              </div>
-              <p className="text-sm text-gray-600">
-                前回から{Math.floor(Math.random() * 60 + 30)}日経過・来店回数{customer.visitCount}回
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-
-  // Show login screen if not authenticated
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -1598,29 +1439,39 @@ function App() {
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
               >
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">🏪 美容室統合管理システム</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <div className="flex items-center space-x-1">
-                  <Shield className="w-4 h-4 text-gray-400" />
-                  <span className="hidden sm:inline font-medium">{currentStaff?.name}</span>
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                    {currentStaff?.role === 'ADMIN' ? '管理者' : currentStaff?.role === 'MANAGER' ? 'マネージャー' : 'スタッフ'}
-                  </span>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center">
+                  <Scissors className="w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-bold text-gray-900">
+                    美容室統合管理システム
+                  </h1>
+                  <p className="text-xs text-gray-600 hidden sm:block">統合管理プラットフォーム</p>
                 </div>
               </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">ログアウト</span>
-              </button>
+            </div>
+            <div className="flex items-center space-x-4">
+              {/* プランバッジ */}
+              <PlanBadge 
+                variant="compact" 
+                onUpgradeClick={() => setActiveView('upgrade')}
+              />
+              
+              {unreadCount > 0 && (
+                <div className="flex items-center space-x-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm border border-red-200">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="font-medium">{unreadCount}件の未読</span>
+                </div>
+              )}
+              <div className="flex items-center space-x-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm border border-green-200">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="hidden sm:inline font-medium">オンライン</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1638,7 +1489,7 @@ function App() {
         {/* Sidebar */}
         <nav className={`
           fixed md:static inset-y-0 left-0 z-40
-          w-64 bg-white shadow-sm transform transition-transform duration-300 ease-in-out
+          w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 md:h-screen md:sticky md:top-16
         `}>
@@ -1649,10 +1500,14 @@ function App() {
                   setActiveTab('dashboard')
                   setIsSidebarOpen(false)
                 }}
-                className={`sidebar-item w-full ${activeTab === 'dashboard' ? 'active' : ''}`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'dashboard' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <BarChart3 className="w-5 h-5 mr-3 flex-shrink-0" />
-                <span className="truncate">ダッシュボード</span>
+                <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">ダッシュボード</span>
               </button>
               
               <button
@@ -1660,13 +1515,30 @@ function App() {
                   setActiveTab('messages')
                   setIsSidebarOpen(false)
                 }}
-                className={`sidebar-item w-full ${activeTab === 'messages' ? 'active' : ''}`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'messages' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <MessageSquare className="w-5 h-5 mr-3 flex-shrink-0" />
-                <span className="truncate">統合インボックス</span>
+                <MessageSquare className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">メッセージ</span>
                 {unreadCount > 0 && (
-                  <span className="ml-auto badge badge-danger flex-shrink-0">{unreadCount}</span>
+                  <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                    {unreadCount}
+                  </span>
                 )}
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowBulkMessageSender(true)
+                  setIsSidebarOpen(false)
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-50 ml-6"
+              >
+                <Send className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium text-sm">メッセージ一斉送信</span>
               </button>
               
               <button
@@ -1674,10 +1546,14 @@ function App() {
                   setActiveTab('reservations')
                   setIsSidebarOpen(false)
                 }}
-                className={`sidebar-item w-full ${activeTab === 'reservations' ? 'active' : ''}`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'reservations' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <Calendar className="w-5 h-5 mr-3 flex-shrink-0" />
-                <span className="truncate">予約管理</span>
+                <Calendar className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">予約管理</span>
               </button>
               
               <button
@@ -1685,10 +1561,14 @@ function App() {
                   setActiveTab('customers')
                   setIsSidebarOpen(false)
                 }}
-                className={`sidebar-item w-full ${activeTab === 'customers' ? 'active' : ''}`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'customers' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <Users className="w-5 h-5 mr-3 flex-shrink-0" />
-                <span className="truncate">顧客管理</span>
+                <Users className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">顧客管理</span>
               </button>
               
               <button
@@ -1696,21 +1576,77 @@ function App() {
                   setActiveTab('analytics')
                   setIsSidebarOpen(false)
                 }}
-                className={`sidebar-item w-full ${activeTab === 'analytics' ? 'active' : ''}`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'analytics' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <TrendingUp className="w-5 h-5 mr-3 flex-shrink-0" />
-                <span className="truncate">分析・レポート</span>
+                <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">分析</span>
               </button>
               
               <button
                 onClick={() => {
-                  setActiveTab('menus')
+                  setActiveTab('premium-marketing')
                   setIsSidebarOpen(false)
                 }}
-                className={`sidebar-item w-full ${activeTab === 'menus' ? 'active' : ''}`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'premium-marketing' 
+                    ? 'bg-purple-50 text-purple-700 border border-purple-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <Scissors className="w-5 h-5 mr-3 flex-shrink-0" />
-                <span className="truncate">メニュー管理</span>
+                <Star className="w-5 h-5 flex-shrink-0 text-yellow-500" />
+                <span className="font-medium">経営戦略 (Premium)</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setActiveTab('menu-management')
+                  setIsSidebarOpen(false)
+                }}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'menu-management' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Scissors className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">メニュー管理</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setActiveTab('feature-request')
+                  setIsSidebarOpen(false)
+                  setUnreadFeatureRequests(0) // Clear notification count when visiting page
+                }}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'feature-request' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Lightbulb className="w-5 h-5 flex-shrink-0 text-yellow-500" />
+                <span className="font-medium">機能改善要望</span>
+                {unreadFeatureRequests > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadFeatureRequests}
+                  </span>
+                )}
+              </button>
+              
+              {/* アップグレードボタン */}
+              <button
+                onClick={() => {
+                  setActiveView('upgrade')
+                  setIsSidebarOpen(false)
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
+              >
+                <Sparkles className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">プランアップグレード</span>
               </button>
               
               <button
@@ -1718,11 +1654,29 @@ function App() {
                   setActiveTab('settings')
                   setIsSidebarOpen(false)
                 }}
-                className={`sidebar-item w-full ${activeTab === 'settings' ? 'active' : ''}`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'settings' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <Settings className="w-5 h-5 mr-3 flex-shrink-0" />
-                <span className="truncate">設定</span>
+                <Settings className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">設定</span>
               </button>
+            </div>
+            
+            <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="text-center">
+                <p className="text-xs text-gray-600 font-medium">
+                  本日の予約数<br />
+                  {reservations?.reservations.filter(r => isToday(new Date(r.startTime))).length || 0}件
+                </p>
+              </div>
+            </div>
+            
+            {/* ユーザープロファイル */}
+            <div className="mt-6">
+              <UserProfile />
             </div>
           </div>
         </nav>
@@ -1730,113 +1684,98 @@ function App() {
         {/* Main Content */}
         <main className="flex-1 p-4 sm:p-6 max-w-full">
           <div className="max-w-7xl mx-auto">
-            {activeTab === 'dashboard' && <Dashboard />}
-            {activeTab === 'messages' && <MessagesList />}
-            {activeTab === 'customers' && <CustomersList />}
-            {activeTab === 'reservations' && <ReservationsList />}
-            {activeTab === 'analytics' && <AnalyticsView />}
-            {activeTab === 'menus' && <MenusView />}
-            {activeTab === 'settings' && (
+            {/* アップグレード画面 */}
+            {activeView === 'upgrade' && (
+              <div>
+                <div className="mb-4">
+                  <button
+                    onClick={() => setActiveView('main')}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>戻る</span>
+                  </button>
+                </div>
+                <UpgradePlan />
+              </div>
+            )}
+            
+            {activeView === 'main' && showFilteredCustomerView && (
+              <FilteredCustomerView
+                viewType={filteredCustomerViewType}
+                customerId={filteredCustomerId}
+                customerName={filteredCustomerName}
+                allMessages={messageThreads || []}
+                allReservations={[...(pastReservations || []), ...(futureReservations || []), ...(liveReservations || [])]}
+                onBack={handleBackFromFilteredView}
+              />
+            )}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'dashboard' && <Dashboard />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'messages' && <MessagesList />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'customers' && <CustomersList />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'reservations' && <ReservationsList />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'analytics' && <CustomerAnalyticsDashboard />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && <PremiumMarketingDashboard />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && <FeatureRequestForm onNewRequest={handleNewFeatureRequest} />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (
+              <div className="space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">外部API連携設定</h2>
+                <ExternalAPISettings />
+              </div>
+            )}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'notification-settings' && (
+              <div className="space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">通知設定</h2>
+                <NotificationSettings />
+              </div>
+            )}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'backup-settings' && (
+              <div className="space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">データバックアップ設定</h2>
+                <DataBackupSettings />
+              </div>
+            )}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'openai-settings' && (
+              <div className="space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">OpenAI設定</h2>
+                <OpenAISettings />
+              </div>
+            )}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'menu-management' && (
+              <div className="space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">メニュー管理</h2>
+                <MenuManagement />
+              </div>
+            )}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'settings' && (
               <div className="space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">設定</h2>
                 
-                {/* Google Calendar Integration */}
+                {/* プラン管理セクション */}
                 <div className="card">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Google Calendar 連携</h3>
-                    <div className={`flex items-center ${googleCalendarConnected ? 'text-green-600' : 'text-gray-500'}`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 ${googleCalendarConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                      {googleCalendarConnected ? '接続済み' : '未接続'}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Google Client ID
-                        </label>
-                        <input
-                          type="text"
-                          value={calendarSettings.googleClientId}
-                          onChange={(e) => setCalendarSettings(prev => ({ ...prev, googleClientId: e.target.value }))}
-                          placeholder="Google API Client ID"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Google Client Secret
-                        </label>
-                        <input
-                          type="password"
-                          value={calendarSettings.googleClientSecret}
-                          onChange={(e) => setCalendarSettings(prev => ({ ...prev, googleClientSecret: e.target.value }))}
-                          placeholder="Google API Client Secret"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={calendarSettings.autoSync}
-                            onChange={(e) => setCalendarSettings(prev => ({ ...prev, autoSync: e.target.checked }))}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">自動同期を有効にする</span>
-                        </label>
-                        <p className="text-xs text-gray-500 ml-6 mt-1">指定間隔でGoogle Calendarと自動同期します</p>
-                      </div>
-                      
-                      <div className="text-right">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">同期間隔</label>
-                        <select
-                          value={calendarSettings.syncInterval}
-                          onChange={(e) => setCalendarSettings(prev => ({ ...prev, syncInterval: parseInt(e.target.value) }))}
-                          className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value={5}>5分</option>
-                          <option value={15}>15分</option>
-                          <option value={30}>30分</option>
-                          <option value={60}>1時間</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
-                      <button
-                        onClick={handleGoogleCalendarConnect}
-                        disabled={!calendarSettings.googleClientId || !calendarSettings.googleClientSecret}
-                        className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Link className="w-4 h-4 mr-2" />
-                        {googleCalendarConnected ? '再接続' : 'Google Calendarに接続'}
-                      </button>
-                      
-                      {googleCalendarConnected && (
-                        <button
-                          onClick={() => setGoogleCalendarConnected(false)}
-                          className="btn btn-secondary"
-                        >
-                          接続解除
-                        </button>
-                      )}
-                      
-                      <button className="btn btn-secondary">
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        手動同期
-                      </button>
-                    </div>
-                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <Crown className="w-5 h-5 mr-2 text-purple-600" />
+                    プラン管理
+                  </h3>
+                  <PlanBadge 
+                    variant="full" 
+                    onUpgradeClick={() => setActiveView('upgrade')}
+                  />
                 </div>
                 
-                {/* Business Hours & Closed Days Settings */}
+                {/* Advanced Holiday Settings */}
                 <div className="card">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">営業時間・定休日設定</h3>
+                  <AdvancedHolidaySettings />
+                </div>
+
+                {/* Reminder Settings */}
+                <div className="card">
+                  <ReminderSettings />
+                </div>
+
+                {/* Business Hours Settings */}
+                <div className="card">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">基本営業時間設定</h3>
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
@@ -1885,88 +1824,15 @@ function App() {
                       </div>
                     </div>
                     
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        定休日
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
-                          <label key={index} className="flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={businessSettings.closedDays.includes(index)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setBusinessSettings(prev => ({
-                                    ...prev,
-                                    closedDays: [...prev.closedDays, index]
-                                  }))
-                                } else {
-                                  setBusinessSettings(prev => ({
-                                    ...prev,
-                                    closedDays: prev.closedDays.filter(d => d !== index)
-                                  }))
-                                }
-                              }}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
-                            />
-                            <span className="text-sm text-gray-700">{day}曜日</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    
                     <div className="pt-4 border-t border-gray-200">
                       <button className="btn btn-primary">
                         <Save className="w-4 h-4 mr-2" />
-                        設定を保存
+                        営業時間設定を保存
                       </button>
                     </div>
                   </div>
                 </div>
                 
-                {/* Auto Message Templates */}
-                <div className="card">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">自動メッセージ設定</h3>
-                  <div className="space-y-4">
-                    {autoMessageTemplates?.templates.map((template: any) => (
-                      <div key={template.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h4 className="text-sm font-medium text-gray-900">{template.name}</h4>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              template.enabled 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {template.enabled ? '有効' : '無効'}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-500 mb-2">
-                            トリガー: {template.trigger} | チャネル: {template.channel}
-                          </p>
-                          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded text-xs">
-                            {template.content.substring(0, 100)}...
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <label className="flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={template.enabled}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              onChange={() => {
-                                toast.success(`${template.name}を${template.enabled ? '無効' : '有効'}にしました`)
-                              }}
-                            />
-                          </label>
-                          <button className="btn btn-secondary btn-sm">編集</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Other Settings */}
                 <div className="card">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">システム設定</h3>
@@ -1976,7 +1842,12 @@ function App() {
                         <h4 className="text-sm font-medium text-gray-900">通知設定</h4>
                         <p className="text-xs text-gray-500">新しいメッセージや予約の通知を管理します</p>
                       </div>
-                      <button className="btn btn-secondary btn-sm">設定</button>
+                      <button 
+                        onClick={() => setActiveTab('notification-settings')}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        設定
+                      </button>
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -1984,18 +1855,52 @@ function App() {
                         <h4 className="text-sm font-medium text-gray-900">データバックアップ</h4>
                         <p className="text-xs text-gray-500">定期的なデータバックアップを設定します</p>
                       </div>
-                      <button className="btn btn-secondary btn-sm">設定</button>
+                      <button 
+                        onClick={() => setActiveTab('backup-settings')}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        設定
+                      </button>
                     </div>
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-sm font-medium text-gray-900">API設定</h4>
-                        <p className="text-xs text-gray-500">Instagram・LINE APIの設定を管理します</p>
+                        <h4 className="text-sm font-medium text-gray-900">外部API連携設定</h4>
+                        <p className="text-xs text-gray-500">LINE・Instagram APIの設定を管理します</p>
                       </div>
-                      <button className="btn btn-secondary btn-sm">設定</button>
+                      <button 
+                        onClick={() => setActiveTab('api-settings')}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        設定
+                      </button>
                     </div>
                   </div>
                 </div>
+
+                {/* Admin Only Settings */}
+                <ProtectedRoute requiredResource="*" requiredAction="admin" requireAuth={false}>
+                  <div className="card">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                      <Shield className="w-5 h-5 mr-2 text-red-600" />
+                      管理者限定設定
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900">OpenAI設定</h4>
+                          <p className="text-xs text-gray-500">AI返信機能のためのOpenAI API設定</p>
+                        </div>
+                        <button 
+                          onClick={() => setActiveTab('openai-settings')}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          設定
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </ProtectedRoute>
               </div>
             )}
           </div>
@@ -2005,18 +1910,20 @@ function App() {
       {/* Customer Detail Modal */}
       {showCustomerModal && selectedCustomer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-90vh overflow-y-auto">
-            <div className="p-6">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-6">
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center">
                   <User className="w-6 h-6 mr-2" />
-                  顧客カルテ - {selectedCustomer.name}
+                  顧客カルテ - {selectedCustomer.customerNumber} {selectedCustomer.name}
                 </h2>
                 <button
                   onClick={() => {
                     setShowCustomerModal(false)
                     setSelectedCustomer(null)
+                    setCustomerNotes('')
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -2026,76 +1933,182 @@ function App() {
               
               {/* Customer Information */}
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Basic Info */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">基本情報</h3>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">氏名</label>
-                      <p className="text-gray-900 font-medium">{selectedCustomer.name}</p>
-                    </div>
-                    
-                    {selectedCustomer.phone && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">電話番号</label>
-                        <div className="flex items-center space-x-2">
-                          <a 
-                            href={`tel:${selectedCustomer.phone}`}
-                            className="text-blue-600 hover:text-blue-700 font-medium"
-                          >
-                            {selectedCustomer.phone}
-                          </a>
-                          <Phone className="w-4 h-4 text-gray-400" />
-                        </div>
-                      </div>
+                {/* Data Source Indicator */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {selectedCustomer.source === 'HOTPEPPER' && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                        <FileText className="w-3 h-3 mr-1" />
+                        ホットペッパービューティー
+                      </span>
                     )}
-                    
-                    {selectedCustomer.email && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">メールアドレス</label>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleEmailClick(selectedCustomer.email!)}
-                            className="text-blue-600 hover:text-blue-700 font-medium"
-                          >
-                            {selectedCustomer.email}
-                          </button>
-                          <Mail className="w-4 h-4 text-gray-400" />
-                        </div>
-                      </div>
+                    {selectedCustomer.source === 'MANUAL' && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <Users className="w-3 h-3 mr-1" />
+                        手動登録
+                      </span>
                     )}
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">登録日</label>
-                      <p className="text-gray-900">
-                        {format(new Date(selectedCustomer.createdAt), 'yyyy年M月d日', { locale: ja })}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Visit Stats */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">来店情報</h3>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">来店回数</label>
-                      <p className="text-2xl font-bold text-blue-600">{selectedCustomer.visitCount}回</p>
-                    </div>
-                    
-                    {selectedCustomer.lastVisitDate && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">最終来店日</label>
-                        <p className="text-gray-900 font-medium">
-                          {format(new Date(selectedCustomer.lastVisitDate), 'yyyy年M月d日', { locale: ja })}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          （{Math.floor((new Date().getTime() - new Date(selectedCustomer.lastVisitDate).getTime()) / (1000 * 60 * 60 * 24))}日前）
-                        </p>
-                      </div>
+                    {selectedCustomer.source === 'LINE' && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <MessageCircle className="w-3 h-3 mr-1" />
+                        LINE
+                      </span>
+                    )}
+                    {selectedCustomer.source === 'INSTAGRAM' && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                        <Instagram className="w-3 h-3 mr-1" />
+                        Instagram
+                      </span>
                     )}
                   </div>
+                  {selectedCustomer.memberNumber && (
+                    <span className="text-sm text-gray-600">
+                      会員番号: <span className="font-mono font-medium">{selectedCustomer.memberNumber}</span>
+                    </span>
+                  )}
                 </div>
+
+                {/* Customer Details Table */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border border-gray-200 rounded-lg">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">項目</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">詳細</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      <tr>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">顧客番号</td>
+                        <td className="px-4 py-3 text-sm text-blue-600 font-mono font-medium">{selectedCustomer.customerNumber}</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">氏名</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">{selectedCustomer.name}</td>
+                      </tr>
+                      {selectedCustomer.furigana && (
+                        <tr>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">フリガナ</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{selectedCustomer.furigana}</td>
+                        </tr>
+                      )}
+                      {selectedCustomer.phone && (
+                        <tr className="bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">電話番号</td>
+                          <td className="px-4 py-3 text-sm">
+                            <a href={`tel:${selectedCustomer.phone}`} className="text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                              {selectedCustomer.phone}
+                              <Phone className="w-3 h-3 ml-1" />
+                            </a>
+                          </td>
+                        </tr>
+                      )}
+                      {selectedCustomer.email && (
+                        <tr>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">メールアドレス</td>
+                          <td className="px-4 py-3 text-sm">
+                            <button
+                              onClick={() => handleEmailClick(selectedCustomer.email!)}
+                              className="text-blue-600 hover:text-blue-700 font-medium flex items-center"
+                            >
+                              {selectedCustomer.email}
+                              <Mail className="w-3 h-3 ml-1" />
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                      {selectedCustomer.birthDate && (
+                        <tr className="bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">生年月日</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {format(new Date(selectedCustomer.birthDate), 'yyyy年M月d日', { locale: ja })}
+                            <span className="text-gray-500 ml-2">
+                              ({Math.floor((new Date().getTime() - new Date(selectedCustomer.birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365))}歳)
+                            </span>
+                          </td>
+                        </tr>
+                      )}
+                      {selectedCustomer.gender && (
+                        <tr>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">性別</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{selectedCustomer.gender}</td>
+                        </tr>
+                      )}
+                      {(selectedCustomer.zipCode || selectedCustomer.address) && (
+                        <tr className="bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">住所</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {selectedCustomer.zipCode && (
+                              <div className="text-gray-600 text-xs">〒{selectedCustomer.zipCode}</div>
+                            )}
+                            {selectedCustomer.address}
+                          </td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">来店回数</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className="text-2xl font-bold text-blue-600">{selectedCustomer.visitCount}</span>
+                          <span className="text-gray-600 ml-1">回</span>
+                        </td>
+                      </tr>
+                      {selectedCustomer.lastVisitDate && (
+                        <tr className="bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">最終来店日</td>
+                          <td className="px-4 py-3 text-sm">
+                            <div className="text-gray-900 font-medium">
+                              {format(new Date(selectedCustomer.lastVisitDate), 'yyyy年M月d日', { locale: ja })}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {Math.floor((new Date().getTime() - new Date(selectedCustomer.lastVisitDate).getTime()) / (1000 * 60 * 60 * 24))}日前
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">登録日</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          {format(new Date(selectedCustomer.createdAt), 'yyyy年M月d日', { locale: ja })}
+                        </td>
+                      </tr>
+                      {selectedCustomer.registrationDate && selectedCustomer.registrationDate !== selectedCustomer.createdAt && (
+                        <tr className="bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">ホットペッパー登録日</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {format(new Date(selectedCustomer.registrationDate), 'yyyy年M月d日', { locale: ja })}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ホットペッパー専用情報 */}
+                {selectedCustomer.source === 'HOTPEPPER' && (selectedCustomer.couponHistory || selectedCustomer.menuHistory) && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">ホットペッパービューティー利用履歴</h3>
+                    
+                    {selectedCustomer.couponHistory && (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <h4 className="font-medium text-orange-900 mb-2 flex items-center">
+                          <FileText className="w-4 h-4 mr-2" />
+                          クーポン利用履歴
+                        </h4>
+                        <p className="text-sm text-orange-800 whitespace-pre-line">{selectedCustomer.couponHistory}</p>
+                      </div>
+                    )}
+                    
+                    {selectedCustomer.menuHistory && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+                          <Scissors className="w-4 h-4 mr-2" />
+                          メニュー利用履歴
+                        </h4>
+                        <p className="text-sm text-blue-800 whitespace-pre-line">{selectedCustomer.menuHistory}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {/* Social Media Links */}
                 <div>
@@ -2125,6 +2138,53 @@ function App() {
                   </div>
                 </div>
                 
+                {/* Service History */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 border-b pb-2 mb-4">施術履歴</h3>
+                  <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
+                    {liveReservations
+                      .filter(reservation => 
+                        reservation.customer?.id === selectedCustomer.id && 
+                        reservation.status === 'COMPLETED'
+                      )
+                      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+                      .map((reservation, index) => (
+                      <button
+                        key={index} 
+                        onClick={() => handleServiceHistoryClick(reservation)}
+                        className="w-full bg-gray-50 rounded-lg p-3 border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors text-left cursor-pointer group"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-900">{reservation.menuContent}</span>
+                            <span className="text-xs text-gray-500">担当: {reservation.staff?.name}</span>
+                          </div>
+                          <div className="text-right">
+                            {reservation.price && (
+                              <div className="text-sm font-medium text-gray-900">¥{reservation.price.toLocaleString()}</div>
+                            )}
+                            <div className="text-xs text-gray-500">{format(new Date(reservation.startTime), 'M月d日', { locale: ja })}</div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-600">{reservation.notes}</p>
+                        {reservation.stylistNotes && (
+                          <div className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            💡 美容師メモあり
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          クリックして詳細を表示
+                        </div>
+                      </button>
+                    ))}
+                    {liveReservations.filter(r => r.customer?.id === selectedCustomer.id && r.status === 'COMPLETED').length === 0 && (
+                      <div className="text-center py-4 text-gray-500 text-sm">
+                        施術履歴がありません
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Notes Section */}
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 border-b pb-2 mb-4">カルテメモ</h3>
@@ -2133,20 +2193,24 @@ function App() {
                       rows={4}
                       placeholder="顧客の特記事項、好み、アレルギー情報などを記録..."
                       className="w-full border-0 bg-transparent resize-none focus:outline-none text-sm"
-                      defaultValue="・ブラウン系カラー希望\n・毛量多め\n・敏感肌のため、パッチテスト必要\n・次回予約: カット + カラー希望"
+                      value={customerNotes}
+                      onChange={(e) => setCustomerNotes(e.target.value)}
                     />
                   </div>
                 </div>
                 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
-                  <button className="btn btn-primary flex items-center">
+                  <button 
+                    onClick={handleUpdateCustomerNotes}
+                    className="btn btn-primary flex items-center"
+                  >
                     <FileText className="w-4 h-4 mr-2" />
                     カルテを更新
                   </button>
                   
                   <button
-                    onClick={() => setActiveTab('messages')}
+                    onClick={handleShowCustomerMessages}
                     className="btn btn-secondary flex items-center"
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
@@ -2154,20 +2218,225 @@ function App() {
                   </button>
                   
                   <button
-                    onClick={() => setActiveTab('reservations')}
+                    onClick={handleShowCustomerReservations}
                     className="btn btn-secondary flex items-center"
                   >
                     <CalendarIcon className="w-4 h-4 mr-2" />
                     予約履歴
                   </button>
                 </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* New Customer Registration Modal */}
+      {showNewCustomerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-6">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                    <Users className="w-6 h-6 mr-2" />
+                    新規顧客登録
+                  </h2>
+                  <button
+                    onClick={handleCancelNewCustomer}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                {/* Registration Form */}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* 基本情報 */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-900 border-b pb-2">基本情報</h3>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          氏名 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={newCustomerData.name}
+                          onChange={(e) => setNewCustomerData(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="例: 山田 花子"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">電話番号</label>
+                        <input
+                          type="tel"
+                          value={newCustomerData.phone}
+                          onChange={(e) => setNewCustomerData(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="例: 090-1234-5678"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">メールアドレス</label>
+                        <input
+                          type="email"
+                          value={newCustomerData.email}
+                          onChange={(e) => setNewCustomerData(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="例: hanako@email.com"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* SNS情報 */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-900 border-b pb-2">SNS情報</h3>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <Instagram className="w-4 h-4 mr-1 text-pink-500" />
+                          Instagram ID
+                        </label>
+                        <input
+                          type="text"
+                          value={newCustomerData.instagramId}
+                          onChange={(e) => setNewCustomerData(prev => ({ ...prev, instagramId: e.target.value }))}
+                          placeholder="例: hanako_beauty"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <MessageCircle className="w-4 h-4 mr-1 text-green-500" />
+                          LINE ID
+                        </label>
+                        <input
+                          type="text"
+                          value={newCustomerData.lineId}
+                          onChange={(e) => setNewCustomerData(prev => ({ ...prev, lineId: e.target.value }))}
+                          placeholder="例: hanako123"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-xs text-blue-700">
+                          <span className="font-medium">💡 SNS連携のメリット</span><br />
+                          Instagram・LINEのIDを登録することで、統合メッセージ管理で一元的にやり取りできます。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* メモ・備考 */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2 mb-4">初回カルテメモ</h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <textarea
+                        rows={4}
+                        value={newCustomerData.notes}
+                        onChange={(e) => setNewCustomerData(prev => ({ ...prev, notes: e.target.value }))}
+                        placeholder="顧客の特記事項、希望、アレルギー情報などを記録..."
+                        className="w-full border-0 bg-transparent resize-none focus:outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+                    <button 
+                      onClick={handleSaveNewCustomer}
+                      className="btn btn-primary flex items-center justify-center"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      顧客を登録
+                    </button>
+                    
+                    <button
+                      onClick={handleCancelNewCustomer}
+                      className="btn btn-secondary flex items-center justify-center"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Importer Modal */}
+      <CSVImporter
+        isOpen={showCSVImporter}
+        onImport={handleCSVImport}
+        onClose={() => setShowCSVImporter(false)}
+        existingCustomers={customers?.customers || []}
+      />
+
+      {/* Bulk Message Sender Modal */}
+      <BulkMessageSender
+        isOpen={showBulkMessageSender}
+        customers={customers?.customers || []}
+        onSend={handleBulkMessageSend}
+        onClose={() => setShowBulkMessageSender(false)}
+      />
+
+      {/* New Reservation Modal */}
+      <NewReservationModal
+        isOpen={showNewReservationModal}
+        onClose={() => {
+          setShowNewReservationModal(false)
+          setSelectedReservationDate(undefined)
+          setSelectedReservationTime(undefined)
+        }}
+        selectedDate={selectedReservationDate}
+        selectedTime={selectedReservationTime}
+        customers={customers?.customers || []}
+        onSave={handleSaveNewReservation}
+      />
+
+      {/* Service History Modal */}
+      <ServiceHistoryModal
+        reservation={selectedServiceHistory}
+        onClose={() => {
+          setShowServiceHistoryModal(false)
+          setSelectedServiceHistory(null)
+        }}
+        onUpdateStylistNotes={handleUpdateStylistNotes}
+      />
+
     </div>
   )
 }
 
-export default App
+// 認証で保護されたメインアプリケーション
+const AuthenticatedApp = () => {
+  return (
+    <ProtectedRoute requireAuth={true}>
+      <App />
+    </ProtectedRoute>
+  )
+}
+
+// 認証プロバイダーでラップされたルートコンポーネント
+const RootApp = () => {
+  return (
+    <AuthProvider>
+      <SubscriptionProvider>
+        <AuthenticatedApp />
+      </SubscriptionProvider>
+    </AuthProvider>
+  )
+}
+
+export default RootApp

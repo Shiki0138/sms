@@ -336,7 +336,7 @@ export class AnalyticsController {
     }, {} as Record<string, number>);
 
     return Object.entries(serviceCount)
-      .sort(([, a], [, b]) => b - a)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
       .slice(0, 3)
       .map(([service]) => service);
   }
@@ -349,7 +349,7 @@ export class AnalyticsController {
     }, {} as Record<string, number>);
 
     return Object.entries(staffCount)
-      .sort(([, a], [, b]) => b - a)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
       .slice(0, 2)
       .map(([staff]) => staff);
   }
@@ -370,11 +370,11 @@ export class AnalyticsController {
 
     return {
       preferredDays: Object.entries(dayOfWeekCount)
-        .sort(([, a], [, b]) => b - a)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
         .slice(0, 2)
         .map(([day]) => ['日', '月', '火', '水', '木', '金', '土'][parseInt(day)]),
       preferredTimeSlots: Object.entries(timeSlotCount)
-        .sort(([, a], [, b]) => b - a)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
         .map(([slot]) => slot),
     };
   }

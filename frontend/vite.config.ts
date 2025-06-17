@@ -32,6 +32,29 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    target: 'esnext',
+    sourcemap: false, // 本番では無効化
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // ベンダーライブラリを分離
+          vendor: ['react', 'react-dom'],
+          charts: ['chart.js', 'react-chartjs-2'], 
+          ui: ['lucide-react', '@headlessui/react'],
+          utils: ['date-fns', 'clsx']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500, // 警告サイズを500KBに設定
+    minify: 'terser', // Terserで最適化
+    terserOptions: {
+      compress: {
+        drop_console: true, // console.log を削除
+        drop_debugger: true, // debugger を削除
+      },
+    }
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'lucide-react']
   },
 })

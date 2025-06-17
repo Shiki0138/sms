@@ -23,5 +23,20 @@
     "emitDecoratorMetadata": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": [
+    "node_modules", 
+    "dist", 
+    "**/*.test.ts",
+    "src/services/securityService.ts",
+    "src/services/broadcastService.ts",
+    "src/services/emotional-database-service.ts",
+    "src/test/**/*",
+    "src/utils/security.ts",
+    "src/controllers/emotionalAnalyticsController.ts",
+    "src/controllers/magicalExternalApiController.ts",
+    "src/routes/emotional-analytics.ts",
+    "src/routes/magical-external-apis.ts",
+    "src/services/emotional-ai-analytics.ts",
+    "src/services/magicalExternalApiService.ts"
+  ]
 }

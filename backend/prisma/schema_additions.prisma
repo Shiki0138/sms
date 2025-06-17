@@ -1,0 +1,79 @@
+// 🌟 美容室システム拡張テーブル群 - チームC品質強化
+
+// 顧客プリファレンス - お客様の好みを完璧に理解
+model CustomerPreference {
+  id               String   @id @default(cuid())
+  customerId       String
+  category         String   // 'service', 'staff', 'time', 'communication'
+  preferenceValue  String
+  confidenceScore  Float    @default(0.5)
+  lastUpdated      DateTime @default(now())
+  tenantId         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // 美容室業務最適化インデックス
+  @@index([customerId])
+  @@index([category])
+  @@index([tenantId])
+  @@index([customerId, category])
+  @@map("customer_preferences")
+}
+
+// マーケティングキャンペーン - 売上向上戦略
+model MarketingCampaign {
+  id             String   @id @default(cuid())
+  name           String
+  type           String   // 'email', 'sms', 'line', 'instagram'
+  targetSegment  String?  // 'VIP', 'REGULAR', 'NEW', 'CHURNED'
+  startDate      DateTime?
+  endDate        DateTime?
+  budget         Decimal? @default(0)
+  conversionRate Float    @default(0.0)
+  roi            Float    @default(0.0)
+  tenantId       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // 美容室業務最適化インデックス
+  @@index([tenantId])
+  @@index([startDate, endDate])
+  @@index([targetSegment])
+  @@index([tenantId, type])
+  @@map("marketing_campaigns")
+}
+
+// スタッフパフォーマンス - 美容師の成績見える化
+model StaffPerformance {
+  id                   String   @id @default(cuid())
+  staffId              String
+  month                DateTime
+  appointmentsCount    Int      @default(0)
+  revenueGenerated     Decimal  @default(0)
+  customerSatisfaction Float    @default(0.0)
+  upsellRate           Float    @default(0.0)
+  repeatRate           Float    @default(0.0)
+  avgServiceTime       Int      @default(0) // in minutes
+  tenantId             String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  staff  Staff  @relation("StaffPerformance", fields: [staffId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // 美容室業務最適化インデックス
+  @@index([staffId])
+  @@index([month])
+  @@index([tenantId])
+  @@index([staffId, month])
+  @@unique([staffId, month])
+  @@map("staff_performance")
+}

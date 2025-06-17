@@ -21,12 +21,20 @@ import {
   requirePermission,
 } from '../middleware/auth';
 import { PERMISSIONS } from '../utils/auth';
+import { 
+  requireAnalytics,
+  requireCustomerSegmentation,
+  requireBulkOperations,
+  requireAI,
+  addPlanInfo 
+} from '../middleware/planRestriction';
 
 const router = Router();
 
 // Apply authentication and tenant access to all routes
 router.use(authenticate);
 router.use(ensureTenantAccess);
+router.use(addPlanInfo);
 
 /**
  * @route   GET /api/v1/messages/threads
@@ -42,11 +50,12 @@ router.get(
 /**
  * @route   GET /api/v1/messages/stats
  * @desc    Get message thread statistics
- * @access  Private (requires message:read permission)
+ * @access  Private (requires message:read permission and analytics feature)
  */
 router.get(
   '/stats',
   requirePermission(PERMISSIONS.MESSAGE_READ),
+  requireAnalytics,
   getThreadStats
 );
 
@@ -110,44 +119,48 @@ router.put(
 /**
  * @route   POST /api/v1/messages/broadcast/segments
  * @desc    Create customer segment
- * @access  Private (requires message:write permission)
+ * @access  Private (requires message:write permission and customer segmentation)
  */
 router.post(
   '/broadcast/segments',
   requirePermission(PERMISSIONS.MESSAGE_WRITE),
+  requireCustomerSegmentation,
   createSegment
 );
 
 /**
  * @route   GET /api/v1/messages/broadcast/segments
  * @desc    Get customers in a segment
- * @access  Private (requires message:read permission)
+ * @access  Private (requires message:read permission and customer segmentation)
  */
 router.get(
   '/broadcast/segments',
   requirePermission(PERMISSIONS.MESSAGE_READ),
+  requireCustomerSegmentation,
   getSegmentCustomers
 );
 
 /**
  * @route   POST /api/v1/messages/broadcast/send
  * @desc    Create and send broadcast campaign
- * @access  Private (requires message:write permission)
+ * @access  Private (requires message:write permission and bulk operations)
  */
 router.post(
   '/broadcast/send',
   requirePermission(PERMISSIONS.MESSAGE_WRITE),
+  requireBulkOperations,
   createBroadcastCampaign
 );
 
 /**
  * @route   GET /api/v1/messages/broadcast/analytics/:campaignId
  * @desc    Get broadcast campaign analytics
- * @access  Private (requires message:read permission)
+ * @access  Private (requires message:read permission and analytics feature)
  */
 router.get(
   '/broadcast/analytics/:campaignId',
   requirePermission(PERMISSIONS.MESSAGE_READ),
+  requireAnalytics,
   getBroadcastAnalytics
 );
 
@@ -165,22 +178,24 @@ router.get(
 /**
  * @route   POST /api/v1/messages/broadcast/rfm-analysis
  * @desc    Perform RFM analysis for customer segmentation
- * @access  Private (requires message:read permission)
+ * @access  Private (requires message:read permission and customer segmentation)
  */
 router.post(
   '/broadcast/rfm-analysis',
   requirePermission(PERMISSIONS.MESSAGE_READ),
+  requireCustomerSegmentation,
   performRFMAnalysis
 );
 
 /**
  * @route   POST /api/v1/messages/broadcast/test-personalization
  * @desc    Test message personalization
- * @access  Private (requires message:read permission)
+ * @access  Private (requires message:read permission and AI features)
  */
 router.post(
   '/broadcast/test-personalization',
   requirePermission(PERMISSIONS.MESSAGE_READ),
+  requireAI,
   testPersonalization
 );
 

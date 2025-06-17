@@ -1,6 +1,6 @@
 export interface JWTPayload {
   staffId: string;
-  userId?: string; // Backward compatibility
+  userId: string; // staffIdと同じ値（後方互換性）
   email: string;
   tenantId: string;
   role: 'ADMIN' | 'MANAGER' | 'STAFF';
@@ -12,6 +12,18 @@ export interface JWTPayload {
 declare module 'express-session' {
   interface SessionData {
     temp2FASecret?: string;
+  }
+}
+
+// Express Request extension for rawBody and user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JWTPayload;
+      rawBody?: Buffer;
+      tenantId?: string;
+      recordLoginAttempt?: (success: boolean) => void;
+    }
   }
 }
 
@@ -34,6 +46,9 @@ export interface LoginResponse {
 
 export interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
+  params: any;
+  query: any;
+  body: any;
 }
 
 export interface RegisterRequest {

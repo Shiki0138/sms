@@ -289,30 +289,24 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
       return;
     }
     
-    // Check if session exists and is valid
-    const session = await prisma.session.findFirst({
+    // Check if refresh token exists and is valid
+    const refreshToken = await prisma.refreshToken.findFirst({
       where: {
         staffId: req.user.staffId,
-        isActive: true,
+        isRevoked: false,
         expiresAt: {
           gt: new Date(),
         },
       },
     });
     
-    if (!session) {
+    if (!refreshToken) {
       res.status(401).json({
         success: false,
         error: 'Session expired or invalid',
       });
       return;
     }
-    
-    // Update last activity
-    await prisma.session.update({
-      where: { id: session.id },
-      data: { lastActivity: new Date() },
-    });
     
     next();
   } catch (error) {
@@ -335,7 +329,7 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction):
   }
   
   const token = req.headers['x-csrf-token'] as string;
-  const sessionToken = req.session?.csrfToken;
+  const sessionToken = (req.session as any)?.csrfToken;
   
   if (!token || !sessionToken || token !== sessionToken) {
     res.status(403).json({
@@ -406,19 +400,21 @@ export const logSecurityEvent = async (event: SecurityEvent): Promise<void> => {
     // Log to console/file
     logger.warn('Security Event', event);
     
-    // Store in database
-    await prisma.securityLog.create({
-      data: {
-        type: event.type,
-        ip: event.ip,
-        userAgent: event.userAgent,
-        staffId: event.userId,
-        tenantId: event.tenantId,
-        severity: event.severity,
-        details: JSON.stringify(event.details),
-        timestamp: new Date(),
-      },
-    });
+    // Store in database if tenantId is available
+    if (event.tenantId) {
+      await prisma.securityEvent.create({
+        data: {
+          eventType: event.type,
+          description: `Security event: ${event.type}`,
+          ipAddress: event.ip,
+          userAgent: event.userAgent,
+          staffId: event.userId,
+          tenantId: event.tenantId,
+          severity: event.severity,
+          metadata: JSON.stringify(event.details),
+        },
+      });
+    }
     
     // Send alert for critical events
     if (event.severity === 'CRITICAL') {

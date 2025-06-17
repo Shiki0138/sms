@@ -6,18 +6,18 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// テナント（店舗）
+// テナント（店舗）- 美容室業務最適化インデックス付き
 model Tenant {
   id          String   @id @default(cuid())
   name        String
   address     String?
   phone       String?
   email       String?
-  plan        String   @default("basic") // basic, premium, enterprise
+  plan        String   @default("light") // light, standard, premium_ai
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -43,7 +43,16 @@ model Tenant {
   customerBehaviors    CustomerBehavior[]
   loginHistory         LoginHistory[]
   securityEvents       SecurityEvent[]
+  customerPreferences  CustomerPreference[]
+  marketingCampaigns   MarketingCampaign[]
+  staffPerformance     StaffPerformance[]
+  payments             Payment[]
+  subscription         Subscription?
+  invoices             Invoice[]
 
+  // 💫 美容室業務高速化インデックス
+  @@index([isActive]) // アクティブ店舗検索最適化
+  @@index([plan, isActive]) // プラン別検索最適化
   @@map("tenants")
 }
 
@@ -97,6 +106,8 @@ model Staff {
   notifications           Notification[]
   loginHistory            LoginHistory[] @relation("LoginHistory")
   securityEvents          SecurityEvent[] @relation("SecurityEvents")
+  staffPerformance        StaffPerformance[]
+  preferredByCustomers    Customer[] @relation("PreferredStaff")
 
   @@map("staff")
 }
@@ -108,7 +119,7 @@ model Staff {
 // }
 // SQLite doesn't support enums, using String instead
 
-// 顧客
+// 顧客 - 美容室スタッフの心を読む超高速検索対応
 model Customer {
   id              String    @id @default(cuid())
   name            String?
@@ -123,7 +134,12 @@ model Customer {
   firstVisitDate  DateTime?
   lastVisitDate   DateTime?
   visitCount      Int       @default(0)
+  totalSpent      Decimal?  @default(0)
   notes           String?
+  segment         String?   // VIP, REGULAR, NEW, CHURNED
+  lifetimeValue   Decimal?  @default(0)
+  riskScore       Int?      @default(0)
+  preferredStaffId String?
   tenantId        String
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -138,7 +154,20 @@ model Customer {
   recommendations MenuRecommendation[]
   notifications Notification[]
   customerBehavior CustomerBehavior?
+  customerPreferences CustomerPreference[]
+  preferredStaff Staff? @relation("PreferredStaff", fields: [preferredStaffId], references: [id], onDelete: SetNull)
 
+  // 💝 美容室スタッフが感動する高速顧客検索インデックス
+  @@index([tenantId]) // 店舗別顧客一覧の瞬間表示
+  @@index([tenantId, name]) // 名前検索の電光石火対応
+  @@index([tenantId, phone]) // 電話番号検索の即座対応
+  @@index([tenantId, email]) // メールアドレス検索の高速化
+  @@index([tenantId, lastVisitDate]) // 最終来店日順ソートの最適化
+  @@index([tenantId, visitCount]) // リピーター順表示の高速化
+  @@index([tenantId, createdAt]) // 新規顧客順表示の最適化
+  @@index([instagramId]) // Instagram連携の瞬間検索
+  @@index([lineId]) // LINE連携の瞬間検索
+  @@index([tenantId, birthDate]) // 誕生日月検索の高速化
   @@map("customers")
 }
 
@@ -186,7 +215,7 @@ model CustomerTag {
   @@map("customer_tags")
 }
 
-// メッセージスレッド
+// メッセージスレッド - 美容室スタッフの心に響く高速メッセージ管理
 model MessageThread {
   id                String            @id @default(cuid())
   customerId        String?
@@ -194,6 +223,10 @@ model MessageThread {
   channelThreadId   String            // Instagram thread ID or LINE user ID
   assignedStaffId   String?
   status            String            @default("OPEN") // OPEN, IN_PROGRESS, CLOSED
+  aiAnalyzed        Boolean           @default(false)
+  sentimentScore    Float?            // -1.0 to 1.0
+  priorityLevel     Int               @default(3) // 1=high, 2=medium, 3=low
+  autoReplyEnabled  Boolean           @default(true)
   tenantId          String
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -205,7 +238,16 @@ model MessageThread {
   messages      Message[]
   threadTags    ThreadTag[]
 
+  // 💌 美容室スタッフが愛するメッセージ管理高速化インデックス
   @@unique([tenantId, channel, channelThreadId])
+  @@index([tenantId]) // 店舗別メッセージ一覧の瞬間表示
+  @@index([tenantId, status]) // 対応状況別表示の高速化
+  @@index([tenantId, assignedStaffId]) // 担当者別メッセージの電光石火表示
+  @@index([tenantId, customerId]) // 顧客別メッセージ履歴の即座表示
+  @@index([tenantId, channel]) // チャネル別表示の最適化
+  @@index([tenantId, createdAt]) // 時系列表示の高速化
+  @@index([tenantId, updatedAt]) // 最終更新順表示の最適化
+  @@index([status, updatedAt]) // 未対応メッセージ優先表示
   @@map("message_threads")
 }
 
@@ -280,6 +322,11 @@ model Reservation {
   sourceId      String?           // External system ID
   status        String            @default("CONFIRMED") // TENTATIVE, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW
   notes         String?
+  totalAmount   Decimal?          @default(0)
+  estimatedDuration Int?           // in minutes
+  profitMargin  Decimal?          // percentage
+  weatherImpact String?           // SUNNY, RAINY, CLOUDY, etc.
+  sourceCampaign String?          // marketing campaign reference
   tenantId      String
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -294,6 +341,19 @@ model Reservation {
   staff    Staff?    @relation("HandledBy", fields: [staffId], references: [id], onDelete: SetNull)
   autoMessageLogs AutoMessageLog[]
 
+  // 📅 美容室スタッフが時間の魔法使いになる予約管理高速化インデックス
+  @@index([tenantId]) // 店舗別予約一覧の瞬間表示
+  @@index([tenantId, startTime]) // 日付別予約表示の電光石火対応
+  @@index([tenantId, status]) // 予約状況別表示の高速化
+  @@index([tenantId, staffId]) // スタッフ別予約の即座表示
+  @@index([tenantId, customerId]) // 顧客別予約履歴の瞬間表示
+  @@index([tenantId, startTime, status]) // 日付×状況複合検索の最適化
+  @@index([tenantId, staffId, startTime]) // スタッフスケジュール表示の高速化
+  @@index([startTime, endTime]) // 時間範囲検索の最適化
+  @@index([status, startTime]) // 今日の予約状況の高速表示
+  @@index([tenantId, source]) // 予約経路別分析の最適化
+  @@index([tenantId, nextVisitDate]) // 次回予約提案の高速化
+  @@index([reminderSentAt]) // リマインダー送信管理の最適化
   @@map("reservations")
 }
 
@@ -628,5 +688,232 @@ model SecurityEvent {
   @@index([tenantId, severity])
   @@index([eventType])
   @@map("security_events")
+}
+
+// 顧客設定・好み
+model CustomerPreference {
+  id         Int      @id @default(autoincrement())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 設定項目
+  preferredStaff    String?
+  preferredTime     String?  // "morning", "afternoon", "evening"
+  preferredDay      String?  // "monday", "tuesday", etc.
+  communicationPref String   @default("LINE") // "LINE", "EMAIL", "SMS"
+  
+  // メニュー好み
+  favoriteServices  String?  // JSON array
+  avoidServices     String?  // JSON array
+  
+  // その他
+  notes            String?
+  lastUpdated      DateTime @default(now())
+  
+  @@unique([customerId, tenantId])
+  @@map("customer_preferences")
+}
+
+// マーケティングキャンペーン
+model MarketingCampaign {
+  id          Int      @id @default(autoincrement())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  type        String   // "EMAIL", "LINE", "SMS", "PROMOTION"
+  status      String   @default("DRAFT") // "DRAFT", "ACTIVE", "COMPLETED", "CANCELLED"
+  
+  // ターゲティング
+  targetSegment     String?  // JSON criteria
+  targetCustomerIds String?  // JSON array of customer IDs
+  
+  // スケジュール
+  scheduledAt    DateTime?
+  startDate      DateTime?
+  endDate        DateTime?
+  
+  // コンテンツ
+  messageContent String
+  subject        String?
+  
+  // 結果
+  sentCount      Int @default(0)
+  openCount      Int @default(0)
+  clickCount     Int @default(0)
+  responseCount  Int @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("marketing_campaigns")
+}
+
+// スタッフパフォーマンス
+model StaffPerformance {
+  id       Int      @id @default(autoincrement())
+  staffId  String
+  staff    Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // 期間
+  month    Int      // 1-12
+  year     Int
+  
+  // パフォーマンス指標
+  totalReservations    Int @default(0)
+  totalRevenue         Float @default(0)
+  avgServiceTime       Float @default(0) // minutes
+  customerSatisfaction Float @default(0) // 1-5 scale
+  
+  // 顧客関係
+  newCustomers     Int @default(0)
+  repeatCustomers  Int @default(0)
+  referrals        Int @default(0)
+  
+  // 効率性
+  utilizationRate  Float @default(0) // percentage
+  noShowRate       Float @default(0) // percentage
+  cancelRate       Float @default(0) // percentage
+  
+  // 成長
+  skillRating      Float @default(0) // 1-5 scale
+  trainingHours    Float @default(0)
+  certifications   String? // JSON array
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([staffId, month, year])
+  @@index([tenantId, year, month])
+  @@map("staff_performance")
+}
+
+// 決済情報
+model Payment {
+  id                  String      @id @default(cuid())
+  tenantId            String
+  tenant              Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptionId      String?
+  subscription        Subscription? @relation(fields: [subscriptionId], references: [id])
+  
+  // 決済プロバイダー情報
+  provider            String      // stripe, square, paypal, payjp
+  providerPaymentId   String      // プロバイダー側の決済ID
+  
+  // 決済詳細
+  amount              Float
+  currency            String      @default("JPY")
+  status              String      // pending, processing, succeeded, failed, canceled, refunded
+  description         String?
+  paymentMethodId     String
+  failureReason       String?
+  
+  // メタデータ
+  metadata            Json?
+  
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  
+  @@index([tenantId, status])
+  @@index([provider, providerPaymentId])
+  @@map("payments")
+}
+
+// サブスクリプション
+model Subscription {
+  id                     String      @id @default(cuid())
+  tenantId               String      @unique
+  tenant                 Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // プラン情報
+  planType               String      // light, standard, premium_ai
+  provider               String      // stripe, square, paypal, payjp
+  providerSubscriptionId String      // プロバイダー側のサブスクリプションID
+  
+  // ステータス
+  status                 String      // active, past_due, canceled, unpaid, trialing
+  currentPeriodStart     DateTime
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean     @default(false)
+  trialEnd               DateTime?
+  
+  // 決済情報
+  paymentMethodId        String
+  
+  // リレーション
+  payments               Payment[]
+  invoices               Invoice[]
+  
+  // メタデータ
+  metadata               Json?
+  
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+  
+  @@index([status, currentPeriodEnd])
+  @@index([provider, providerSubscriptionId])
+  @@map("subscriptions")
+}
+
+// 請求書
+model Invoice {
+  id                  String       @id @default(cuid())
+  tenantId            String
+  tenant              Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptionId      String
+  subscription        Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  // プロバイダー情報
+  provider            String
+  providerInvoiceId   String
+  
+  // 請求詳細
+  amount              Float
+  currency            String       @default("JPY")
+  status              String       // draft, open, paid, void, uncollectible
+  
+  // 期間
+  periodStart         DateTime
+  periodEnd           DateTime
+  dueDate             DateTime
+  paidAt              DateTime?
+  
+  // ダウンロード
+  invoiceUrl          String?
+  invoicePdf          String?
+  
+  // メタデータ
+  metadata            Json?
+  
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  
+  @@index([tenantId, status])
+  @@index([subscriptionId, status])
+  @@index([provider, providerInvoiceId])
+  @@map("invoices")
+}
+
+// Webhook イベント
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String   // stripe, square, paypal, payjp
+  eventType   String
+  eventId     String   // プロバイダー側のイベントID
+  data        Json
+  processed   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([provider, processed])
+  @@index([eventType, processed])
+  @@unique([provider, eventId])
+  @@map("webhook_events")
 }
 

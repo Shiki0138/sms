@@ -1,0 +1,269 @@
+name: 🧪 包括的テストスイート
+
+on:
+  push:
+    branches: [ main, master, develop, team-* ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+env:
+  NODE_VERSION: '18'
+  FORCE_COLOR: 1
+
+jobs:
+  # ユニットテスト・統合テスト
+  test-backend:
+    name: 🔧 バックエンドテスト
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: salon_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: 📥 コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: 📦 Node.js ${{ env.NODE_VERSION }} セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 🔧 依存関係インストール
+      run: |
+        npm ci
+        cd backend && npm ci
+
+    - name: 🗄️ データベース準備
+      run: |
+        cd backend
+        cp .env.example .env.test
+        npx prisma generate
+        npx prisma db push
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/salon_test
+
+    - name: 🧪 ユニットテスト実行
+      run: npx jest --config jest.simple.config.js --coverage
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/salon_test
+
+    - name: 📊 カバレッジアップロード
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage/lcov.info
+        flags: backend
+        name: backend-coverage
+
+  # フロントエンドテスト
+  test-frontend:
+    name: 🎨 フロントエンドテスト
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: 📦 Node.js ${{ env.NODE_VERSION }} セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 🔧 依存関係インストール
+      run: |
+        npm ci
+        cd frontend && npm ci
+
+    - name: 🧪 フロントエンドテスト実行
+      run: |
+        cd frontend
+        npm run test:unit
+      env:
+        NODE_ENV: test
+
+    - name: 🏗️ ビルドテスト
+      run: |
+        cd frontend
+        npm run build
+
+  # E2Eテスト
+  test-e2e:
+    name: 🌐 E2Eテスト
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+
+    steps:
+    - name: 📥 コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: 📦 Node.js ${{ env.NODE_VERSION }} セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 🔧 依存関係インストール
+      run: |
+        npm ci
+        cd backend && npm ci
+        cd ../frontend && npm ci
+
+    - name: 🎭 Playwright インストール
+      run: npx playwright install --with-deps
+
+    - name: 🚀 サーバー起動
+      run: |
+        cd backend && npm start &
+        cd frontend && npm start &
+        sleep 30  # サーバー起動待機
+      env:
+        NODE_ENV: test
+        DATABASE_URL: file:./test.db
+
+    - name: 🧪 E2Eテスト実行
+      run: npx playwright test
+      env:
+        NODE_ENV: test
+
+    - name: 📊 E2Eテスト結果アップロード
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
+
+  # セキュリティテスト
+  security-scan:
+    name: 🛡️ セキュリティスキャン
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: 🔍 Snyk セキュリティスキャン
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+    - name: 🧪 セキュリティテスト実行
+      run: npx jest tests/security --testTimeout=60000
+      env:
+        NODE_ENV: test
+
+  # パフォーマンステスト
+  performance-test:
+    name: ⚡ パフォーマンステスト
+    runs-on: ubuntu-latest
+    needs: [test-backend]
+
+    steps:
+    - name: 📥 コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: 📦 Node.js ${{ env.NODE_VERSION }} セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 🔧 依存関係インストール
+      run: |
+        npm ci
+        cd backend && npm ci
+        npm install -g artillery
+
+    - name: 🚀 サーバー起動
+      run: |
+        cd backend && npm start &
+        sleep 20  # サーバー起動待機
+      env:
+        NODE_ENV: test
+        DATABASE_URL: file:./test.db
+
+    - name: ⚡ 負荷テスト実行
+      run: artillery run tests/performance/load/basic-health-check.js
+      continue-on-error: true
+
+  # コード品質チェック
+  code-quality:
+    name: 📏 コード品質チェック
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: 📦 Node.js ${{ env.NODE_VERSION }} セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 🔧 依存関係インストール
+      run: |
+        npm ci
+        cd backend && npm ci
+        cd ../frontend && npm ci
+
+    - name: 🧹 ESLint実行
+      run: |
+        cd backend && npm run lint
+        cd ../frontend && npm run lint
+
+    - name: 🔍 TypeScript型チェック
+      run: |
+        cd backend && npm run type-check
+        cd ../frontend && npm run type-check
+
+  # 品質ゲート
+  quality-gate:
+    name: 🚪 品質ゲート
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend, test-e2e, security-scan, performance-test, code-quality]
+    if: always()
+
+    steps:
+    - name: 📊 品質ゲート判定
+      run: |
+        echo "🎯 品質ゲート結果確認"
+        if [[ "${{ needs.test-backend.result }}" == "success" && 
+              "${{ needs.test-frontend.result }}" == "success" && 
+              "${{ needs.security-scan.result }}" == "success" && 
+              "${{ needs.code-quality.result }}" == "success" ]]; then
+          echo "✅ 品質ゲート: PASS"
+          echo "🎉 リリース準備完了！"
+        else
+          echo "❌ 品質ゲート: FAIL"
+          echo "⚠️ 品質基準を満たしていません"
+          exit 1
+        fi
+
+    - name: 📋 テスト結果サマリー
+      run: |
+        echo "## 🧪 テスト結果サマリー" >> $GITHUB_STEP_SUMMARY
+        echo "| テストタイプ | 結果 |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------------|------|" >> $GITHUB_STEP_SUMMARY
+        echo "| バックエンド | ${{ needs.test-backend.result == 'success' && '✅ PASS' || '❌ FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| フロントエンド | ${{ needs.test-frontend.result == 'success' && '✅ PASS' || '❌ FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| E2E | ${{ needs.test-e2e.result == 'success' && '✅ PASS' || '❌ FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| セキュリティ | ${{ needs.security-scan.result == 'success' && '✅ PASS' || '❌ FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| パフォーマンス | ${{ needs.performance-test.result == 'success' && '✅ PASS' || '⚠️ WARNING' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| コード品質 | ${{ needs.code-quality.result == 'success' && '✅ PASS' || '❌ FAIL' }} |" >> $GITHUB_STEP_SUMMARY

@@ -172,7 +172,7 @@ export class SecurityService {
 
       if (shouldLock) {
         await this.logSecurityEvent(
-          staff.id,
+          staffId,
           SECURITY_EVENTS.ACCOUNT_LOCKED,
           'アカウントが一時的にロックされました',
           'CRITICAL'
@@ -333,7 +333,7 @@ export class SecurityService {
       const isNewIP = ipAddress && !knownIPs.has(ipAddress);
       const isNewDevice = userAgent && !knownUserAgents.has(userAgent);
 
-      const isSuspicious = isNewIP || isNewDevice;
+      const isSuspicious = Boolean(isNewIP || isNewDevice);
 
       if (isSuspicious) {
         await this.logSecurityEvent(

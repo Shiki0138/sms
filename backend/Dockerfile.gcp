@@ -1,0 +1,39 @@
+# GCP Cloud Run 最適化 Dockerfile
+FROM node:18-alpine
+
+# 作業ディレクトリ設定
+WORKDIR /app
+
+# 依存関係コピー
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# 依存関係インストール
+RUN npm ci --only=production --silent
+
+# ソースコードコピー
+COPY . .
+
+# Prisma Client生成
+RUN npx prisma generate
+
+# TypeScriptビルド
+RUN npm run build
+
+# 非rootユーザー作成（セキュリティ）
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# ファイル所有権変更
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+# Cloud Runポート（環境変数で動的設定）
+EXPOSE $PORT
+
+# ヘルスチェック
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:$PORT/health || exit 1
+
+# アプリケーション起動
+CMD ["npm", "start"]
