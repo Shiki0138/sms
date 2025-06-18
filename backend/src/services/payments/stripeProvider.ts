@@ -12,45 +12,119 @@ export class StripePaymentProvider implements IPaymentProvider {
   private stripe: Stripe;
 
   constructor() {
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2023-10-16'
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is required');
+    }
+    
+    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+      typescript: true
     });
   }
 
   async createPayment(request: PaymentRequest): Promise<PaymentResult> {
     try {
+      // 入力値検証
+      this.validatePaymentRequest(request);
+      
       const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: Math.round(request.amount),
-        currency: request.currency.toLowerCase(),
-        description: request.description,
+        amount: Math.round(request.amount * 100), // 円からセントに変換
+        currency: 'jpy', // 日本円固定
+        description: request.description || '美容室管理システム 決済',
         payment_method: request.paymentMethodId,
         confirm: true,
         customer: request.customerId,
-        metadata: request.metadata || {},
-        return_url: `${process.env.FRONTEND_URL}/payment/return`
+        metadata: {
+          ...request.metadata,
+          tenantId: request.metadata?.tenantId || '',
+          reservationId: request.metadata?.reservationId || '',
+          customerId: request.customerId || ''
+        },
+        return_url: `${process.env.FRONTEND_URL}/payment/return`,
+        automatic_payment_methods: {
+          enabled: true,
+          allow_redirects: 'never'
+        }
       });
 
+      // データベースに支払い記録を保存
+      await this.savePaymentRecord(paymentIntent, request);
+      
       if (paymentIntent.status === 'succeeded') {
-        logger.info('Stripe payment succeeded:', paymentIntent.id);
+        logger.info('Stripe payment succeeded:', {
+          paymentId: paymentIntent.id,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency
+        });
+        
+        // 成功通知
+        await this.notifyPaymentSuccess(request.customerId, paymentIntent);
+        
         return {
           success: true,
-          paymentId: paymentIntent.id
+          paymentId: paymentIntent.id,
+          amount: paymentIntent.amount / 100, // セントから円に変換
+          currency: paymentIntent.currency,
+          message: 'お支払いが正常に完了しました'
         };
       } else if (paymentIntent.status === 'requires_action') {
         return {
           success: false,
           requiresAction: true,
           clientSecret: paymentIntent.client_secret!,
-          paymentId: paymentIntent.id
+          paymentId: paymentIntent.id,
+          message: '追加認証が必要です'
+        };
+      } else if (paymentIntent.status === 'requires_payment_method') {
+        return {
+          success: false,
+          errorMessage: 'お支払い方法に問題があります。別のカードをお試しください。'
         };
       } else {
         throw new Error(`Payment failed with status: ${paymentIntent.status}`);
       }
     } catch (error: any) {
-      logger.error('Stripe payment error:', error);
+      logger.error('Stripe payment error:', {
+        error: error.message,
+        code: error.code,
+        type: error.type,
+        requestData: {
+          amount: request.amount,
+          customerId: request.customerId,
+          paymentMethodId: request.paymentMethodId
+        }
+      });
+      
+      // Stripeエラーコードに基づいたユーザーフレンドリーなメッセージ
+      let userMessage = 'お支払い処理中にエラーが発生しました。しばらくしてから再度お試しください。';
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'card_declined':
+            userMessage = 'カードが拒否されました。別のカードをお試しいただくか、カード会社にお問い合わせください。';
+            break;
+          case 'insufficient_funds':
+            userMessage = '残高不足です。別のカードをお試しください。';
+            break;
+          case 'expired_card':
+            userMessage = 'カードの有効期限が切れています。別のカードをお試しください。';
+            break;
+          case 'incorrect_cvc':
+            userMessage = 'セキュリティコードが正しくありません。';
+            break;
+          case 'processing_error':
+            userMessage = 'カード処理エラーが発生しました。しばらくしてから再度お試しください。';
+            break;
+          case 'rate_limit':
+            userMessage = 'リクエストが多すぎます。しばらくしてから再度お試しください。';
+            break;
+        }
+      }
+      
       return {
         success: false,
-        errorMessage: error.message || 'Stripe payment failed'
+        errorMessage: userMessage,
+        errorCode: error.code
       };
     }
   }
@@ -188,7 +262,11 @@ export class StripePaymentProvider implements IPaymentProvider {
 
   async handleWebhook(payload: string, signature: string): Promise<void> {
     try {
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      if (!webhookSecret) {
+        throw new Error('STRIPE_WEBHOOK_SECRET environment variable is required');
+      }
+      
       const event = this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
       
       logger.info('Stripe webhook received:', {
@@ -242,13 +320,56 @@ export class StripePaymentProvider implements IPaymentProvider {
   }
 
   private async handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent): Promise<void> {
-    logger.info('Processing successful payment:', paymentIntent.id);
-    // データベースの支払い状態を更新
+    try {
+      logger.info('Processing successful payment:', {
+        paymentId: paymentIntent.id,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        customerId: paymentIntent.customer
+      });
+      
+      // データベースの支払い状態を更新
+      await this.updatePaymentStatus(paymentIntent.id, 'succeeded');
+      
+      // 予約IDがあれば予約の支払い状態も更新
+      const reservationId = paymentIntent.metadata?.reservationId;
+      if (reservationId) {
+        await this.updateReservationPaymentStatus(reservationId, 'paid');
+      }
+      
+    } catch (error) {
+      logger.error('Error processing successful payment:', {
+        paymentId: paymentIntent.id,
+        error
+      });
+      throw error;
+    }
   }
 
   private async handlePaymentFailed(paymentIntent: Stripe.PaymentIntent): Promise<void> {
-    logger.info('Processing failed payment:', paymentIntent.id);
-    // データベースの支払い状態を更新
+    try {
+      logger.info('Processing failed payment:', {
+        paymentId: paymentIntent.id,
+        lastPaymentError: paymentIntent.last_payment_error,
+        customerId: paymentIntent.customer
+      });
+      
+      // データベースの支払い状態を更新
+      await this.updatePaymentStatus(paymentIntent.id, 'failed');
+      
+      // 予約IDがあれば予約の支払い状態も更新
+      const reservationId = paymentIntent.metadata?.reservationId;
+      if (reservationId) {
+        await this.updateReservationPaymentStatus(reservationId, 'pending');
+      }
+      
+    } catch (error) {
+      logger.error('Error processing failed payment:', {
+        paymentId: paymentIntent.id,
+        error
+      });
+      throw error;
+    }
   }
 
   private async handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
@@ -269,5 +390,125 @@ export class StripePaymentProvider implements IPaymentProvider {
   private async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
     logger.info('Processing failed invoice payment:', invoice.id);
     // 請求書の状態を更新、リトライ設定など
+  }
+
+  // Helper methods
+  private validatePaymentRequest(request: PaymentRequest): void {
+    if (!request.amount || request.amount <= 0) {
+      throw new Error('Invalid payment amount');
+    }
+    if (!request.customerId) {
+      throw new Error('Customer ID is required');
+    }
+    if (!request.paymentMethodId) {
+      throw new Error('Payment method ID is required');
+    }
+  }
+
+  private async savePaymentRecord(paymentIntent: Stripe.PaymentIntent, request: PaymentRequest): Promise<void> {
+    const prisma = new (await import('@prisma/client')).PrismaClient();
+    try {
+      await prisma.payment.create({
+        data: {
+          id: paymentIntent.id,
+          amount: paymentIntent.amount / 100, // セントから円に変換
+          currency: paymentIntent.currency,
+          status: paymentIntent.status,
+          provider: 'stripe',
+          providerPaymentId: paymentIntent.id,
+          customerId: request.customerId,
+          tenantId: request.metadata?.tenantId || '',
+          metadata: request.metadata || {},
+          createdAt: new Date()
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to save payment record:', error);
+      throw error;
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+
+  private async notifyPaymentSuccess(customerId: string, paymentIntent: Stripe.PaymentIntent): Promise<void> {
+    try {
+      // 顧客への支払い完了通知
+      logger.info('Payment success notification sent:', {
+        customerId,
+        paymentId: paymentIntent.id,
+        amount: paymentIntent.amount / 100
+      });
+    } catch (error) {
+      logger.error('Failed to send payment success notification:', error);
+    }
+  }
+
+  private async updatePaymentStatus(paymentId: string, status: string): Promise<void> {
+    const prisma = new (await import('@prisma/client')).PrismaClient();
+    try {
+      await prisma.payment.update({
+        where: { id: paymentId },
+        data: { 
+          status,
+          updatedAt: new Date()
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to update payment status:', error);
+      throw error;
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+
+  private async updateReservationPaymentStatus(reservationId: string, paymentStatus: string): Promise<void> {
+    const prisma = new (await import('@prisma/client')).PrismaClient();
+    try {
+      await prisma.reservation.update({
+        where: { id: reservationId },
+        data: { 
+          paymentStatus,
+          updatedAt: new Date()
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to update reservation payment status:', error);
+      throw error;
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+
+  // 返金処理
+  async refundPayment(paymentId: string, amount?: number, reason?: string): Promise<PaymentResult> {
+    try {
+      const refund = await this.stripe.refunds.create({
+        payment_intent: paymentId,
+        amount: amount ? Math.round(amount * 100) : undefined, // 部分返金対応
+        reason: reason || 'requested_by_customer',
+        metadata: {
+          refundReason: reason || 'Customer requested refund'
+        }
+      });
+
+      logger.info('Stripe refund created:', {
+        refundId: refund.id,
+        paymentId,
+        amount: refund.amount / 100
+      });
+
+      return {
+        success: true,
+        paymentId: refund.id,
+        amount: refund.amount / 100,
+        message: '返金処理が完了しました'
+      };
+    } catch (error: any) {
+      logger.error('Stripe refund error:', error);
+      return {
+        success: false,
+        errorMessage: '返金処理に失敗しました。サポートにお問い合わせください。'
+      };
+    }
   }
 }

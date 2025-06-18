@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { createError, asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { prisma } from '../database';
+import { imageProcessingService } from '../services/imageProcessingService';
+import multer from 'multer';
 
 // Validation schemas
 const createCustomerSchema = z.object({
@@ -510,4 +512,258 @@ export const getCustomerStats = asyncHandler(async (req: Request, res: Response)
   };
 
   res.status(200).json({ stats });
+});
+
+/**
+ * Multer設定 - メモリーストレージ使用
+ */
+const multerConfig = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB上限
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('サポートされていない画像形式です。JPEG、PNG、WebPをご利用ください。'));
+    }
+  }
+});
+
+export const uploadCustomerPhotoMiddleware = multerConfig.single('photo');
+
+/**
+ * Upload customer photo (最適化版)
+ */
+export const uploadCustomerPhoto = asyncHandler(async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const { customerId } = req.params; // パラメータから取得に変更
+  const tenantId = req.user!.tenantId;
+  
+  if (!req.file) {
+    throw createError('写真ファイルを選択してください', 400);
+  }
+
+  // ファイルサイズチェック
+  if (req.file.size > 10 * 1024 * 1024) {
+    throw createError('ファイルサイズは10MB以下にしてください', 400);
+  }
+
+  // 顧客の存在確認
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, tenantId },
+  });
+
+  if (!customer) {
+    throw createError('顧客が見つかりません', 404);
+  }
+
+  try {
+    // 既存の写真を削除（もしあれば）
+    if (customer.profilePhoto) {
+      await imageProcessingService.deleteImage(customer.profilePhoto);
+    }
+
+    // 圧縮統計を取得（開発/デバッグ用）
+    const compressionStats = await imageProcessingService.getCompressionStats(req.file.buffer);
+    
+    // 画像処理とアップロード
+    const photoUrl = await imageProcessingService.processCustomerPhoto(
+      req.file.buffer,
+      customerId,
+      tenantId
+    );
+
+    // データベース更新
+    const updatedCustomer = await prisma.customer.update({
+      where: { id: customerId },
+      data: { 
+        profilePhoto: photoUrl,
+        updatedAt: new Date()
+      },
+    });
+
+    // 画像の各サイズバリエーションを取得
+    const imageVariants = await imageProcessingService.getImageVariants(photoUrl);
+
+    // 監査ログ
+    await prisma.auditLog.create({
+      data: {
+        action: 'CUSTOMER_PHOTO_UPLOADED',
+        entityType: 'Customer',
+        entityId: customerId,
+        description: `顧客写真をアップロード: ${customer.name}`,
+        staffId: req.user!.userId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        tenantId,
+      },
+    });
+
+    const processingTime = Date.now() - startTime;
+
+    logger.info('Customer photo uploaded successfully:', {
+      customerId,
+      customerName: customer.name,
+      tenantId,
+      uploadedBy: req.user!.userId,
+      originalSize: req.file.size,
+      processingTime: `${processingTime}ms`,
+      compressionStats
+    });
+
+    res.status(200).json({ 
+      success: true,
+      message: '写真のアップロードが完了しました',
+      data: {
+        photoUrl,
+        imageVariants,
+        processingTime,
+        compressionStats,
+        customer: {
+          id: updatedCustomer.id,
+          name: updatedCustomer.name,
+          profilePhoto: updatedCustomer.profilePhoto
+        }
+      }
+    });
+
+  } catch (error) {
+    logger.error('Customer photo upload failed:', {
+      customerId,
+      tenantId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      fileSize: req.file.size,
+      fileName: req.file.originalname
+    });
+
+    throw createError(
+      error instanceof Error ? error.message : '写真のアップロードに失敗しました',
+      500
+    );
+  }
+});
+
+/**
+ * Delete customer photo
+ */
+export const deleteCustomerPhoto = asyncHandler(async (req: Request, res: Response) => {
+  const { customerId } = req.params;
+  const tenantId = req.user!.tenantId;
+
+  // 顧客の存在確認
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, tenantId },
+  });
+
+  if (!customer) {
+    throw createError('顧客が見つかりません', 404);
+  }
+
+  if (!customer.profilePhoto) {
+    throw createError('削除する写真がありません', 400);
+  }
+
+  try {
+    // 画像を削除
+    const deleted = await imageProcessingService.deleteImage(customer.profilePhoto);
+    
+    if (!deleted) {
+      logger.warn('Failed to delete image from storage, but updating database', {
+        customerId,
+        imageUrl: customer.profilePhoto
+      });
+    }
+
+    // データベースを更新
+    await prisma.customer.update({
+      where: { id: customerId },
+      data: { 
+        profilePhoto: null,
+        updatedAt: new Date()
+      },
+    });
+
+    // 監査ログ
+    await prisma.auditLog.create({
+      data: {
+        action: 'CUSTOMER_PHOTO_DELETED',
+        entityType: 'Customer',
+        entityId: customerId,
+        description: `顧客写真を削除: ${customer.name}`,
+        staffId: req.user!.userId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        tenantId,
+      },
+    });
+
+    logger.info('Customer photo deleted successfully:', {
+      customerId,
+      customerName: customer.name,
+      tenantId,
+      deletedBy: req.user!.userId
+    });
+
+    res.status(200).json({ 
+      success: true,
+      message: '写真を削除しました'
+    });
+
+  } catch (error) {
+    logger.error('Customer photo deletion failed:', {
+      customerId,
+      tenantId,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+
+    throw createError('写真の削除に失敗しました', 500);
+  }
+});
+
+/**
+ * Get customer photo variants
+ */
+export const getCustomerPhotoVariants = asyncHandler(async (req: Request, res: Response) => {
+  const { customerId } = req.params;
+  const tenantId = req.user!.tenantId;
+
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, tenantId },
+    select: { id: true, name: true, profilePhoto: true }
+  });
+
+  if (!customer) {
+    throw createError('顧客が見つかりません', 404);
+  }
+
+  if (!customer.profilePhoto) {
+    return res.status(200).json({ 
+      success: true,
+      imageVariants: null,
+      message: '登録されている写真がありません'
+    });
+  }
+
+  try {
+    const imageVariants = await imageProcessingService.getImageVariants(customer.profilePhoto);
+    
+    res.status(200).json({ 
+      success: true,
+      imageVariants,
+      customer: {
+        id: customer.id,
+        name: customer.name
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to get image variants:', {
+      customerId,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+
+    throw createError('画像情報の取得に失敗しました', 500);
+  }
 });

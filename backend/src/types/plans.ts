@@ -72,7 +72,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
     type: 'light',
     name: 'light',
     displayName: 'ライトプラン',
-    price: 12000,
+    price: 29800,
     description: '小規模サロン向けの基本機能パック。予約管理と顧客管理の基本機能のみ提供',
     color: '#10B981',
     features: [], // 基本機能のみ、追加機能なし
@@ -91,7 +91,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
     type: 'standard', 
     name: 'standard',
     displayName: 'スタンダードプラン',
-    price: 28000,
+    price: 49800,
     description: '成長サロン向けの充実機能。分析・マーケティング・AI返信機能を含む',
     color: '#3B82F6',
     isPopular: true,
@@ -117,7 +117,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
     type: 'premium_ai',
     name: 'premium_ai',
     displayName: 'AIプレミアムプラン',
-    price: 55000,
+    price: 79800,
     description: '大規模サロン向けの最高級AI機能。無制限のAI活用と高度な分析・外部連携',
     color: '#8B5CF6',
     features: [

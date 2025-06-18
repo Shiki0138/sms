@@ -162,6 +162,147 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
+### 🔄 セッション継続・災害復旧ルール
+
+#### tmux セッション管理（必須）
+```bash
+# 1. 新規セッション作成（プロジェクト名で命名）
+tmux new-session -d -s salon-dev
+
+# 2. ウィンドウ分割（推奨構成）
+tmux split-window -h    # 横分割
+tmux split-window -v    # 縦分割
+tmux select-pane -t 0   # 左ペイン選択
+
+# 3. 各ペインの役割分担
+# Pane 0: バックエンド開発・サーバー起動
+# Pane 1: フロントエンド開発・サーバー起動  
+# Pane 2: Git操作・ファイル操作・テスト実行
+
+# 4. セッション復帰
+tmux attach-session -t salon-dev
+
+# 5. セッション一覧確認
+tmux list-sessions
+```
+
+#### 作業継続のための必須手順
+```bash
+# 【開始時】必ずtmuxセッション内で作業
+tmux new-session -s salon-$(date +%Y%m%d-%H%M)
+
+# 【作業中】定期的なセッション保存（30分間隔推奨）
+tmux capture-pane -t salon-dev -p > ~/session-backup-$(date +%Y%m%d-%H%M).log
+
+# 【終了時】セッションデタッチ（killしない）
+tmux detach-session
+# または Ctrl+B, d
+
+# 【復旧時】既存セッションに再接続
+tmux list-sessions
+tmux attach-session -t salon-dev
+```
+
+#### 予期せぬ終了からの復旧手順
+```bash
+# 1. セッション状態確認
+tmux list-sessions
+ps aux | grep tmux
+
+# 2. セッション復旧（存在する場合）
+tmux attach-session -t salon-dev
+
+# 3. セッション消失時の環境再構築
+# a) 新規セッション作成
+tmux new-session -d -s salon-recovery
+
+# b) プロジェクトディレクトリに移動
+cd /Users/MBP/salon-management-system
+
+# c) 開発サーバー再起動
+tmux send-keys -t salon-recovery:0 'cd backend && npm run dev' Enter
+tmux split-window -h
+tmux send-keys -t salon-recovery:1 'cd frontend && npm run dev' Enter
+
+# d) Git状態確認・復旧
+git status
+git stash list    # 未コミット変更の確認
+git log --oneline -10    # 最新コミット確認
+
+# e) 作業ログ確認（可能な場合）
+ls -la ~/session-backup-*.log
+tail -50 ~/session-backup-*.log
+```
+
+#### 自動バックアップ設定
+```bash
+# crontab設定（15分間隔でセッション保存）
+crontab -e
+
+# 以下を追加
+*/15 * * * * /usr/local/bin/tmux capture-pane -t salon-dev -p > ~/tmux-auto-backup-$(date +\%Y\%m\%d-\%H\%M).log 2>/dev/null
+
+# バックアップファイル自動削除（1日以上古い）
+0 0 * * * find ~/tmux-auto-backup-*.log -mtime +1 -delete
+```
+
+#### Claude Code作業再開時の確認事項
+```markdown
+## 🔍 復旧時チェックリスト
+
+### 環境状態確認
+- [ ] tmuxセッションが稼働中か
+- [ ] 開発サーバー（backend/frontend）が起動中か
+- [ ] Git作業ツリーの状態確認
+- [ ] 未保存ファイルの有無確認
+- [ ] 直前作業の TodoRead 実行
+
+### データ整合性確認  
+- [ ] データベース接続正常
+- [ ] Redis接続正常（該当時）
+- [ ] ログファイル確認
+- [ ] 自動保存データ確認
+
+### 作業継続準備
+- [ ] 直前のcommit内容確認
+- [ ] ブランチ状態確認
+- [ ] 依存関係更新確認（package.json変更時）
+- [ ] テスト実行（npm test）
+```
+
+#### 緊急時連絡・復旧プロトコル
+```bash
+# システム管理者連絡先
+echo "🚨 緊急時サポート: salon-emergency@company.com"
+echo "📞 24時間サポート: +81-XX-XXXX-XXXX"
+
+# 自動復旧スクリプト作成
+cat > ~/salon-emergency-recovery.sh << 'EOF'
+#!/bin/bash
+echo "🔄 美容室システム緊急復旧開始..."
+
+# 1. tmuxセッション確認・作成
+tmux has-session -t salon-dev 2>/dev/null || tmux new-session -d -s salon-dev
+
+# 2. プロジェクト環境確認
+cd /Users/MBP/salon-management-system
+git status
+
+# 3. 依存関係確認
+cd backend && npm install --silent
+cd ../frontend && npm install --silent
+
+# 4. 開発サーバー起動
+tmux send-keys -t salon-dev:0 'cd backend && npm run dev' Enter
+tmux split-window -h
+tmux send-keys -t salon-dev:1 'cd frontend && npm run dev' Enter
+
+echo "✅ 復旧完了。tmux attach-session -t salon-dev で接続"
+EOF
+
+chmod +x ~/salon-emergency-recovery.sh
+```
+
 ### 連携ポイント
 - 各機能は独立実装だが、共通の Customer・Reservation・Message テーブルを使用
 - API仕様は OpenAPI で統一

@@ -34,6 +34,8 @@ import { securityRouter } from './routes/security';
 import remindersRouter from './routes/reminders';
 import testRemindersRouter from './routes/test-reminders';
 import paymentsRouter from './routes/payments';
+import healthRouter from './routes/health';
+import featureFlagsRouter from './routes/featureFlags';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -114,26 +116,9 @@ app.use(session({
 app.use('/api/v1/auth', authRateLimit);
 app.use('/api', apiRateLimit);
 
-// Health check endpoint (Cloud Run optimized)
-app.get('/health', async (req, res) => {
-  try {
-    res.status(200).json({ 
-      status: 'healthy', 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'development',
-      version: process.env.API_VERSION || 'v1',
-      message: 'Salon Management API - Production Ready',
-      database: 'Connected'
-    });
-  } catch (error) {
-    res.status(503).json({ 
-      status: 'unhealthy', 
-      timestamp: new Date().toISOString(),
-      error: 'Health check failed'
-    });
-  }
-});
+// Health check routes (Cloud Run optimized)
+app.use('/health', healthRouter);
+app.use('/', healthRouter);
 
 // API Routes
 const apiPrefix = `/api/${process.env.API_VERSION || 'v1'}`;
@@ -150,6 +135,7 @@ app.use(`${apiPrefix}/security`, securityRouter);
 app.use(`${apiPrefix}/reminders`, remindersRouter);
 app.use(`${apiPrefix}/test-reminders`, testRemindersRouter);
 app.use(`${apiPrefix}/payments`, paymentsRouter);
+app.use(`${apiPrefix}/features`, featureFlagsRouter);
 // 🧠 美容室スタッフが感動するAI分析システム (一時的に無効化)
 // app.use(`${apiPrefix}/emotional-analytics`, emotionalAnalyticsRouter);
 // 🪄 美容室スタッフが『まるで魔法！』と驚く外部API統合システム (一時的に無効化)

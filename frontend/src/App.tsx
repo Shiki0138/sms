@@ -63,7 +63,8 @@ import {
   Bot,
   Loader2,
   Shield,
-  Lightbulb
+  Lightbulb,
+  Crown
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -628,7 +629,7 @@ function App() {
     }
 
     // デモ用：実際の実装では、サーバーに保存する
-    const nextCustomerNumber = `C${String(customers?.customers.length + 1 || 1).padStart(3, '0')}`
+    const nextCustomerNumber = `C${String((customers?.customers?.length || 0) + 1).padStart(3, '0')}`
     
     console.log('新規顧客登録:', {
       customerNumber: nextCustomerNumber,
@@ -1716,6 +1717,15 @@ function App() {
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'reservations' && <ReservationsList />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'analytics' && <CustomerAnalyticsDashboard />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && <PremiumMarketingDashboard />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'business-strategy' && (
+              <div className="space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center">
+                  <Star className="w-6 h-6 mr-2 text-yellow-500" />
+                  経営戦略分析
+                </h2>
+                <PremiumMarketingDashboard />
+              </div>
+            )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && <FeatureRequestForm onNewRequest={handleNewFeatureRequest} />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (
               <div className="space-y-6">

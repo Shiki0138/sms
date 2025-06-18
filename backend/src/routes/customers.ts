@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
 import {
   getCustomers,
   getCustomerById,
@@ -6,6 +8,7 @@ import {
   updateCustomer,
   deleteCustomer,
   getCustomerStats,
+  uploadCustomerPhoto,
 } from '../controllers/customerController';
 import { 
   authenticate, 
@@ -18,6 +21,34 @@ import {
   requireAnalytics,
   addPlanInfo 
 } from '../middleware/planRestriction';
+
+// Configure multer for photo uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/customers/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `photo-${uniqueSuffix}${ext}`);
+  },
+});
+
+const fileFilter = (req: any, file: any, cb: any) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed'), false);
+  }
+};
+
+const upload = multer({ 
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 
 const router = Router();
 
@@ -92,6 +123,52 @@ router.delete(
   '/:id',
   requirePermission(PERMISSIONS.CUSTOMER_DELETE),
   deleteCustomer
+);
+
+/**
+ * @route   POST /api/v1/customers/:customerId/photo
+ * @desc    Upload optimized customer photo
+ * @access  Private (requires customer:write permission)
+ */
+router.post(
+  '/:customerId/photo',
+  requirePermission(PERMISSIONS.CUSTOMER_WRITE),
+  upload.single('photo'),
+  uploadCustomerPhoto
+);
+
+/**
+ * @route   POST /api/v1/customers/upload-photo
+ * @desc    Upload photo for service history
+ * @access  Private (requires customer:write permission)
+ */
+router.post(
+  '/upload-photo',
+  requirePermission(PERMISSIONS.CUSTOMER_WRITE),
+  upload.single('photo'),
+  uploadCustomerPhoto
+);
+
+/**
+ * @route   DELETE /api/v1/customers/:customerId/photo
+ * @desc    Delete customer photo
+ * @access  Private (requires customer:write permission)
+ */
+router.delete(
+  '/:customerId/photo',
+  requirePermission(PERMISSIONS.CUSTOMER_WRITE),
+  deleteCustomerPhoto
+);
+
+/**
+ * @route   GET /api/v1/customers/:customerId/photo/variants
+ * @desc    Get customer photo variants (thumbnail, medium, large)
+ * @access  Private (requires customer:read permission)
+ */
+router.get(
+  '/:customerId/photo/variants',
+  requirePermission(PERMISSIONS.CUSTOMER_READ),
+  getCustomerPhotoVariants
 );
 
 export default router;

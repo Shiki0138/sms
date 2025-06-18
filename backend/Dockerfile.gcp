@@ -17,8 +17,8 @@ COPY . .
 # Prisma Client生成
 RUN npx prisma generate
 
-# TypeScriptビルド（エラーハンドリング付き）
-RUN npm run build || (echo "TypeScript compilation had warnings, continuing..." && mkdir -p dist && cp -r src/* dist/ 2>/dev/null || echo "Fallback completed")
+# TypeScriptビルド
+RUN npm run build
 
 # 本番用依存関係のみ再インストール
 RUN rm -rf node_modules && npm ci --omit=dev --silent

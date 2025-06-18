@@ -4,6 +4,7 @@ export interface JWTPayload {
   email: string;
   tenantId: string;
   role: 'ADMIN' | 'MANAGER' | 'STAFF';
+  isAdmin?: boolean; // 管理者フラグ
   iat?: number;
   exp?: number;
 }

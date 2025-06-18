@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -49,6 +49,9 @@ model Tenant {
   payments             Payment[]
   subscription         Subscription?
   invoices             Invoice[]
+  feedback             Feedback[]
+  quickRatings         QuickRating[]
+  tenantFeatureFlags   TenantFeatureFlag[]
 
   // 💫 美容室業務高速化インデックス
   @@index([isActive]) // アクティブ店舗検索最適化
@@ -334,6 +337,11 @@ model Reservation {
   nextVisitDate     DateTime?
   reminderSentAt    DateTime?
   followUpSentAt    DateTime?
+  
+  // 施術写真
+  beforePhotos      String?           // JSON array of before photo URLs
+  afterPhotos       String?           // JSON array of after photo URLs
+  stylistNotes      String?           // 美容師メモ
 
   // Relations
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -915,5 +923,146 @@ model WebhookEvent {
   @@index([eventType, processed])
   @@unique([provider, eventId])
   @@map("webhook_events")
+}
+
+// フィードバック
+model Feedback {
+  id          String   @id @default(cuid())
+  type        String   // bug, feature, general
+  title       String
+  description String
+  severity    String?  // low, medium, high, critical (for bugs)
+  category    String?
+  screenshot  String?
+  rating      Int?     // 1-5 (for general feedback)
+  status      String   @default("open") // open, in-progress, resolved, closed
+  
+  // User info
+  userId      String?
+  userEmail   String?
+  userName    String?
+  tenantId    String?
+  
+  // Technical info
+  userAgent   String?
+  url         String?
+  metadata    String?  // JSON
+  
+  // Admin fields
+  adminNotes  String?
+  resolvedAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+  
+  @@index([type, status])
+  @@index([tenantId, createdAt])
+  @@map("feedback")
+}
+
+// クイック評価
+model QuickRating {
+  id          String   @id @default(cuid())
+  rating      Int      // 1-5
+  userId      String?
+  userEmail   String?
+  tenantId    String?
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+  
+  @@index([tenantId, createdAt])
+  @@map("quick_ratings")
+}
+
+// ベータテスト申し込み
+model BetaApplication {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  phone           String
+  salonName       String
+  salonType       String   // hair, beauty, nail, eyelash, barber, other
+  numberOfStylists String  // 1, 2-5, 6-10, 11-20, 21+
+  currentSoftware String?
+  painPoints      String
+  expectations    String
+  availableHours  String   // 1-2, 3-5, 6-10, 11+
+  referralSource  String?  // web-search, sns, referral, advertisement, other
+  
+  // Application status
+  status          String   @default("pending") // pending, approved, rejected, in_review
+  reviewNotes     String?
+  reviewedAt      DateTime?
+  
+  // Metadata
+  metadata        String?  // JSON
+  submittedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([status, submittedAt])
+  @@index([salonType, submittedAt])
+  @@map("beta_applications")
+}
+
+// フィーチャーフラグ（機能トグル）
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique // 機能キー (e.g., "setup_wizard", "dashboard_customize", "mobile_view")
+  name        String   // 表示名
+  description String?  // 機能の説明
+  category    String   // カテゴリ (core, enhancement, experimental, beta)
+  
+  // 機能の状態
+  isEnabled   Boolean  @default(false) // グローバル有効/無効
+  rolloutPercentage Int @default(0)   // ロールアウト率 (0-100)
+  
+  // 対象設定
+  enabledTenants  String? // 特定のテナントIDで有効化 (JSON配列文字列)
+  enabledPlans    String? // 特定のプランで有効化 (JSON配列文字列)
+  
+  // メタデータ
+  config      String?  // JSON設定データ
+  dependencies String? // 依存する他の機能フラグキー (JSON配列文字列)
+  
+  // リリース情報
+  releaseDate DateTime? // リリース予定日
+  deprecationDate DateTime? // 廃止予定日
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  tenantFlags TenantFeatureFlag[]
+  
+  @@index([isEnabled, category])
+  @@index([key])
+  @@map("feature_flags")
+}
+
+// テナント別フィーチャーフラグ設定
+model TenantFeatureFlag {
+  id          String   @id @default(cuid())
+  tenantId    String
+  featureFlagId String
+  
+  // テナント別の上書き設定
+  isEnabled   Boolean  @default(true)
+  config      String?  // テナント固有の設定 (JSON)
+  enabledAt   DateTime @default(now())
+  
+  // Relations
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  featureFlag FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, featureFlagId])
+  @@index([tenantId, isEnabled])
+  @@map("tenant_feature_flags")
 }
 

@@ -150,6 +150,27 @@ export const SalonCacheStrategies = {
     varyBy: ['tenantId', 'status', 'channel']
   }),
 
+  // メニュー一覧 - 1時間キャッシュ（あまり変更されない）
+  menus: cacheMiddleware({
+    duration: 3600, // 1時間
+    keyPrefix: 'menus',
+    varyBy: ['tenantId', 'categoryId', 'isActive']
+  }),
+
+  // ダッシュボード - 10分キャッシュ（概要情報）
+  dashboard: cacheMiddleware({
+    duration: 600, // 10分
+    keyPrefix: 'dashboard',
+    varyBy: ['tenantId', 'period']
+  }),
+
+  // レポート・統計 - 2時間キャッシュ（重い処理）
+  reports: cacheMiddleware({
+    duration: 7200, // 2時間
+    keyPrefix: 'reports',
+    varyBy: ['tenantId', 'reportType', 'dateRange']
+  }),
+
   // スタッフパフォーマンス - 6時間キャッシュ（日次更新）
   staffPerformance: cacheMiddleware({
     duration: 21600, // 6時間

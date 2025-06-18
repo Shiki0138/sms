@@ -219,18 +219,18 @@ export const PLAN_NAMES: Record<SubscriptionPlan, string> = {
 // プラン料金情報（バックエンドと統一）
 export const PLAN_PRICING = {
   light: {
-    setup: 30000,
-    monthly: 12000,
-    annual: 132000 // 1ヶ月分割引
+    setup: 128000,
+    monthly: 29800,
+    annual: 327800 // 1ヶ月分割引
   },
   standard: {
-    setup: 80000,
-    monthly: 28000,
-    annual: 308000 // 1ヶ月分割引
+    setup: 128000,
+    monthly: 49800,
+    annual: 547800 // 1ヶ月分割引
   },
   premium_ai: {
-    setup: 150000,
-    monthly: 55000,
-    annual: 605000 // 1ヶ月分割引
+    setup: 198000,
+    monthly: 79800,
+    annual: 877800 // 1ヶ月分割引
   }
 }

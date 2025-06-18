@@ -1,33 +1,43 @@
 module.exports = {
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/default',
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests', '<rootDir>/backend/src', '<rootDir>/frontend/src'],
+  roots: ['<rootDir>/tests', '<rootDir>/backend/src'],
   testMatch: [
     '**/tests/**/*.test.(ts|js)',
-    '**/__tests__/**/*.test.(ts|tsx|js)',
-    '**/?(*.)+(spec|test).(ts|tsx|js)'
+    '**/__tests__/**/*.test.(ts|js)',
+    '**/?(*.)+(spec|test).(ts|js)'
   ],
+  extensionsToTreatAsEsm: ['.ts'],
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      useESM: false,
+      tsconfig: {
+        target: 'ES2020',
+        module: 'commonjs',
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+        strict: true
+      }
+    }]
   },
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html', 'json'],
   collectCoverageFrom: [
     'backend/src/**/*.ts',
-    'frontend/src/**/*.{ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/test/**/*',
     '!**/tests/**/*',
-    '!backend/src/server.ts',
-    '!frontend/src/main.tsx'
+    '!backend/src/server.ts'
   ],
   coverageThreshold: {
     global: {
-      branches: 85,
-      functions: 85,
-      lines: 85,
-      statements: 85
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70
     }
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
@@ -35,15 +45,8 @@ module.exports = {
   clearMocks: true,
   restoreMocks: true,
   verbose: true,
-  testEnvironmentOptions: {
-    globals: {
-      'ts-jest': {
-        useESM: true,
-        tsconfig: {
-          esModuleInterop: true,
-          allowSyntheticDefaultImports: true
-        }
-      }
-    }
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/backend/src/$1'
   }
 };

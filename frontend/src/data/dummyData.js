@@ -371,7 +371,9 @@ export const pastReservations = [
         status: 'COMPLETED',
         notes: 'ゆるふわパーマ',
         price: 10000,
-        stylistNotes: 'ロングヘアのため、パーマ液の浸透時間を通常より長めに設定。根元から中間はしっかり、毛先は軽めのカールで仕上げ。癖が強い髪質なので、パーマ後のスタイリング方法を詳しく説明。'
+        stylistNotes: 'ロングヘアのため、パーマ液の浸透時間を通常より長めに設定。根元から中間はしっかり、毛先は軽めのカールで仕上げ。癖が強い髪質なので、パーマ後のスタイリング方法を詳しく説明。',
+        beforePhotos: ['https://images.unsplash.com/photo-1560869713-7d0b29837069?w=400&h=600&fit=crop&crop=face'],
+        afterPhotos: ['https://images.unsplash.com/photo-1594736797933-d0de1e5ad505?w=400&h=600&fit=crop&crop=face']
     },
     {
         id: 'past006',
@@ -411,7 +413,10 @@ export const pastReservations = [
         source: 'PHONE',
         status: 'COMPLETED',
         notes: 'ショートボブ + ブロンドハイライト',
-        price: 15000
+        price: 15000,
+        stylistNotes: 'ブリーチを2回使用してからハイライト施術。特に顔周りの明るさで小顔効果を演出。次回は根元のリタッチとトリートメント推奨。',
+        beforePhotos: ['https://images.unsplash.com/photo-1494790108755-2616c2c07200?w=400&h=600&fit=crop&crop=face'],
+        afterPhotos: ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face']
     },
     {
         id: 'past009',

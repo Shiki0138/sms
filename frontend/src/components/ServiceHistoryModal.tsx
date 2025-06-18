@@ -10,10 +10,14 @@ import {
   DollarSign,
   FileText,
   Save,
-  Edit3
+  Edit3,
+  Camera,
+  Image,
+  Plus
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
+import CustomerPhotoUpload from './Customer/CustomerPhotoUpload'
 
 interface Reservation {
   id: string
@@ -35,6 +39,8 @@ interface Reservation {
   notes?: string
   price?: number
   stylistNotes?: string
+  beforePhotos?: string[]
+  afterPhotos?: string[]
 }
 
 interface ServiceHistoryModalProps {
@@ -50,6 +56,9 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
 }) => {
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesContent, setNotesContent] = useState(reservation?.stylistNotes || '')
+  const [beforePhotos, setBeforePhotos] = useState<string[]>(reservation?.beforePhotos || [])
+  const [afterPhotos, setAfterPhotos] = useState<string[]>(reservation?.afterPhotos || [])
+  const [showPhotoUpload, setShowPhotoUpload] = useState<'before' | 'after' | null>(null)
 
   const handleSaveNotes = () => {
     if (reservation) {
@@ -57,6 +66,74 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
       setEditingNotes(false)
     }
   }
+
+  const handlePhotoUpdate = (photoUrl: string, type: 'before' | 'after') => {
+    if (type === 'before') {
+      setBeforePhotos(prev => [...prev, photoUrl])
+    } else {
+      setAfterPhotos(prev => [...prev, photoUrl])
+    }
+    setShowPhotoUpload(null)
+    
+    // 実際の実装では、サーバーに送信して予約データを更新
+    console.log(`${type} photo added:`, photoUrl)
+  }
+
+  const removePhoto = (index: number, type: 'before' | 'after') => {
+    if (type === 'before') {
+      setBeforePhotos(prev => prev.filter((_, i) => i !== index))
+    } else {
+      setAfterPhotos(prev => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  const PhotoGallery = ({ photos, type, title }: { 
+    photos: string[], 
+    type: 'before' | 'after', 
+    title: string 
+  }) => (
+    <div className="bg-gray-50 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <Camera className="w-5 h-5 mr-2 text-blue-600" />
+          {title}
+        </h3>
+        <button
+          onClick={() => setShowPhotoUpload(type)}
+          className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md"
+        >
+          <Plus className="w-4 h-4" />
+          <span>写真追加</span>
+        </button>
+      </div>
+      
+      {photos.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {photos.map((photo, index) => (
+            <div key={index} className="relative group">
+              <img
+                src={photo}
+                alt={`${title} ${index + 1}`}
+                className="w-full h-24 object-cover rounded-lg border border-gray-200"
+              />
+              <button
+                onClick={() => removePhoto(index, type)}
+                className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          <Image className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+          <p className="text-sm">まだ写真がありません</p>
+          <p className="text-xs text-gray-400">「写真追加」ボタンから追加してください</p>
+        </div>
+      )}
+    </div>
+  )
 
   const getSourceLabel = (source: string) => {
     const labels = {
@@ -195,6 +272,12 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                 )}
               </div>
 
+              {/* 施術写真 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PhotoGallery photos={beforePhotos} type="before" title="施術前写真" />
+                <PhotoGallery photos={afterPhotos} type="after" title="施術後写真" />
+              </div>
+
               {/* 美容師メモ */}
               <div className="bg-yellow-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -273,6 +356,34 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
             </div>
           </div>
         </div>
+
+        {/* 写真アップロードモーダル */}
+        {showPhotoUpload && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">
+                    {showPhotoUpload === 'before' ? '施術前写真を追加' : '施術後写真を追加'}
+                  </h3>
+                  <button
+                    onClick={() => setShowPhotoUpload(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <CustomerPhotoUpload
+                  customerId={reservation?.customer?.id || reservation?.id || ''}
+                  onPhotoUpdate={(photoUrl) => handlePhotoUpdate(photoUrl, showPhotoUpload)}
+                  showCropTool={true}
+                  showRotateTool={true}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

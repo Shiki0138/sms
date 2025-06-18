@@ -16,6 +16,18 @@ import {
   syncGoogleCalendar, 
   getReservationStats 
 } from '../controllers/reservationController-simple';
+import {
+  createFeedback,
+  submitQuickRating,
+  getFeedbackStats
+} from '../controllers/feedbackController';
+import {
+  submitBetaApplication,
+  sendConfirmationEmail,
+  getBetaApplications,
+  updateApplicationStatus,
+  getBetaApplicationStats
+} from '../controllers/betaApplicationController';
 
 const router = Router();
 
@@ -35,6 +47,18 @@ router.post('/reservations', createReservation);
 router.post('/reservations/import/hotpepper', importHotPepperCsv);
 router.post('/reservations/sync/google-calendar', syncGoogleCalendar);
 router.get('/reservations/stats', getReservationStats);
+
+// Feedback routes (for beta testing)
+router.post('/feedback', createFeedback);
+router.post('/feedback/quick-rating', submitQuickRating);
+router.get('/feedback/stats', getFeedbackStats);
+
+// Beta application routes
+router.post('/beta-applications', submitBetaApplication);
+router.post('/beta-applications/send-confirmation', sendConfirmationEmail);
+router.get('/beta-applications', getBetaApplications);
+router.put('/beta-applications/:id/status', updateApplicationStatus);
+router.get('/beta-applications/stats', getBetaApplicationStats);
 
 // Demo auth endpoints
 router.post('/auth/register', (req, res) => {
