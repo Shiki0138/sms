@@ -5,7 +5,7 @@ import { Elements, useStripe, useElements, PaymentElement } from '@stripe/react-
 import { CreditCard, DollarSign, Lock, AlertCircle, CheckCircle, Loader, Calendar, User, MapPin } from 'lucide-react';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import AutoSaveIndicator from '../Common/AutoSaveIndicator';
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 const PaymentForm = ({ amount, customerId, reservationId, onSuccess, onError, metadata, splitPayment }) => {
     const stripe = useStripe();
     const elements = useElements();
@@ -37,7 +37,7 @@ const PaymentForm = ({ amount, customerId, reservationId, onSuccess, onError, me
     const { save: saveFormData, isAutoSaving, lastSaved, hasUnsavedChanges } = useAutoSave(formData, {
         onSave: async (data) => {
             // フォームデータの自動保存（個人情報は暗号化）
-            const response = await fetch('/api/v1/payments/save-form', {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/payments/save-form`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ const PaymentForm = ({ amount, customerId, reservationId, onSuccess, onError, me
             const actualAmount = splitPayment?.enabled && formData.splitPayment
                 ? splitPayment.depositAmount || amount
                 : amount;
-            const response = await fetch('/api/v1/payments/create-intent', {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/payments/create-intent`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -131,7 +131,7 @@ const PaymentForm = ({ amount, customerId, reservationId, onSuccess, onError, me
                 if (confirmResult.error) {
                     throw new Error(getJapaneseErrorMessage(confirmResult.error.code, confirmResult.error.message));
                 }
-                result = confirmResult.paymentIntent ? { paymentIntent: confirmResult.paymentIntent } : { error: confirmResult.error };
+                result = confirmResult;
             }
             else if (formData.paymentMethod === 'konbini') {
                 // コンビニ決済
@@ -150,15 +150,15 @@ const PaymentForm = ({ amount, customerId, reservationId, onSuccess, onError, me
                 if (confirmResult.error) {
                     throw new Error(getJapaneseErrorMessage(confirmResult.error.code, confirmResult.error.message));
                 }
-                result = confirmResult.paymentIntent ? { paymentIntent: confirmResult.paymentIntent } : { error: confirmResult.error };
+                result = confirmResult;
             }
-            if (result?.paymentIntent?.status === 'succeeded') {
+            if (result && 'paymentIntent' in result && result.paymentIntent?.status === 'succeeded') {
                 setPaymentStatus('success');
                 onSuccess(result.paymentIntent);
                 // 成功時は保存されたフォームデータを削除
                 localStorage.removeItem(`payment-form-${customerId}`);
             }
-            else if (result?.paymentIntent?.status === 'requires_action') {
+            else if (result && 'paymentIntent' in result && result.paymentIntent?.status === 'requires_action') {
                 // 追加認証が必要（3D Secure等）
                 setPaymentStatus('processing');
                 setErrorMessage('追加認証が必要です。画面の指示に従ってください。');

@@ -213,8 +213,8 @@ router.get('/dashboard/real-time',
         _sum: { totalAmount: true }
       });
 
-      const todayRevenueAmount = todayRevenue._sum.totalAmount || 0;
-      const yesterdayRevenueAmount = yesterdayRevenue._sum.totalAmount || 0;
+      const todayRevenueAmount = Number(todayRevenue._sum.totalAmount || 0);
+      const yesterdayRevenueAmount = Number(yesterdayRevenue._sum.totalAmount || 0);
       const dailyGrowth = yesterdayRevenueAmount > 0 
         ? ((todayRevenueAmount - yesterdayRevenueAmount) / yesterdayRevenueAmount) * 100 
         : 0;
@@ -283,7 +283,9 @@ router.get('/forecasting/revenue',
       await prisma.$disconnect();
 
       // 簡易予測計算（実際はより高度な機械学習アルゴリズムを使用）
-      const forecast = this.calculateRevenueForecast(historicalData, Number(months));
+      const forecast = historicalData && historicalData.length > 0 
+        ? this.calculateRevenueForecast(historicalData, Number(months))
+        : [];
 
       res.json({
         success: true,
@@ -325,28 +327,34 @@ router.post('/kpi/targets',
       const { PrismaClient } = await import('@prisma/client');
       const prisma = new PrismaClient();
 
-      // KPI目標を保存
-      const kpiTargets = await prisma.kpiTarget.upsert({
+      // KPI目標を保存（実際はTenantSettingを使用）
+      await prisma.tenantSetting.upsert({
         where: {
-          tenantId_period: {
+          tenantId_key: {
             tenantId,
-            period: period || 'monthly'
+            key: 'kpi_targets'
           }
         },
         update: {
-          revenueTarget,
-          customerGrowthTarget,
-          utilizationTarget,
-          satisfactionTarget,
-          updatedAt: new Date()
+          value: JSON.stringify({
+            revenueTarget,
+            customerGrowthTarget,
+            utilizationTarget,
+            satisfactionTarget,
+            period: period || 'monthly',
+            updatedAt: new Date()
+          })
         },
         create: {
           tenantId,
-          period: period || 'monthly',
-          revenueTarget,
-          customerGrowthTarget,
-          utilizationTarget,
-          satisfactionTarget
+          key: 'kpi_targets',
+          value: JSON.stringify({
+            revenueTarget,
+            customerGrowthTarget,
+            utilizationTarget,
+            satisfactionTarget,
+            period: period || 'monthly'
+          })
         }
       });
 
@@ -360,7 +368,6 @@ router.post('/kpi/targets',
 
       res.json({
         success: true,
-        data: kpiTargets,
         message: 'KPI目標を設定しました'
       });
 

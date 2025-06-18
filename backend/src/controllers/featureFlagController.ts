@@ -261,7 +261,7 @@ export const featureFlagController = {
       res.status(500).json({ 
         success: false,
         error: 'Failed to setup production feature flags',
-        details: error.message
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   },

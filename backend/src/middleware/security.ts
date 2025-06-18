@@ -85,6 +85,11 @@ export const strictRateLimit = createRateLimit({
   maxRequests: 10, // 10 requests per minute
 });
 
+export const paymentRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 50, // 50 payment requests per 15 minutes
+});
+
 /**
  * Security headers middleware
  */

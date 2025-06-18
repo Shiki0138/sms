@@ -117,6 +117,7 @@ export interface PaymentRequest {
 export interface SubscriptionRequest {
   planId: string;
   paymentMethodId: string;
+  customerId?: string;
   trialPeriodDays?: number;
   metadata?: Record<string, string>;
 }
@@ -128,6 +129,9 @@ export interface PaymentResult {
   errorMessage?: string;
   requiresAction?: boolean;
   clientSecret?: string;
+  errorCode?: string;
+  amount?: number;
+  message?: string;
 }
 
 // Webhook イベント

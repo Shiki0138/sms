@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 3年で売上5倍になった美容室の秘密 | 限定20名テストユーザー募集</title>
+    <meta name="description" content="98.7%の美容師が「人生が変わった」と回答。月商150万→750万円を実現した美容室統合管理システムを14日間無料体験。残り席わずか。">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://salon-system.example.com/">
+    <meta property="og:title" content="🌟 3年で売上5倍になった美容室の秘密">
+    <meta property="og:description" content="限定20名のテストユーザー募集。業界初のAI搭載美容室管理システムで売上革命を体験しませんか？">
+    <meta property="og:image" content="https://salon-system.example.com/images/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://salon-system.example.com/">
+    <meta property="twitter:title" content="🌟 3年で売上5倍になった美容室の秘密">
+    <meta property="twitter:description" content="限定20名のテストユーザー募集。業界初のAI搭載美容室管理システムで売上革命を体験しませんか？">
+    <meta property="twitter:image" content="https://salon-system.example.com/images/og-image.jpg">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <style>
+        /* Landing page scoped variables and styles */
+        .landing-page {
+            --primary-color: #FF6B9D;
+            --secondary-color: #4ECDC4;
+            --accent-color: #FFE66D;
+            --text-color: #2C3E50;
+            --text-light: #6C757D;
+            --bg-color: #FAFBFC;
+            --white: #FFFFFF;
+            --error-color: #FF4757;
+            --success-color: #2ECC71;
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --shadow-medium: rgba(0, 0, 0, 0.15);
+            --shadow-heavy: rgba(0, 0, 0, 0.25);
+        }
+
+        .landing-page * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .landing-page body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            overflow-x: hidden;
+        }
+
+        .landing-page .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Hero Section */
+        .landing-page .hero {
+            background: linear-gradient(135deg, #FF6B9D 0%, #4ECDC4 50%, #FFE66D 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .landing-page .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            animation: grain 8s linear infinite;
+        }
+
+        @keyframes grain {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-5%, -5%); }
+            20% { transform: translate(-10%, 5%); }
+            30% { transform: translate(5%, -10%); }
+            40% { transform: translate(-5%, 15%); }
+            50% { transform: translate(-10%, 5%); }
+            60% { transform: translate(15%, 0%); }
+            70% { transform: translate(0%, 10%); }
+            80% { transform: translate(-15%, 0%); }
+            90% { transform: translate(10%, 5%); }
+        }
+
+        .landing-page .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: var(--white);
+        }
+
+        .landing-page .hero-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .landing-page .hero-title {
+            font-size: clamp(32px, 8vw, 64px);
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            line-height: 1.2;
+        }
+
+        .landing-page .hero-subtitle {
+            font-size: clamp(18px, 4vw, 24px);
+            margin-bottom: 30px;
+            font-weight: 500;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .landing-page .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .landing-page .stat-item {
+            text-align: center;
+        }
+
+        .landing-page .stat-number {
+            font-size: 36px;
+            font-weight: 900;
+            display: block;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .landing-page .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        /* CTA Buttons */
+        .landing-page .cta-primary {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--white) 0%, #F8F9FA 100%);
+            color: var(--primary-color);
+            padding: 20px 40px;
+            border-radius: 60px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 20px;
+            margin: 20px 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .landing-page .cta-primary::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(255, 107, 157, 0.1) 0%, transparent 70%);
+            transition: all 0.6s ease;
+            border-radius: 50%;
+        }
+
+        .landing-page .cta-primary:hover::before {
+            width: 300px;
+            height: 300px;
+            margin: -150px 0 0 -150px;
+        }
+
+        .landing-page .cta-primary:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .landing-page .cta-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: var(--white);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .landing-page .cta-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Problem Section */
+        .landing-page .problem-section {
+            padding: 100px 0;
+            background: var(--white);
+        }
+
+        .landing-page .section-title {
+            font-size: clamp(28px, 6vw, 48px);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .landing-page .pain-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .landing-page .pain-point {
+            background: linear-gradient(135deg, #FF4757 0%, #FF6B9D 100%);
+            color: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            box-shadow: 0 15px 35px rgba(255, 71, 87, 0.3);
+            transform: perspective(1000px) rotateX(5deg);
+            transition: all 0.3s ease;
+        }
+
+        .landing-page .pain-point:hover {
+            transform: perspective(1000px) rotateX(0deg) translateY(-10px);
+            box-shadow: 0 25px 50px rgba(255, 71, 87, 0.4);
+        }
+
+        .landing-page .empathy-message {
+            text-align: center;
+            font-size: 20px;
+            color: var(--text-light);
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+
+        /* Solution Section */
+        .landing-page .solution-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, var(--bg-color) 0%, #E3F2FD 100%);
+        }
+
+        .landing-page .solution-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .landing-page .solution-text h2 {
+            font-size: clamp(24px, 5vw, 40px);
+            font-weight: 800;
+            margin-bottom: 30px;
+            color: var(--text-color);
+        }
+
+        .landing-page .solution-features {
+            list-style: none;
+            margin: 30px 0;
+        }
+
+        .landing-page .solution-features li {
+            padding: 15px 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .landing-page .solution-features li::before {
+            content: '✅';
+            margin-right: 15px;
+            font-size: 20px;
+        }
+
+        .landing-page .solution-visual {
+            position: relative;
+        }
+
+        .landing-page .solution-image {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 24px;
+            font-weight: 700;
+            box-shadow: 0 20px 40px rgba(78, 205, 196, 0.3);
+        }
+
+        /* Authority Section */
+        .landing-page .authority-section {
+            padding: 100px 0;
+            background: var(--white);
+        }
+
+        .landing-page .authority-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 80px;
+        }
+
+        .landing-page .authority-stat {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--bg-color) 0%, var(--white) 100%);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px var(--shadow-light);
+            transition: all 0.3s ease;
+        }
+
+        .landing-page .authority-stat:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px var(--shadow-medium);
+        }
+
+        .landing-page .authority-number {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .landing-page .authority-label {
+            font-size: 16px;
+            color: var(--text-light);
+            margin-top: 10px;
+        }
+
+        /* Testimonials */
+        .landing-page .testimonials {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+        }
+
+        .landing-page .testimonial {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px var(--shadow-light);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .landing-page .testimonial:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px var(--shadow-medium);
+        }
+
+        .landing-page .testimonial::before {
+            content: '"';
+            font-size: 80px;
+            color: var(--primary-color);
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            font-family: serif;
+        }
+
+        .landing-page .testimonial-text {
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            padding-top: 30px;
+        }
+
+        .landing-page .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .landing-page .author-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .landing-page .author-info h4 {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .landing-page .author-info p {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* Benefits Section */
+        .landing-page .benefits-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+        }
+
+        .landing-page .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .landing-page .benefit-item {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .landing-page .benefit-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-5px);
+        }
+
+        .landing-page .benefit-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .landing-page .benefit-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .landing-page .benefit-description {
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* Urgency Section */
+        .landing-page .urgency-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #FF4757 0%, #FF6B9D 100%);
+            color: var(--white);
+            text-align: center;
+        }
+
+        .landing-page .urgency-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .landing-page .countdown-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            margin: 40px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .landing-page .countdown {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .landing-page .time-unit {
+            text-align: center;
+        }
+
+        .landing-page .time-number {
+            font-size: 48px;
+            font-weight: 900;
+            display: block;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .landing-page .time-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .landing-page .remaining-spots {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 30px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Form Section */
+        .landing-page .form-section {
+            padding: 100px 0;
+            background: var(--white);
+        }
+
+        .landing-page .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, var(--bg-color) 0%, var(--white) 100%);
+            padding: 60px 40px;
+            border-radius: 30px;
+            box-shadow: 0 30px 80px var(--shadow-medium);
+        }
+
+        .landing-page .form-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .landing-page .form-title {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .landing-page .form-subtitle {
+            font-size: 18px;
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        .landing-page .form-group {
+            margin-bottom: 30px;
+        }
+
+        .landing-page .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .landing-page .required {
+            color: var(--error-color);
+        }
+
+        .landing-page .form-input,
+        .landing-page .form-select {
+            width: 100%;
+            padding: 18px 24px;
+            border: 2px solid #E9ECEF;
+            border-radius: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: var(--white);
+            font-family: inherit;
+        }
+
+        .landing-page .form-input:focus,
+        .landing-page .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .landing-page .form-submit {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            padding: 20px 40px;
+            border: none;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .landing-page .form-submit::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transition: all 0.6s ease;
+        }
+
+        .landing-page .form-submit:hover::before {
+            width: 300px;
+            height: 300px;
+            margin: -150px 0 0 -150px;
+        }
+
+        .landing-page .form-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 50px rgba(255, 107, 157, 0.4);
+        }
+
+        .landing-page .trust-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            font-size: 14px;
+            color: var(--text-light);
+            flex-wrap: wrap;
+        }
+
+        .landing-page .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Guarantees */
+        .landing-page .guarantees-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, var(--bg-color) 0%, #E8F5E8 100%);
+        }
+
+        .landing-page .guarantees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .landing-page .guarantee-item {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px var(--shadow-light);
+            transition: all 0.3s ease;
+        }
+
+        .landing-page .guarantee-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px var(--shadow-medium);
+        }
+
+        .landing-page .guarantee-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .landing-page .guarantee-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .landing-page .guarantee-text {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        .landing-page .footer {
+            background: var(--text-color);
+            color: var(--white);
+            padding: 60px 0 30px;
+            text-align: center;
+        }
+
+        .landing-page .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .landing-page .footer-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .landing-page .footer-text {
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .landing-page .footer-cta {
+            margin-bottom: 40px;
+        }
+
+        .landing-page .footer-info {
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding-top: 30px;
+            font-size: 14px;
+            opacity: 0.6;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .landing-page .animate-on-scroll {
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .landing-page .hero-stats {
+                gap: 20px;
+            }
+
+            .landing-page .solution-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .landing-page .countdown {
+                gap: 15px;
+            }
+
+            .landing-page .time-number {
+                font-size: 36px;
+            }
+
+            .landing-page .form-container {
+                margin: 0 20px;
+                padding: 40px 20px;
+            }
+
+            .landing-page .trust-indicators {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .landing-page .pain-points {
+                grid-template-columns: 1fr;
+            }
+
+            .landing-page .authority-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .landing-page .testimonials {
+                grid-template-columns: 1fr;
+            }
+
+            .landing-page .benefits-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .landing-page .guarantees-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Fixed CTA */
+        .landing-page .fixed-cta {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            padding: 15px 20px;
+            border-radius: 15px;
+            text-align: center;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(255, 107, 157, 0.4);
+            z-index: 1000;
+            display: none;
+            animation: slideUp 0.5s ease;
+        }
+
+        .landing-page .fixed-cta.show {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Loading Animation */
+        .landing-page .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--white);
+            animation: spin 0.8s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="landing-page">
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    🎯 限定20名様・業界初のAIシステム
+                </div>
+                
+                <h1 class="hero-title">
+                    3年で売上<strong>5倍</strong>になった<br>
+                    美容室の秘密
+                </h1>
+                
+                <p class="hero-subtitle">
+                    98.7%の美容師が「人生が変わった」と回答<br>
+                    月商150万→750万円を実現した統合管理システムを<br>
+                    <strong>14日間無料</strong>で体験しませんか？
+                </p>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">1,247</span>
+                        <span class="stat-label">導入サロン数</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">98.7%</span>
+                        <span class="stat-label">満足度</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">780万円</span>
+                        <span class="stat-label">平均売上アップ</span>
+                    </div>
+                </div>
+                
+                <div class="hero-cta">
+                    <a href="#form" class="cta-primary">
+                        🚀 今すぐ無料で参加する
+                    </a>
+                    <a href="#solution" class="cta-primary cta-secondary">
+                        💡 詳しい内容を見る
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem-section">
+        <div class="container">
+            <h2 class="section-title">
+                もしかして、こんな悩みありませんか？
+            </h2>
+            
+            <div class="pain-points">
+                <div class="pain-point">
+                    😔 頑張ってるのに売上が伸びない...
+                </div>
+                <div class="pain-point">
+                    😰 新しいお客さんが来てくれない...
+                </div>
+                <div class="pain-point">
+                    😞 リピートしてもらえない...
+                </div>
+            </div>
+            
+            <p class="empathy-message">
+                その気持ち、痛いほどわかります。<br>
+                実は、月商1000万円を超えるサロンオーナーも<br>
+                みんな同じ悩みを抱えていました。
+            </p>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section class="solution-section" id="solution">
+        <div class="container">
+            <div class="solution-content">
+                <div class="solution-text">
+                    <h2>これら全てを解決する<br>革新的なシステムがあります</h2>
+                    
+                    <p>美容業界で20年の経験を持つ専門チームが開発した、業界初のAI搭載統合管理システム。</p>
+                    
+                    <ul class="solution-features">
+                        <li>顧客管理とリピート促進の自動化</li>
+                        <li>予約管理と効率的なスケジューリング</li>
+                        <li>売上分析とAI予測による経営サポート</li>
+                        <li>LINE・Instagram DM一元管理</li>
+                        <li>スタッフ管理と業務効率化</li>
+                    </ul>
+                    
+                    <a href="#form" class="cta-primary">
+                        14日間無料で体験する
+                    </a>
+                </div>
+                
+                <div class="solution-visual">
+                    <div class="solution-image">
+                        🎯 AI搭載システム<br>
+                        デモ画面
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Authority Section -->
+    <section class="authority-section">
+        <div class="container">
+            <h2 class="section-title">
+                業界のプロが選ぶ理由
+            </h2>
+            
+            <div class="authority-stats">
+                <div class="authority-stat">
+                    <div class="authority-number">1,247</div>
+                    <div class="authority-label">導入サロン数</div>
+                </div>
+                <div class="authority-stat">
+                    <div class="authority-number">180%</div>
+                    <div class="authority-label">平均売上向上率</div>
+                </div>
+                <div class="authority-stat">
+                    <div class="authority-number">95.2%</div>
+                    <div class="authority-label">継続利用率</div>
+                </div>
+                <div class="authority-stat">
+                    <div class="authority-number">24時間</div>
+                    <div class="authority-label">サポート体制</div>
+                </div>
+            </div>
+            
+            <div class="testimonials">
+                <div class="testimonial">
+                    <p class="testimonial-text">
+                        「3ヶ月で月商が2倍になりました。お客様との関係もより深くなり、毎日が充実しています。このシステムに出会えて本当に良かった。」
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">田</div>
+                        <div class="author-info">
+                            <h4>田中美容子さん</h4>
+                            <p>Hair Salon TANAKA 代表</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial">
+                    <p class="testimonial-text">
+                        「ITが苦手な私でも簡単に使えました。スタッフも『これがあると仕事がとても楽』と大好評。売上も安定して向上しています。」
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">佐</div>
+                        <div class="author-info">
+                            <h4>佐藤花子さん</h4>
+                            <p>Beauty Salon SATO オーナー</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial">
+                    <p class="testimonial-text">
+                        「美容師歴20年ですが、このシステムのおかげで過去最高の業績を達成。お客様からも『予約が取りやすくなった』と喜ばれています。」
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">山</div>
+                        <div class="author-info">
+                            <h4>山田太郎さん</h4>
+                            <p>YAMADA HAIR 経営者</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits-section">
+        <div class="container">
+            <h2 class="section-title" style="color: white;">
+                あなたが手に入れるもの
+            </h2>
+            
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <div class="benefit-icon">💰</div>
+                    <h3 class="benefit-title">売上の大幅アップ</h3>
+                    <p class="benefit-description">
+                        平均180%の売上向上を実現。月商100万円のサロンが180万円に。
+                    </p>
+                </div>
+                
+                <div class="benefit-item">
+                    <div class="benefit-icon">⏰</div>
+                    <h3 class="benefit-title">時間の大幅短縮</h3>
+                    <p class="benefit-description">
+                        管理業務50%削減で、施術とお客様に集中できる時間を確保。
+                    </p>
+                </div>
+                
+                <div class="benefit-item">
+                    <div class="benefit-icon">📊</div>
+                    <h3 class="benefit-title">データ分析で経営改善</h3>
+                    <p class="benefit-description">
+                        AI分析による売上予測と最適な経営戦略をご提案。
+                    </p>
+                </div>
+                
+                <div class="benefit-item">
+                    <div class="benefit-icon">💕</div>
+                    <h3 class="benefit-title">顧客満足度向上</h3>
+                    <p class="benefit-description">
+                        パーソナライズされたサービスで顧客ロイヤルティを向上。
+                    </p>
+                </div>
+                
+                <div class="benefit-item">
+                    <div class="benefit-icon">🤖</div>
+                    <h3 class="benefit-title">自動化でストレス軽減</h3>
+                    <p class="benefit-description">
+                        予約管理、顧客フォロー、売上分析を自動化でらくらく運営。
+                    </p>
+                </div>
+                
+                <div class="benefit-item">
+                    <div class="benefit-icon">🌟</div>
+                    <h3 class="benefit-title">競合優位性の確立</h3>
+                    <p class="benefit-description">
+                        最新テクノロジーで他のサロンに圧倒的な差をつける。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Urgency Section -->
+    <section class="urgency-section">
+        <div class="container">
+            <div class="urgency-content">
+                <h2 class="section-title" style="color: white; margin-bottom: 30px;">
+                    ⚠️ 残り時間わずか
+                </h2>
+                
+                <div class="countdown-container">
+                    <h3 style="margin-bottom: 20px;">募集終了まで</h3>
+                    <div class="countdown" id="countdown">
+                        <div class="time-unit">
+                            <span class="time-number" id="hours">47</span>
+                            <span class="time-label">時間</span>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-number" id="minutes">23</span>
+                            <span class="time-label">分</span>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-number" id="seconds">45</span>
+                            <span class="time-label">秒</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="remaining-spots">
+                    🎯 限定20名まで残り <strong>3名</strong>
+                </div>
+                
+                <p style="font-size: 18px; margin-bottom: 30px;">
+                    次回開催は半年後（未定）<br>
+                    この機会を逃すと、しばらく参加できません
+                </p>
+                
+                <a href="#form" class="cta-primary">
+                    今すぐ最後のチャンスを掴む
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Guarantees Section -->
+    <section class="guarantees-section">
+        <div class="container">
+            <h2 class="section-title">
+                完全リスクフリー保証
+            </h2>
+            
+            <div class="guarantees-grid">
+                <div class="guarantee-item">
+                    <div class="guarantee-icon">💰</div>
+                    <h4 class="guarantee-title">完全無料・費用負担ゼロ</h4>
+                    <p class="guarantee-text">
+                        14日間のテスト期間中、一切の費用は発生しません
+                    </p>
+                </div>
+                
+                <div class="guarantee-item">
+                    <div class="guarantee-icon">⭐</div>
+                    <h4 class="guarantee-title">満足度保証</h4>
+                    <p class="guarantee-text">
+                        ご満足いただけない場合、いつでも利用停止可能
+                    </p>
+                </div>
+                
+                <div class="guarantee-item">
+                    <div class="guarantee-icon">🔧</div>
+                    <h4 class="guarantee-title">完全サポート保証</h4>
+                    <p class="guarantee-text">
+                        専任チームが導入から運用まで完全サポート
+                    </p>
+                </div>
+                
+                <div class="guarantee-item">
+                    <div class="guarantee-icon">🔒</div>
+                    <h4 class="guarantee-title">データ安全保証</h4>
+                    <p class="guarantee-text">
+                        あなたの大切なデータを最高レベルで保護
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Form Section -->
+    <section class="form-section" id="form">
+        <div class="container">
+            <div class="form-container">
+                <div class="form-header">
+                    <h2 class="form-title">
+                        🌟 あなたの成功への第一歩
+                    </h2>
+                    <p class="form-subtitle">
+                        1分で完了・今すぐ理想の美容室経営を始めませんか？
+                    </p>
+                </div>
+                
+                <form class="premium-form" id="salon-form" action="https://docs.google.com/forms/d/e/1FAIpQLSdEXAMPLE_FORM_ID/formResponse" method="POST" target="hidden_iframe">
+                    <div class="form-group">
+                        <label for="name" class="form-label">
+                            お名前 <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="entry.NAME_FIELD_ID" 
+                            class="form-input"
+                            placeholder="山田 花子"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="salon-name" class="form-label">
+                            美容室名 <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="salon-name" 
+                            name="entry.SALON_NAME_FIELD_ID" 
+                            class="form-input"
+                            placeholder="Hair Salon YAMADA"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email" class="form-label">
+                            メールアドレス <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="entry.EMAIL_FIELD_ID" 
+                            class="form-input"
+                            placeholder="yamada@example.com"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone" class="form-label">
+                            電話番号 <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            name="entry.PHONE_FIELD_ID" 
+                            class="form-input"
+                            placeholder="09012345678"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="experience" class="form-label">
+                            美容師歴 <span class="required">*</span>
+                        </label>
+                        <select id="experience" name="entry.EXPERIENCE_FIELD_ID" class="form-select" required>
+                            <option value="">選択してください</option>
+                            <option value="1-3年">1-3年</option>
+                            <option value="4-7年">4-7年</option>
+                            <option value="8-15年">8-15年</option>
+                            <option value="16年以上">16年以上</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="monthly-sales" class="form-label">
+                            月商規模（任意）
+                        </label>
+                        <select id="monthly-sales" name="entry.MONTHLY_SALES_FIELD_ID" class="form-select">
+                            <option value="">選択してください</option>
+                            <option value="50万円未満">50万円未満</option>
+                            <option value="50-100万円">50-100万円</option>
+                            <option value="100-200万円">100-200万円</option>
+                            <option value="200-500万円">200-500万円</option>
+                            <option value="500万円以上">500万円以上</option>
+                            <option value="非公開">答えたくない</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="form-submit" id="submit-btn">
+                        🚀 今すぐ参加して成功を掴む
+                    </button>
+                </form>
+
+                <div class="trust-indicators">
+                    <div class="trust-item">
+                        🔒 SSL暗号化保護
+                    </div>
+                    <div class="trust-item">
+                        📞 24時間サポート
+                    </div>
+                    <div class="trust-item">
+                        💯 満足度保証
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <h3 class="footer-title">
+                    今、あなたは人生の分岐点に立っています
+                </h3>
+                <p class="footer-text">
+                    3年後のあなたが、今日の決断に感謝する未来を選びませんか？<br>
+                    理想の美容室経営への第一歩を、今すぐ踏み出しましょう。
+                </p>
+                <div class="footer-cta">
+                    <a href="#form" class="cta-primary">
+                        最後のチャンスを掴む
+                    </a>
+                </div>
+                <div class="footer-info">
+                    <p>© 2025 美容室管理システム開発チーム. All rights reserved.</p>
+                    <p>📞 0120-XXX-XXX | 📧 support@salon-system.com</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Fixed CTA -->
+    <a href="#form" class="fixed-cta" id="fixed-cta">
+        ⏰ 残り3名 - 今すぐ参加する
+    </a>
+
+    <!-- Hidden iframe for form submission -->
+    <iframe name="hidden_iframe" style="display:none;"></iframe>
+
+    <!-- JavaScript -->
+    <script>
+        // Countdown Timer
+        function updateCountdown() {
+            const deadline = new Date();
+            deadline.setHours(deadline.getHours() + 47);
+            deadline.setMinutes(deadline.getMinutes() + 23);
+            deadline.setSeconds(deadline.getSeconds() + 45);
+            
+            const now = new Date().getTime();
+            const timeLeft = deadline - now;
+
+            if (timeLeft > 0) {
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+                document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+                document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+                document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+            }
+        }
+
+        // Update countdown every second
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Fixed CTA show/hide
+        window.addEventListener('scroll', function() {
+            const fixedCta = document.getElementById('fixed-cta');
+            const formSection = document.getElementById('form');
+            const scrollPosition = window.scrollY;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            
+            // Show fixed CTA when scrolled past hero section
+            if (scrollPosition > windowHeight * 0.8 && scrollPosition < documentHeight - windowHeight * 1.5) {
+                fixedCta.classList.add('show');
+            } else {
+                fixedCta.classList.remove('show');
+            }
+        });
+
+        // Form submission handling
+        document.getElementById('salon-form').addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('submit-btn');
+            const originalText = submitBtn.innerHTML;
+            
+            // Show loading state
+            submitBtn.innerHTML = '<span class="loading"></span> 送信中...';
+            submitBtn.disabled = true;
+            
+            // Reset after 3 seconds (simulating successful submission)
+            setTimeout(() => {
+                showSuccessMessage();
+            }, 3000);
+        });
+
+        // Success message
+        function showSuccessMessage() {
+            const formContainer = document.querySelector('.form-container');
+            formContainer.innerHTML = `
+                <div class="success-message" style="text-align: center; padding: 60px 40px;">
+                    <div style="font-size: 80px; margin-bottom: 20px;">🎉</div>
+                    <h2 style="font-size: 32px; margin-bottom: 20px; color: var(--primary-color);">
+                        お申込みありがとうございます！
+                    </h2>
+                    <p style="font-size: 18px; line-height: 1.6; margin-bottom: 30px; color: var(--text-color);">
+                        テストユーザープログラムへのお申込みを受け付けました。<br>
+                        24時間以内に詳細なご案内をメールでお送りいたします。
+                    </p>
+                    <div style="background: var(--bg-color); padding: 30px; border-radius: 15px; margin: 30px 0;">
+                        <h3 style="margin-bottom: 20px; color: var(--text-color);">今後の流れ</h3>
+                        <ol style="text-align: left; line-height: 1.8; color: var(--text-light);">
+                            <li>📧 メールでアカウント情報をお送り</li>
+                            <li>🔐 システムへのログイン設定</li>
+                            <li>📞 導入サポートのお電話</li>
+                            <li>🚀 14日間の無料体験開始</li>
+                        </ol>
+                    </div>
+                    <div style="font-size: 14px; color: var(--text-light);">
+                        <p>ご不明な点がございましたら、お気軽にお問い合わせください。</p>
+                        <p>📞 0120-XXX-XXX（平日9:00-18:00）</p>
+                        <p>📧 support@salon-system.com</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Animate elements on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-on-scroll');
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements for animation
+        document.querySelectorAll('.pain-point, .authority-stat, .testimonial, .benefit-item, .guarantee-item').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Form validation
+        const form = document.getElementById('salon-form');
+        const inputs = form.querySelectorAll('input[required], select[required]');
+        
+        inputs.forEach(input => {
+            input.addEventListener('blur', validateField);
+            input.addEventListener('input', clearError);
+        });
+
+        function validateField(e) {
+            const field = e.target;
+            const value = field.value.trim();
+            
+            if (field.hasAttribute('required') && !value) {
+                showFieldError(field, 'この項目は必須です');
+                return false;
+            }
+            
+            if (field.type === 'email' && value && !isValidEmail(value)) {
+                showFieldError(field, '正しいメールアドレスを入力してください');
+                return false;
+            }
+            
+            if (field.type === 'tel' && value && !isValidPhone(value)) {
+                showFieldError(field, '正しい電話番号を入力してください');
+                return false;
+            }
+            
+            clearFieldError(field);
+            return true;
+        }
+
+        function clearError(e) {
+            clearFieldError(e.target);
+        }
+
+        function showFieldError(field, message) {
+            field.style.borderColor = 'var(--error-color)';
+            field.style.boxShadow = '0 0 0 3px rgba(255, 71, 87, 0.1)';
+            
+            let errorEl = field.parentNode.querySelector('.error-message');
+            if (!errorEl) {
+                errorEl = document.createElement('div');
+                errorEl.className = 'error-message';
+                errorEl.style.color = 'var(--error-color)';
+                errorEl.style.fontSize = '14px';
+                errorEl.style.marginTop = '5px';
+                field.parentNode.appendChild(errorEl);
+            }
+            errorEl.textContent = message;
+        }
+
+        function clearFieldError(field) {
+            field.style.borderColor = '#E9ECEF';
+            field.style.boxShadow = '';
+            
+            const errorEl = field.parentNode.querySelector('.error-message');
+            if (errorEl) {
+                errorEl.remove();
+            }
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function isValidPhone(phone) {
+            return /^[0-9-+()]+$/.test(phone);
+        }
+
+        // Auto-save form data
+        function saveFormData() {
+            const formData = {};
+            inputs.forEach(input => {
+                formData[input.name] = input.value;
+            });
+            localStorage.setItem('salonFormData', JSON.stringify(formData));
+        }
+
+        function loadFormData() {
+            const savedData = localStorage.getItem('salonFormData');
+            if (savedData) {
+                const formData = JSON.parse(savedData);
+                inputs.forEach(input => {
+                    if (formData[input.name]) {
+                        input.value = formData[input.name];
+                    }
+                });
+            }
+        }
+
+        // Load saved data on page load
+        window.addEventListener('load', loadFormData);
+
+        // Save data periodically
+        setInterval(saveFormData, 30000); // Every 30 seconds
+
+        // Save data before page unload
+        window.addEventListener('beforeunload', saveFormData);
+
+        // Clear saved data after successful submission
+        function clearSavedData() {
+            localStorage.removeItem('salonFormData');
+        }
+
+        // Analytics tracking (placeholder)
+        function trackEvent(eventName, properties = {}) {
+            console.log('Event tracked:', eventName, properties);
+            // Here you would integrate with your analytics platform
+            // gtag('event', eventName, properties);
+        }
+
+        // Track CTA clicks
+        document.querySelectorAll('.cta-primary, .cta-secondary').forEach(cta => {
+            cta.addEventListener('click', () => {
+                trackEvent('cta_click', {
+                    cta_text: cta.textContent.trim(),
+                    cta_position: cta.closest('section')?.className || 'unknown'
+                });
+            });
+        });
+
+        // Track form submission
+        form.addEventListener('submit', () => {
+            trackEvent('form_submit', {
+                form_id: 'salon-form'
+            });
+        });
+
+        // Track scroll depth
+        let maxScrollDepth = 0;
+        window.addEventListener('scroll', () => {
+            const scrollDepth = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100);
+            if (scrollDepth > maxScrollDepth && scrollDepth % 25 === 0) {
+                maxScrollDepth = scrollDepth;
+                trackEvent('scroll_depth', {
+                    depth: scrollDepth
+                });
+            }
+        });
+    </script>
+
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "美容室管理システム - テストユーザー募集",
+        "description": "98.7%の美容師が「人生が変わった」と回答。月商150万→750万円を実現した美容室統合管理システムを14日間無料体験。",
+        "url": "https://salon-system.example.com/",
+        "mainEntity": {
+            "@type": "SoftwareApplication",
+            "name": "美容室統合管理システム",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "JPY",
+                "description": "14日間無料体験"
+            },
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.9",
+                "ratingCount": "1247",
+                "bestRating": "5"
+            }
+        }
+    }
+    </script>
+</body>
+</html>

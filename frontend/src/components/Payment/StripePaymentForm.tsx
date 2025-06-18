@@ -22,7 +22,7 @@ import {
 import { useAutoSave } from '../../hooks/useAutoSave'
 import AutoSaveIndicator from '../Common/AutoSaveIndicator'
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '')
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
 
 interface StripePaymentFormProps {
   amount: number
@@ -110,7 +110,7 @@ const PaymentForm: React.FC<{
   } = useAutoSave(formData, {
     onSave: async (data) => {
       // フォームデータの自動保存（個人情報は暗号化）
-      const response = await fetch('/api/v1/payments/save-form', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/payments/save-form`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ const PaymentForm: React.FC<{
         ? splitPayment.depositAmount || amount
         : amount
 
-      const response = await fetch('/api/v1/payments/create-intent', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/payments/create-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +217,7 @@ const PaymentForm: React.FC<{
           throw new Error(getJapaneseErrorMessage(confirmResult.error.code, confirmResult.error.message))
         }
 
-        result = confirmResult.paymentIntent ? { paymentIntent: confirmResult.paymentIntent } : { error: confirmResult.error }
+        result = confirmResult
       } else if (formData.paymentMethod === 'konbini') {
         // コンビニ決済
         const confirmResult = await stripe.confirmPayment({
@@ -237,16 +237,16 @@ const PaymentForm: React.FC<{
           throw new Error(getJapaneseErrorMessage(confirmResult.error.code, confirmResult.error.message))
         }
 
-        result = confirmResult.paymentIntent ? { paymentIntent: confirmResult.paymentIntent } : { error: confirmResult.error }
+        result = confirmResult
       }
 
-      if (result?.paymentIntent?.status === 'succeeded') {
+      if (result && 'paymentIntent' in result && result.paymentIntent?.status === 'succeeded') {
         setPaymentStatus('success')
         onSuccess(result.paymentIntent)
         
         // 成功時は保存されたフォームデータを削除
         localStorage.removeItem(`payment-form-${customerId}`)
-      } else if (result?.paymentIntent?.status === 'requires_action') {
+      } else if (result && 'paymentIntent' in result && result.paymentIntent?.status === 'requires_action') {
         // 追加認証が必要（3D Secure等）
         setPaymentStatus('processing')
         setErrorMessage('追加認証が必要です。画面の指示に従ってください。')

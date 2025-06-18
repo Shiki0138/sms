@@ -181,7 +181,7 @@ export class PaymentService {
         throw new Error('Active subscription not found');
       }
 
-      const provider = this.providers.get(subscription.provider);
+      const provider = this.providers.get(subscription.provider as PaymentProvider);
       if (!provider) {
         throw new Error(`Payment provider ${subscription.provider} not configured`);
       }
@@ -222,7 +222,7 @@ export class PaymentService {
         return false;
       }
 
-      const provider = this.providers.get(subscription.provider);
+      const provider = this.providers.get(subscription.provider as PaymentProvider);
       if (!provider) {
         throw new Error(`Payment provider ${subscription.provider} not configured`);
       }
@@ -297,10 +297,14 @@ export class PaymentService {
    */
   async getInvoices(tenantId: string): Promise<Invoice[]> {
     try {
-      return await prisma.invoice.findMany({
+      const invoices = await prisma.invoice.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' }
       });
+      return invoices.map(invoice => ({
+        ...invoice,
+        provider: invoice.provider as PaymentProvider
+      }));
     } catch (error) {
       logger.error('Failed to retrieve invoices:', error);
       return [];

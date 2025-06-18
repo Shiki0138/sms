@@ -143,9 +143,10 @@ model Customer {
   lifetimeValue   Decimal?  @default(0)
   riskScore       Int?      @default(0)
   preferredStaffId String?
-  tenantId        String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  profilePhoto     String?
+  tenantId         String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Relations
   tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -326,6 +327,8 @@ model Reservation {
   status        String            @default("CONFIRMED") // TENTATIVE, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW
   notes         String?
   totalAmount   Decimal?          @default(0)
+  paymentStatus String?           @default("pending") // pending, paid, refunded, failed
+  paymentId     String?           // Provider payment ID
   estimatedDuration Int?           // in minutes
   profitMargin  Decimal?          // percentage
   weatherImpact String?           // SUNNY, RAINY, CLOUDY, etc.

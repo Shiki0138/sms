@@ -79,7 +79,7 @@ export class PayjpPaymentProvider implements IPaymentProvider {
       const planId = this.mapPlanToPayjpPlan(request.planId);
       
       const subscriptionData = {
-        customer: request.customerId || await this.createCustomer(),
+        customer: request.customerId || (await this.createCustomer()),
         plan: planId,
         card: request.paymentMethodId,
         trial_end: request.trialPeriodDays 

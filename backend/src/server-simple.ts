@@ -14,6 +14,10 @@ import { SchedulerService } from './services/schedulerService';
 
 // Routes
 import simpleRoutes from './routes/simple';
+import customersRouter from './routes/customers';
+import messagesRouter from './routes/messages';
+import reservationsRouter from './routes/reservations';
+import { analyticsRouter } from './routes/analytics';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -71,6 +75,12 @@ const apiPrefix = `/api/${process.env.API_VERSION || 'v1'}`;
 
 // Simple routes (no authentication required for testing)
 app.use(apiPrefix, simpleRoutes);
+
+// Test API endpoints
+app.use(`${apiPrefix}/customers`, customersRouter);
+app.use(`${apiPrefix}/messages`, messagesRouter);
+app.use(`${apiPrefix}/reservations`, reservationsRouter);
+app.use(`${apiPrefix}/analytics`, analyticsRouter);
 
 // Error handling middleware (should be last)
 app.use(errorHandler);

@@ -2,11 +2,123 @@ import { Request, Response } from 'express';
 import { paymentService } from '../services/paymentService';
 import { logger } from '../utils/logger';
 import { PrismaClient } from '@prisma/client';
+import { PaymentProvider } from '../types/payment';
 
 const prisma = new PrismaClient();
 
 export class PaymentController {
-  
+
+  // PaymentIntent作成
+  async createPaymentIntent(req: Request, res: Response) {
+    try {
+      const { amount, currency = 'jpy', customerId, reservationId, paymentMethod = 'card', metadata = {} } = req.body;
+      const tenantId = req.user!.tenantId;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          error: '有効な金額が必要です'
+        });
+      }
+
+      // モック実装
+      const mockClientSecret = `pi_mock_${Date.now()}_secret_mock`;
+      const mockPaymentId = `pi_mock_${Date.now()}`;
+
+      res.json({
+        success: true,
+        clientSecret: mockClientSecret,
+        paymentId: mockPaymentId,
+        requiresAction: false
+      });
+    } catch (error) {
+      logger.error('PaymentIntent creation error:', error);
+      res.status(500).json({ error: 'サーバーエラーが発生しました' });
+    }
+  }
+
+
+  // 返金処理
+  async refundPayment(req: Request, res: Response) {
+    try {
+      const { paymentId } = req.params;
+      const { amount, reason = '顧客都合による返金' } = req.body;
+      const tenantId = req.user!.tenantId;
+
+      const payment = await prisma.payment.findFirst({
+        where: {
+          id: paymentId,
+          tenantId
+        }
+      });
+
+      if (!payment) {
+        return res.status(404).json({ error: '決済情報が見つかりません' });
+      }
+
+      // Refund functionality would be implemented here
+      const result = {
+        success: true,
+        refundId: 'mock_refund_id',
+        amount: amount || payment.amount
+      };
+
+      if (result.success) {
+        res.json({
+          success: true,
+          refundId: result.refundId,
+          amount: result.amount
+        });
+      } else {
+        res.status(400).json({
+          error: '返金処理に失敗しました'
+        });
+      }
+    } catch (error) {
+      logger.error('Payment refund error:', error);
+      res.status(500).json({ error: 'サーバーエラーが発生しました' });
+    }
+  }
+
+  // Stripe Webhook処理
+  async handleStripeWebhook(req: Request, res: Response) {
+    try {
+      // Webhook処理のモック
+      logger.info('Stripe webhook received:', req.body);
+      res.json({ received: true });
+    } catch (error) {
+      logger.error('Stripe webhook error:', error);
+      res.status(500).json({ error: 'サーバーエラーが発生しました' });
+    }
+  }
+
+  // 新規決済処理
+  async createPayment(req: Request, res: Response) {
+    try {
+      res.json({
+        success: true,
+        message: 'Mock payment created'
+      });
+    } catch (error) {
+      logger.error('Payment creation error:', error);
+      res.status(500).json({ error: 'サーバーエラーが発生しました' });
+    }
+  }
+
+  // 支払い状態確認
+  async checkPaymentStatus(req: Request, res: Response) {
+    try {
+      const { paymentId } = req.params;
+      res.json({
+        success: true,
+        paymentId,
+        status: 'succeeded'
+      });
+    } catch (error) {
+      logger.error('Payment status check error:', error);
+      res.status(500).json({ error: 'サーバーエラーが発生しました' });
+    }
+  }
+
   // 現在のサブスクリプション情報を取得
   async getCurrentSubscription(req: Request, res: Response) {
     try {

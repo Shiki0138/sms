@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 // 型定義は types/auth.ts で統一管理
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -61,6 +61,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     });
   }
 };
+
+// Legacy compatibility
+export const authMiddleware = authenticateToken;
 
 /**
  * 役割ベースの認可ミドルウェア

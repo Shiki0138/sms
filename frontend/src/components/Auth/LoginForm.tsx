@@ -82,6 +82,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   placeholder="ユーザー名を入力"
                   disabled={isLoading}
+                  data-testid="login-username-input"
                 />
               </div>
             </div>
@@ -104,12 +105,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                   className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   placeholder="パスワードを入力"
                   disabled={isLoading}
+                  data-testid="login-password-input"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   disabled={isLoading}
+                  data-testid="login-password-toggle"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -122,7 +125,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
 
             {/* エラーメッセージ */}
             {error && (
-              <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg">
+              <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg" data-testid="login-error-message">
                 <AlertCircle className="h-5 w-5" />
                 <span className="text-sm">{error}</span>
               </div>
@@ -133,6 +136,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
               type="submit"
               disabled={isLoading}
               className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              data-testid="login-submit-button"
             >
               {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -164,6 +168,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                 onClick={() => handleQuickLogin('demo')}
                 className="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
                 disabled={isLoading}
+                data-testid="login-demo-button"
               >
                 デモユーザー
               </button>
@@ -172,6 +177,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                 onClick={() => handleQuickLogin('admin')}
                 className="px-3 py-2 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
                 disabled={isLoading}
+                data-testid="login-admin-button"
               >
                 管理者
               </button>

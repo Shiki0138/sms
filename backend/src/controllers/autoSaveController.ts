@@ -28,7 +28,10 @@ export const saveAutoSaveData = asyncHandler(async (req: Request, res: Response)
   const autoSaveData = {
     tenantId,
     userId,
-    ...validatedData,
+    dataType: validatedData.dataType,
+    entityId: validatedData.entityId,
+    data: validatedData.data,
+    timestamp: validatedData.timestamp,
   };
 
   const savedId = await AutoSaveService.saveData(autoSaveData);
@@ -121,7 +124,7 @@ export const getAutoSaveStatistics = asyncHandler(async (req: Request, res: Resp
   const tenantId = req.user!.tenantId;
   
   // 管理者権限チェック
-  if (req.user!.role !== 'admin') {
+  if (req.user!.role !== 'ADMIN') {
     throw createError('Insufficient permissions', 403);
   }
 

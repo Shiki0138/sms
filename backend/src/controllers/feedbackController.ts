@@ -10,6 +10,9 @@ interface AuthenticatedRequest extends Request {
     email: string;
     name: string;
     tenantId: string;
+    staffId: string;
+    userId: string;
+    role: "ADMIN" | "STAFF" | "MANAGER";
   };
 }
 

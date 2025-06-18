@@ -1,8 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
-const port = 8080;
+const port = parseInt(process.env.PORT || '4002', 10);
 
 // Enhanced CORS configuration
 app.use(cors({

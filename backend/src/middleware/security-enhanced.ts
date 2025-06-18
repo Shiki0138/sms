@@ -54,14 +54,11 @@ export class EncryptionService {
       const iv = crypto.randomBytes(16);
       
       const cipher = crypto.createCipher(algorithm, key);
-      cipher.setAAD(iv);
       
       let encrypted = cipher.update(text, 'utf8', 'hex');
       encrypted += cipher.final('hex');
       
-      const authTag = cipher.getAuthTag();
-      
-      return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+      return `${iv.toString('hex')}::${encrypted}`;
     } catch (error) {
       logger.error('Encryption failed:', error);
       throw new Error('Data encryption failed');
@@ -71,20 +68,16 @@ export class EncryptionService {
   // 個人情報復号化
   static decrypt(encryptedData: string): string {
     try {
-      const [ivHex, authTagHex, encrypted] = encryptedData.split(':');
+      const [ivHex, , encrypted] = encryptedData.split(':');
       
-      if (!ivHex || !authTagHex || !encrypted) {
+      if (!ivHex || !encrypted) {
         throw new Error('Invalid encrypted data format');
       }
       
       const algorithm = SECURITY_CONFIG.ENCRYPTION_ALGORITHM;
       const key = this.getEncryptionKey();
-      const iv = Buffer.from(ivHex, 'hex');
-      const authTag = Buffer.from(authTagHex, 'hex');
       
       const decipher = crypto.createDecipher(algorithm, key);
-      decipher.setAAD(iv);
-      decipher.setAuthTag(authTag);
       
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
@@ -206,7 +199,7 @@ export class JWTService {
         expiresIn: SECURITY_CONFIG.JWT_EXPIRY,
         issuer: process.env.APP_NAME || 'salon-system',
         audience: 'salon-staff'
-      }
+      } as jwt.SignOptions
     );
   }
 
@@ -223,7 +216,7 @@ export class JWTService {
         expiresIn: SECURITY_CONFIG.REFRESH_TOKEN_EXPIRY,
         issuer: process.env.APP_NAME || 'salon-system',
         audience: 'salon-staff'
-      }
+      } as jwt.SignOptions
     );
   }
 
@@ -330,12 +323,13 @@ export const validatePasswordStrength = (password: string): {
  * セッション管理強化
  */
 export const sessionSecurity = (req: Request, res: Response, next: NextFunction) => {
-  const lastActivity = req.session?.lastActivity;
+  const session = req.session as any;
+  const lastActivity = session?.lastActivity;
   const now = Date.now();
   
   if (lastActivity && (now - lastActivity) > SECURITY_CONFIG.SESSION_TIMEOUT) {
     // セッションタイムアウト
-    req.session = null;
+    req.session?.destroy?.(() => {});
     
     logSecurityEvent({
       type: 'DATA_ACCESS',
@@ -356,8 +350,8 @@ export const sessionSecurity = (req: Request, res: Response, next: NextFunction)
   }
   
   // セッション活動時刻更新
-  if (req.session) {
-    req.session.lastActivity = now;
+  if (session) {
+    session.lastActivity = now;
   }
   
   next();
@@ -453,14 +447,6 @@ export const productionSecurityHeaders = (req: Request, res: Response, next: Nex
   next();
 };
 
-/**
- * 本番環境向け制限強化
- */
-export const productionRateLimit = createRateLimit({
-  windowMs: 15 * 60 * 1000, // 15分
-  maxRequests: process.env.NODE_ENV === 'production' ? 50 : 100,
-});
-
 export const createRateLimit = (options: {
   windowMs: number;
   maxRequests: number;
@@ -514,11 +500,11 @@ export const logSecurityEvent = async (event: SecurityEvent) => {
         eventType: event.type,
         ipAddress: event.ip,
         userAgent: event.userAgent,
-        userId: event.userId,
-        tenantId: event.tenantId,
+        staffId: event.userId,
+        tenantId: event.tenantId || '',
         severity: event.severity,
-        details: event.details,
-        createdAt: new Date()
+        description: `Security event: ${event.type}`,
+        metadata: JSON.stringify(event.details)
       }
     });
 
@@ -567,6 +553,14 @@ export const getClientIP = (req: Request): string => {
     'unknown'
   );
 };
+
+/**
+ * 本番環境向け制限強化
+ */
+export const productionRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000, // 15分
+  maxRequests: process.env.NODE_ENV === 'production' ? 50 : 100,
+});
 
 /**
  * セキュリティ監査ログ

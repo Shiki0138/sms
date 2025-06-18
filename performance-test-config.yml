@@ -1,0 +1,66 @@
+config:
+  target: 'http://localhost:4002'
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: 'ウォームアップ'
+    - duration: 60
+      arrivalRate: 20
+      name: '通常負荷'
+    - duration: 30
+      arrivalRate: 50
+      name: '高負荷'
+  defaults:
+    headers:
+      'Content-Type': 'application/json'
+      'x-tenant-id': 'load-test-tenant'
+
+scenarios:
+  - name: 'ダッシュボードKPI取得'
+    weight: 30
+    flow:
+      - get:
+          url: '/api/v1/analytics/dashboard-kpis'
+          expect:
+            - statusCode: 200
+            - hasProperty: 'data.revenue'
+            - hasProperty: 'data.customers'
+
+  - name: '顧客一覧取得'
+    weight: 25
+    flow:
+      - get:
+          url: '/api/v1/customers'
+          expect:
+            - statusCode: 200
+            - hasProperty: 'data'
+
+  - name: '予約一覧取得'
+    weight: 20
+    flow:
+      - get:
+          url: '/api/v1/reservations'
+          expect:
+            - statusCode: 200
+
+  - name: 'メッセージ取得'
+    weight: 15
+    flow:
+      - get:
+          url: '/api/v1/messages'
+          expect:
+            - statusCode: 200
+
+  - name: '新規予約作成'
+    weight: 10
+    flow:
+      - post:
+          url: '/api/v1/reservations'
+          json:
+            customerId: 'customer-001'
+            staffId: 'staff-001'
+            startTime: '2025-06-18T15:00:00Z'
+            menuIds: ['menu-001']
+          expect:
+            - statusCode: 201
+            - hasProperty: 'data.id'

@@ -159,7 +159,11 @@ export const PERMISSIONS = {
   TEMPLATE_DELETE: 'template:delete',
   
   // Analytics
+  ANALYTICS: 'analytics:read',
   ANALYTICS_READ: 'analytics:read',
+  
+  // Admin permissions
+  ADMIN: 'admin:all',
   
   // System settings
   SETTINGS_READ: 'settings:read',
@@ -196,6 +200,7 @@ const ADMIN_PERMISSIONS = [
   PERMISSIONS.STAFF_DELETE,
   PERMISSIONS.SETTINGS_READ,
   PERMISSIONS.SETTINGS_WRITE,
+  PERMISSIONS.ADMIN,
 ];
 
 export const ROLE_PERMISSIONS = {
