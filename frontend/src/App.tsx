@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import LandingPage from './pages/LandingPage'
 import RealisticLandingPage from './pages/RealisticLandingPage'
+import Dashboard from './components/Dashboard'
 import './styles/landing.css'
 import LimitWarning from './components/Common/LimitWarning'
 import PlanBadge from './components/Common/PlanBadge'
@@ -78,15 +79,15 @@ function App() {
       <SubscriptionProvider>
         <Router>
           <Routes>
-            {/* ランディングページ */}
-            <Route path="/landing" element={<LandingPage />} />
-            <Route path="/realistic" element={<RealisticLandingPage />} />
+            {/* ランディングページ（下層配置） */}
+            <Route path="/lp/default" element={<LandingPage />} />
+            <Route path="/lp/realistic" element={<RealisticLandingPage />} />
             
-            {/* デフォルトルート */}
-            <Route path="/" element={<Navigate to="/realistic" replace />} />
+            {/* メインシステム（デフォルトルート） */}
+            <Route path="/" element={<Dashboard />} />
             
-            {/* その他のルート（ダッシュボードなど）は後で追加 */}
-            <Route path="*" element={<Navigate to="/realistic" replace />} />
+            {/* その他のルート */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </SubscriptionProvider>
