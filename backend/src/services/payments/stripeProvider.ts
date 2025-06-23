@@ -66,7 +66,6 @@ export class StripePaymentProvider implements IPaymentProvider {
           success: true,
           paymentId: paymentIntent.id,
           amount: paymentIntent.amount / 100, // セントから円に変換
-          currency: paymentIntent.currency,
           message: 'お支払いが正常に完了しました'
         };
       } else if (paymentIntent.status === 'requires_action') {
@@ -137,7 +136,7 @@ export class StripePaymentProvider implements IPaymentProvider {
       const priceId = this.mapPlanToStripePriceId(request.planId);
       
       const subscription = await this.stripe.subscriptions.create({
-        customer: request.customerId || (await this.createCustomer()).id,
+        customer: request.customerId || (await this.createCustomer()),
         items: [{ price: priceId }],
         payment_behavior: 'default_incomplete',
         payment_settings: { save_default_payment_method: 'on_subscription' },
@@ -148,7 +147,7 @@ export class StripePaymentProvider implements IPaymentProvider {
       });
 
       const invoice = subscription.latest_invoice as Stripe.Invoice;
-      const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent | null;
+      const paymentIntent = (invoice as any).payment_intent as Stripe.PaymentIntent | null;
 
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         logger.info('Stripe subscription created:', subscription.id);
@@ -284,16 +283,16 @@ export class StripePaymentProvider implements IPaymentProvider {
           await this.handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
           break;
         case 'customer.subscription.updated':
-          await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+          await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription & { current_period_start: number; current_period_end: number });
           break;
         case 'customer.subscription.deleted':
           await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
           break;
         case 'invoice.payment_succeeded':
-          await this.handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
+          await this.handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null });
           break;
         case 'invoice.payment_failed':
-          await this.handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+          await this.handleInvoicePaymentFailed(event.data.object as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null });
           break;
         default:
           logger.info(`Unhandled Stripe webhook event: ${event.type}`);
@@ -374,24 +373,237 @@ export class StripePaymentProvider implements IPaymentProvider {
     }
   }
 
-  private async handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
-    logger.info('Processing subscription update:', subscription.id);
-    // データベースのサブスクリプション状態を更新
+  private async handleSubscriptionUpdated(subscription: Stripe.Subscription & { current_period_start: number; current_period_end: number }): Promise<void> {
+    const prisma = new (await import('@prisma/client')).PrismaClient();
+    try {
+      logger.info('Processing subscription update:', {
+        subscriptionId: subscription.id,
+        status: subscription.status,
+        customerId: subscription.customer
+      });
+      
+      // データベースのサブスクリプション状態を更新
+      await prisma.subscription.update({
+        where: { 
+          provider_providerSubscriptionId: {
+            provider: 'stripe',
+            providerSubscriptionId: subscription.id
+          }
+        },
+        data: {
+          status: subscription.status,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          updatedAt: new Date()
+        }
+      });
+    } catch (error) {
+      logger.error('Error updating subscription:', {
+        subscriptionId: subscription.id,
+        error
+      });
+      throw error;
+    } finally {
+      await prisma.$disconnect();
+    }
   }
 
   private async handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
-    logger.info('Processing subscription deletion:', subscription.id);
-    // データベースのサブスクリプション状態を更新
+    const prisma = new (await import('@prisma/client')).PrismaClient();
+    try {
+      logger.info('Processing subscription deletion:', {
+        subscriptionId: subscription.id,
+        customerId: subscription.customer
+      });
+      
+      // データベースのサブスクリプション状態を更新
+      const dbSubscription = await prisma.subscription.update({
+        where: { 
+          provider_providerSubscriptionId: {
+            provider: 'stripe',
+            providerSubscriptionId: subscription.id
+          }
+        },
+        data: {
+          status: 'canceled',
+          cancelledAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+      
+      // テナントのプランをライトプランに戻す
+      await prisma.tenant.update({
+        where: { id: dbSubscription.tenantId },
+        data: { plan: 'light' }
+      });
+    } catch (error) {
+      logger.error('Error processing subscription deletion:', {
+        subscriptionId: subscription.id,
+        error
+      });
+      throw error;
+    } finally {
+      await prisma.$disconnect();
+    }
   }
 
-  private async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
-    logger.info('Processing successful invoice payment:', invoice.id);
-    // 請求書の状態を更新
+  private async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }): Promise<void> {
+    const prisma = new (await import('@prisma/client')).PrismaClient();
+    try {
+      // invoice.idがnullの場合は早期リターン
+      if (!invoice.id) {
+        logger.error('Invoice ID is null');
+        return;
+      }
+
+      logger.info('Processing successful invoice payment:', {
+        invoiceId: invoice.id,
+        subscriptionId: invoice.subscription,
+        amount: invoice.amount_paid
+      });
+      
+      // 請求書記録を作成または更新
+      if (typeof invoice.subscription === 'string') {
+        try {
+          await prisma.invoice.upsert({
+            where: { 
+              provider_providerInvoiceId: {
+                provider: 'stripe',
+                providerInvoiceId: invoice.id
+              }
+            },
+            update: {
+              status: 'paid',
+              paidAt: new Date(),
+              updatedAt: new Date()
+            },
+            create: {
+              providerInvoiceId: invoice.id,
+              subscriptionId: invoice.subscription as string,
+              amount: invoice.amount_paid / 100,
+              currency: invoice.currency,
+              status: 'paid',
+              paidAt: new Date(),
+              periodStart: new Date(invoice.period_start * 1000),
+              periodEnd: new Date(invoice.period_end * 1000),
+              provider: 'stripe',
+              tenantId: invoice.metadata?.tenantId || undefined as any
+            }
+          });
+        } catch (error) {
+          logger.error('Failed to upsert invoice:', error);
+        }
+      }
+      
+      // サブスクリプションの定期決済の場合、次回請求日を更新
+      if (typeof invoice.subscription === 'string') {
+        try {
+          await prisma.subscription.updateMany({
+            where: {
+              provider: 'stripe',
+              providerSubscriptionId: invoice.subscription
+            },
+            data: {
+              currentPeriodStart: new Date(invoice.period_start * 1000),
+              currentPeriodEnd: new Date(invoice.period_end * 1000)
+            }
+          });
+        } catch (error) {
+          logger.warn('Subscription not found for invoice update', { subscriptionId: invoice.subscription });
+        }
+      }
+    } catch (error) {
+      logger.error('Error processing invoice payment:', {
+        invoiceId: invoice.id,
+        error
+      });
+      throw error;
+    } finally {
+      await prisma.$disconnect();
+    }
   }
 
-  private async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
-    logger.info('Processing failed invoice payment:', invoice.id);
-    // 請求書の状態を更新、リトライ設定など
+  private async handleInvoicePaymentFailed(invoice: Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }): Promise<void> {
+    const prisma = new (await import('@prisma/client')).PrismaClient();
+    try {
+      // invoice.idがnullの場合は早期リターン
+      if (!invoice.id) {
+        logger.error('Invoice ID is null');
+        return;
+      }
+
+      logger.info('Processing failed invoice payment:', {
+        invoiceId: invoice.id,
+        subscriptionId: invoice.subscription,
+        attemptCount: invoice.attempt_count
+      });
+      
+      // 請求書の状態を更新
+      if (typeof invoice.subscription === 'string') {
+        try {
+          await prisma.invoice.upsert({
+            where: {
+              provider_providerInvoiceId: {
+                provider: 'stripe',
+                providerInvoiceId: invoice.id
+              }
+            },
+            update: {
+              status: 'failed',
+              attemptCount: invoice.attempt_count,
+              updatedAt: new Date()
+            },
+            create: {
+              providerInvoiceId: invoice.id,
+              subscriptionId: invoice.subscription as string,
+              amount: invoice.amount_due / 100,
+              currency: invoice.currency,
+              status: 'failed',
+              attemptCount: invoice.attempt_count,
+              periodStart: new Date(invoice.period_start * 1000),
+              periodEnd: new Date(invoice.period_end * 1000),
+              provider: 'stripe',
+              tenantId: invoice.metadata?.tenantId || undefined as any
+            }
+          });
+        } catch (error) {
+          logger.error('Failed to upsert failed invoice:', error);
+        }
+      }
+      
+      // 3回失敗した場合、サブスクリプションを一時停止
+      if (invoice.attempt_count >= 3 && typeof invoice.subscription === 'string') {
+        try {
+          await prisma.subscription.updateMany({
+            where: {
+              provider: 'stripe',
+              providerSubscriptionId: invoice.subscription
+            },
+            data: {
+              status: 'past_due',
+              updatedAt: new Date()
+            }
+          });
+        } catch (error) {
+          logger.warn('Subscription not found for past due update', { subscriptionId: invoice.subscription });
+        }
+        
+        // TODO: 顧客に通知を送る
+        logger.warn('サブスクリプション料金の支払いが3回失敗しました', {
+          subscriptionId: invoice.subscription,
+          tenantId: invoice.metadata?.tenantId
+        });
+      }
+    } catch (error) {
+      logger.error('Error processing failed invoice payment:', {
+        invoiceId: invoice.id,
+        error
+      });
+      throw error;
+    } finally {
+      await prisma.$disconnect();
+    }
   }
 
   // Helper methods
@@ -418,8 +630,8 @@ export class StripePaymentProvider implements IPaymentProvider {
           status: paymentIntent.status,
           provider: 'stripe',
           description: request.description,
-          paymentMethodId: request.paymentMethodId || '',
-          tenantId: request.metadata?.tenantId || '',
+          paymentMethodId: request.paymentMethodId || undefined as any,
+          tenantId: request.metadata?.tenantId || undefined as any,
           metadata: request.metadata || {}
         }
       });
@@ -447,8 +659,11 @@ export class StripePaymentProvider implements IPaymentProvider {
   private async updatePaymentStatus(paymentId: string, status: string): Promise<void> {
     const prisma = new (await import('@prisma/client')).PrismaClient();
     try {
-      await prisma.payment.update({
-        where: { id: paymentId },
+      await prisma.payment.updateMany({
+        where: { 
+          provider: 'stripe',
+          providerPaymentId: paymentId
+        },
         data: { 
           status,
           updatedAt: new Date()

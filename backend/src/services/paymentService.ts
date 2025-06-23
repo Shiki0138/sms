@@ -25,6 +25,7 @@ export interface IPaymentProvider {
   retrievePaymentMethods(customerId: string): Promise<PaymentMethod[]>;
   createPaymentMethod(customerId: string, paymentData: any): Promise<PaymentMethod>;
   handleWebhook(payload: string, signature: string): Promise<void>;
+  refundPayment(paymentId: string, amount?: number, reason?: string): Promise<PaymentResult>;
 }
 
 export class PaymentService {
@@ -73,11 +74,13 @@ export class PaymentService {
   /**
    * 支払いを作成
    */
-  async createPayment(
-    tenantId: string, 
-    request: PaymentRequest
-  ): Promise<PaymentResult> {
+  async createPayment(request: PaymentRequest): Promise<PaymentResult> {
     try {
+      const tenantId = request.metadata?.tenantId;
+      if (!tenantId) {
+        throw new Error('Tenant ID is required in metadata');
+      }
+
       const providerType = await this.getTenantPaymentProvider(tenantId);
       const provider = this.providers.get(providerType);
       
@@ -95,10 +98,11 @@ export class PaymentService {
             provider: providerType,
             providerPaymentId: result.paymentId,
             amount: request.amount,
-            currency: request.currency,
+            currency: request.currency || 'jpy',
             status: 'processing',
             description: request.description,
             paymentMethodId: request.paymentMethodId || '',
+            metadata: request.metadata || {}
           }
         });
       }
@@ -303,12 +307,52 @@ export class PaymentService {
       });
       return invoices.map(invoice => ({
         ...invoice,
-        provider: invoice.provider as PaymentProvider
+        provider: invoice.provider as PaymentProvider,
+        status: invoice.status as "open" | "void" | "draft" | "paid" | "uncollectible"
       }));
     } catch (error) {
       logger.error('Failed to retrieve invoices:', error);
       return [];
     }
+  }
+
+  /**
+   * 返金処理
+   */
+  async refundPayment(paymentId: string, amount?: number, reason?: string): Promise<PaymentResult> {
+    try {
+      // 決済情報を取得
+      const payment = await prisma.payment.findFirst({
+        where: { providerPaymentId: paymentId }
+      });
+
+      if (!payment) {
+        throw new Error('Payment not found');
+      }
+
+      const provider = this.providers.get(payment.provider as PaymentProvider);
+      if (!provider) {
+        throw new Error(`Payment provider ${payment.provider} not configured`);
+      }
+
+      // 返金処理を実行
+      const result = await provider.refundPayment(paymentId, amount, reason);
+
+      return result;
+    } catch (error) {
+      logger.error('Refund failed:', error);
+      return {
+        success: false,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * 特定のプロバイダーを取得
+   */
+  getProvider(providerType: string): IPaymentProvider | undefined {
+    return this.providers.get(providerType as PaymentProvider);
   }
 }
 

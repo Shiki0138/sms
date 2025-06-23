@@ -263,4 +263,51 @@ export class PayPalPaymentProvider implements IPaymentProvider {
   private async handleSubscriptionCancelled(resource: any): Promise<void> {
     logger.info('Processing PayPal subscription cancellation:', resource.id);
   }
+
+  async refundPayment(paymentId: string, amount?: number, reason?: string): Promise<PaymentResult> {
+    try {
+      const accessToken = await this.getAccessToken();
+
+      const refundData: any = {};
+      if (amount) {
+        refundData.amount = {
+          value: amount.toString(),
+          currency_code: 'JPY'
+        };
+      }
+      if (reason) {
+        refundData.note_to_payer = reason;
+      }
+
+      const response = await fetch(`${this.baseURL}/v2/payments/captures/${paymentId}/refund`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'PayPal-Request-Id': `refund-${Date.now()}`
+        },
+        body: JSON.stringify(refundData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === 'COMPLETED') {
+        logger.info('PayPal refund successful:', result.id);
+        return {
+          success: true,
+          paymentId: result.id,
+          amount: parseFloat(result.amount?.value || '0'),
+          message: '返金処理が完了しました'
+        };
+      } else {
+        throw new Error(result.message || 'PayPal refund failed');
+      }
+    } catch (error: any) {
+      logger.error('PayPal refund error:', error);
+      return {
+        success: false,
+        errorMessage: '返金処理に失敗しました。サポートにお問い合わせください。'
+      };
+    }
+  }
 }

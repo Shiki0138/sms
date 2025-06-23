@@ -52,6 +52,17 @@ model Tenant {
   feedback             Feedback[]
   quickRatings         QuickRating[]
   tenantFeatureFlags   TenantFeatureFlag[]
+  supportRequests      SupportRequest[]
+  supportAvailability  SupportAvailability[]
+  salaryDashboards     SalaryDashboard[]
+  incentiveRules       IncentiveRule[]
+  staffAchievements    StaffAchievement[]
+  businessMetrics      BusinessMetrics[]
+  competitorAnalyses   CompetitorAnalysis[]
+  strategicActions     StrategicAction[]
+  businessInsights     BusinessInsight[]
+  businessGoals        BusinessGoal[]
+  managementReports    ManagementReport[]
 
   // 💫 美容室業務高速化インデックス
   @@index([isActive]) // アクティブ店舗検索最適化
@@ -61,10 +72,12 @@ model Tenant {
 
 // テナント設定
 model TenantSetting {
-  id       String @id @default(cuid())
-  tenantId String
-  key      String
-  value    String
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   
@@ -111,6 +124,14 @@ model Staff {
   securityEvents          SecurityEvent[] @relation("SecurityEvents")
   staffPerformance        StaffPerformance[]
   preferredByCustomers    Customer[] @relation("PreferredStaff")
+  supportRequests         SupportRequest[] @relation("SupportRequester")
+  supportAvailability     SupportAvailability[] @relation("SupportStaff")
+  supportResponses        SupportResponse[] @relation("SupportResponder")
+  supportAsSupporter      SupportMatch[] @relation("Supporter")
+  supportAsRequester      SupportMatch[] @relation("Requester")
+  salaryDashboards        SalaryDashboard[] @relation("SalaryDashboard")
+  dailySalaryRecords      DailySalaryRecord[] @relation("DailySalaryRecord")
+  staffAchievements       StaffAchievement[] @relation("StaffAchievement")
 
   @@map("staff")
 }
@@ -144,9 +165,11 @@ model Customer {
   riskScore       Int?      @default(0)
   preferredStaffId String?
   profilePhoto     String?
-  tenantId         String
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  source          String?   // HOTPEPPER, GOOGLE, REFERRAL, WALK_IN
+  isActive        Boolean   @default(true)
+  tenantId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   // Relations
   tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -317,6 +340,7 @@ model Reservation {
   startTime     DateTime
   endTime       DateTime?
   menuContent   String?
+  serviceContent String?           // サービス内容
   customerName  String?           // Hot Pepper などの場合、Customer と紐付かない場合もある
   customerId    String?
   customerPhone String?
@@ -333,6 +357,7 @@ model Reservation {
   profitMargin  Decimal?          // percentage
   weatherImpact String?           // SUNNY, RAINY, CLOUDY, etc.
   sourceCampaign String?          // marketing campaign reference
+  reminderSent  Boolean           @default(false)
   tenantId      String
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -819,7 +844,7 @@ model Payment {
   // 決済詳細
   amount              Float
   currency            String      @default("JPY")
-  status              String      // pending, processing, succeeded, failed, canceled, refunded
+  status              String      // pending, processing, succeeded, failed, canceled, refunded, partially_refunded
   description         String?
   paymentMethodId     String
   failureReason       String?
@@ -827,9 +852,13 @@ model Payment {
   // メタデータ
   metadata            Json?
   
+  // Relations
+  refunds             Refund[]
+  
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
   
+  @@unique([provider, providerPaymentId])
   @@index([tenantId, status])
   @@index([provider, providerPaymentId])
   @@map("payments")
@@ -852,6 +881,7 @@ model Subscription {
   currentPeriodEnd       DateTime
   cancelAtPeriodEnd      Boolean     @default(false)
   trialEnd               DateTime?
+  cancelledAt            DateTime?
   
   // 決済情報
   paymentMethodId        String
@@ -866,6 +896,7 @@ model Subscription {
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
   
+  @@unique([provider, providerSubscriptionId])
   @@index([status, currentPeriodEnd])
   @@index([provider, providerSubscriptionId])
   @@map("subscriptions")
@@ -886,12 +917,13 @@ model Invoice {
   // 請求詳細
   amount              Float
   currency            String       @default("JPY")
-  status              String       // draft, open, paid, void, uncollectible
+  status              String       // draft, open, paid, void, uncollectible, failed
+  attemptCount        Int          @default(0)
   
   // 期間
   periodStart         DateTime
   periodEnd           DateTime
-  dueDate             DateTime
+  dueDate             DateTime?
   paidAt              DateTime?
   
   // ダウンロード
@@ -904,10 +936,37 @@ model Invoice {
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   
+  @@unique([provider, providerInvoiceId])
   @@index([tenantId, status])
   @@index([subscriptionId, status])
   @@index([provider, providerInvoiceId])
   @@map("invoices")
+}
+
+// 返金
+model Refund {
+  id                  String       @id @default(cuid())
+  paymentId           String
+  payment             Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  tenantId            String
+  
+  // プロバイダー情報
+  providerRefundId    String
+  
+  // 返金詳細
+  amount              Float
+  reason              String?
+  status              String       // pending, succeeded, failed, canceled
+  
+  // メタデータ
+  metadata            Json?
+  
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  
+  @@index([paymentId])
+  @@index([tenantId])
+  @@map("refunds")
 }
 
 // Webhook イベント
@@ -1067,5 +1126,499 @@ model TenantFeatureFlag {
   @@unique([tenantId, featureFlagId])
   @@index([tenantId, isEnabled])
   @@map("tenant_feature_flags")
+}
+
+// 応援美容師サービス
+model SupportRequest {
+  id              String   @id @default(cuid())
+  tenantId        String
+  requesterId     String   // 応援を求める美容師のID
+  title           String
+  description     String
+  requiredSkills  String?  // JSON配列: ["cut", "color", "perm"]
+  preferredTime   DateTime
+  duration        Int      // 分単位
+  hourlyRate      Float    // 時給
+  location        String   // 店舗住所
+  latitude        Float?
+  longitude       Float?
+  maxDistance     Int      @default(10) // km単位
+  urgencyLevel    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status          String   @default("OPEN") // OPEN, MATCHED, CONFIRMED, COMPLETED, CANCELLED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requester       Staff         @relation("SupportRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  responses       SupportResponse[]
+  matchedSupport  SupportMatch?
+  
+  @@index([tenantId, status])
+  @@index([status, preferredTime])
+  @@index([latitude, longitude]) // 位置情報検索用
+  @@map("support_requests")
+}
+
+// 応援美容師の可用性登録
+model SupportAvailability {
+  id           String   @id @default(cuid())
+  staffId      String
+  tenantId     String
+  availableFrom DateTime
+  availableTo   DateTime
+  skills       String   // JSON配列: ["cut", "color", "perm"]
+  hourlyRate   Float
+  maxDistance  Int      @default(15) // km単位
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  staff        Staff    @relation("SupportStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  responses    SupportResponse[]
+  
+  @@index([staffId, isActive])
+  @@index([tenantId, availableFrom, availableTo])
+  @@map("support_availability")
+}
+
+// 応援申し込み
+model SupportResponse {
+  id              String   @id @default(cuid())
+  requestId       String
+  availabilityId  String
+  responderId     String
+  message         String?
+  proposedRate    Float?   // 提案時給（交渉可能）
+  status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  request         SupportRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  availability    SupportAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  responder       Staff              @relation("SupportResponder", fields: [responderId], references: [id], onDelete: Cascade)
+  match           SupportMatch?
+  
+  @@unique([requestId, responderId])
+  @@index([requestId, status])
+  @@map("support_responses")
+}
+
+// マッチング確定
+model SupportMatch {
+  id              String   @id @default(cuid())
+  requestId       String   @unique
+  responseId      String   @unique
+  supporterId     String
+  requesterId     String
+  agreedRate      Float
+  startTime       DateTime
+  endTime         DateTime
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  status          String   @default("CONFIRMED") // CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
+  rating          Int?     // 1-5 相互評価
+  feedback        String?
+  paymentStatus   String   @default("PENDING") // PENDING, PAID, DISPUTED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  request         SupportRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  response        SupportResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  supporter       Staff           @relation("Supporter", fields: [supporterId], references: [id], onDelete: Cascade)
+  requester       Staff           @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  
+  @@index([status, startTime])
+  @@index([supporterId, status])
+  @@index([requesterId, status])
+  @@map("support_matches")
+}
+
+// 給料見える化 - 月別給与サマリー
+model SalaryDashboard {
+  id              String   @id @default(cuid())
+  staffId         String
+  tenantId        String
+  year            Int
+  month           Int
+  
+  // 基本給与情報
+  baseSalary      Float    @default(0)
+  commission      Float    @default(0) // 歩合給
+  bonus           Float    @default(0)
+  supportEarnings Float    @default(0) // 応援美容師での収入
+  deductions      Float    @default(0) // 控除額
+  totalGross      Float    @default(0) // 総支給額
+  totalNet        Float    @default(0) // 手取り額
+  
+  // 労働時間
+  regularHours    Float    @default(0)
+  overtimeHours   Float    @default(0)
+  supportHours    Float    @default(0)
+  totalHours      Float    @default(0)
+  
+  // 実績指標
+  totalCustomers  Int      @default(0)
+  totalRevenue    Float    @default(0)
+  avgServiceTime  Float    @default(0)
+  customerRating  Float    @default(0)
+  
+  // 目標と進捗
+  monthlyGoal     Float?
+  goalProgress    Float    @default(0) // パーセンテージ
+  projectedTotal  Float    @default(0) // 月末予想額
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  staff           Staff    @relation("SalaryDashboard", fields: [staffId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dailyRecords    DailySalaryRecord[]
+  
+  @@unique([staffId, year, month])
+  @@index([tenantId, year, month])
+  @@map("salary_dashboard")
+}
+
+// 日別給与記録
+model DailySalaryRecord {
+  id              String   @id @default(cuid())
+  dashboardId     String
+  staffId         String
+  date            DateTime
+  
+  // 日別実績
+  hoursWorked     Float    @default(0)
+  customersServed Int      @default(0)
+  dailyRevenue    Float    @default(0)
+  dailyEarnings   Float    @default(0)
+  supportHours    Float    @default(0) // 応援美容師時間
+  supportEarnings Float    @default(0) // 応援美容師収入
+  
+  // 評価
+  customerRating  Float?
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  dashboard       SalaryDashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  staff           Staff           @relation("DailySalaryRecord", fields: [staffId], references: [id], onDelete: Cascade)
+  
+  @@unique([staffId, date])
+  @@index([dashboardId, date])
+  @@map("daily_salary_records")
+}
+
+// インセンティブルール設定
+model IncentiveRule {
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  description     String?
+  type            String   // PERFORMANCE, SKILL, SUPPORT, REFERRAL, LOYALTY
+  
+  // 条件設定
+  conditions      String   // JSON: 達成条件
+  rewardType      String   // BONUS, COMMISSION_RATE, FIXED_AMOUNT
+  rewardValue     Float    // 報酬額またはパーセンテージ
+  
+  // 期間設定
+  isActive        Boolean  @default(true)
+  validFrom       DateTime?
+  validTo         DateTime?
+  
+  // 対象設定
+  targetStaffIds  String?  // JSON配列: 対象スタッフID
+  targetRoles     String?  // JSON配列: 対象ロール
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  achievements    StaffAchievement[]
+  
+  @@index([tenantId, isActive])
+  @@index([type, isActive])
+  @@map("incentive_rules")
+}
+
+// スタッフ達成記録
+model StaffAchievement {
+  id              String   @id @default(cuid())
+  staffId         String
+  ruleId          String
+  tenantId        String
+  
+  // 達成詳細
+  achievedAt      DateTime
+  achievedValue   Float    // 達成した値
+  rewardAmount    Float    // 獲得報酬額
+  status          String   @default("EARNED") // EARNED, PAID, CANCELLED
+  
+  // メタデータ
+  metadata        String?  // JSON: 達成詳細データ
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  staff           Staff    @relation("StaffAchievement", fields: [staffId], references: [id], onDelete: Cascade)
+  rule            IncentiveRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([staffId, achievedAt])
+  @@index([tenantId, achievedAt])
+  @@map("staff_achievements")
+}
+
+// プレミアム経営戦略ダッシュボード
+model BusinessMetrics {
+  id              String   @id @default(cuid())
+  tenantId        String
+  metricDate      DateTime
+  
+  // 売上指標
+  dailyRevenue    Float    @default(0)
+  monthlyRevenue  Float    @default(0)
+  yearlyRevenue   Float    @default(0)
+  targetRevenue   Float?   // 目標売上
+  
+  // 顧客指標
+  newCustomers    Int      @default(0)
+  repeatCustomers Int      @default(0)
+  lostCustomers   Int      @default(0)
+  avgCustomerValue Float   @default(0)
+  customerRetentionRate Float @default(0)
+  
+  // 効率指標
+  avgServiceTime  Float    @default(0) // 平均施術時間
+  chairUtilization Float   @default(0) // 席稼働率
+  staffProductivity Float  @default(0) // スタッフ生産性
+  
+  // 在庫・コスト
+  inventoryCost   Float    @default(0)
+  laborCost       Float    @default(0)
+  overheadCost    Float    @default(0)
+  profitMargin    Float    @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, metricDate])
+  @@index([tenantId, metricDate])
+  @@map("business_metrics")
+}
+
+// 競合分析データ
+model CompetitorAnalysis {
+  id              String   @id @default(cuid())
+  tenantId        String
+  competitorName  String
+  
+  // 位置情報
+  distance        Float    // km
+  location        String
+  
+  // 価格比較
+  avgMenuPrice    Float
+  pricePosition   String   // LOWER, SIMILAR, HIGHER
+  
+  // サービス分析
+  services        String   // JSON: 提供サービスリスト
+  uniqueServices  String?  // JSON: 独自サービス
+  
+  // 評価
+  onlineRating    Float?
+  reviewCount     Int?
+  
+  // 分析データ
+  strengthPoints  String?  // JSON: 強み
+  weaknessPoints  String?  // JSON: 弱み
+  threats         String?  // JSON: 脅威
+  opportunities   String?  // JSON: 機会
+  
+  lastAnalyzedAt  DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId])
+  @@map("competitor_analysis")
+}
+
+// 経営戦略アクションプラン
+model StrategicAction {
+  id              String   @id @default(cuid())
+  tenantId        String
+  
+  // アクション詳細
+  title           String
+  description     String
+  category        String   // REVENUE, COST, CUSTOMER, OPERATION, MARKETING
+  priority        String   // CRITICAL, HIGH, MEDIUM, LOW
+  
+  // 目標と指標
+  targetMetric    String   // 影響する指標
+  targetValue     Float    // 目標値
+  currentValue    Float?   // 現在値
+  expectedImpact  Float    // 期待される影響（%）
+  
+  // 実行計画
+  assignedTo      String?  // スタッフIDまたはロール
+  startDate       DateTime
+  dueDate         DateTime
+  status          String   @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  // 結果測定
+  actualImpact    Float?   // 実際の影響（%）
+  completedAt     DateTime?
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  insights        InsightActionLink[]
+  
+  @@index([tenantId, status])
+  @@index([tenantId, priority])
+  @@map("strategic_actions")
+}
+
+// AI経営インサイト
+model BusinessInsight {
+  id              String   @id @default(cuid())
+  tenantId        String
+  
+  // インサイト詳細
+  type            String   // TREND, ANOMALY, PREDICTION, RECOMMENDATION
+  category        String   // REVENUE, CUSTOMER, OPERATION, RISK
+  title           String
+  description     String
+  
+  // 重要度と確信度
+  importance      String   // CRITICAL, HIGH, MEDIUM, LOW
+  confidence      Float    // 0.0-1.0
+  
+  // 分析データ
+  analysisData    String   // JSON: 詳細分析データ
+  evidence        String?  // JSON: 根拠データ
+  
+  // 予測情報（該当する場合）
+  predictedValue  Float?
+  predictedDate   DateTime?
+  
+  // アクション提案
+  suggestedActions String? // JSON: 提案アクション
+  
+  // 有効期限
+  validUntil      DateTime
+  dismissed       Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  linkedActions   InsightActionLink[]
+  
+  @@index([tenantId, type, dismissed])
+  @@index([tenantId, importance])
+  @@map("business_insights")
+}
+
+// インサイトとアクションの関連
+model InsightActionLink {
+  insightId       String
+  actionId        String
+  
+  insight         BusinessInsight @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  action          StrategicAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  
+  @@id([insightId, actionId])
+  @@map("insight_action_links")
+}
+
+// 経営目標設定
+model BusinessGoal {
+  id              String   @id @default(cuid())
+  tenantId        String
+  
+  // 目標詳細
+  name            String
+  description     String?
+  metric          String   // revenue, customer_count, retention_rate, etc.
+  targetValue     Float
+  currentValue    Float    @default(0)
+  
+  // 期間
+  period          String   // MONTHLY, QUARTERLY, YEARLY
+  startDate       DateTime
+  endDate         DateTime
+  
+  // 進捗
+  progress        Float    @default(0) // 0-100%
+  status          String   @default("ACTIVE") // ACTIVE, ACHIEVED, FAILED, CANCELLED
+  
+  // 戦略
+  strategies      String?  // JSON: 達成戦略
+  milestones      String?  // JSON: マイルストーン
+  
+  achievedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId, period, status])
+  @@map("business_goals")
+}
+
+// 経営レポート履歴
+model ManagementReport {
+  id              String   @id @default(cuid())
+  tenantId        String
+  
+  // レポート情報
+  reportType      String   // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
+  reportDate      DateTime
+  title           String
+  
+  // レポート内容
+  summary         String   // エグゼクティブサマリー
+  metrics         String   // JSON: 主要指標
+  insights        String   // JSON: インサイト
+  recommendations String   // JSON: 提案事項
+  
+  // AI分析結果
+  aiAnalysis      String?  // JSON: AI詳細分析
+  riskAssessment  String?  // JSON: リスク評価
+  opportunities   String?  // JSON: 成長機会
+  
+  // 配信情報
+  recipients      String?  // JSON: 配信先リスト
+  sentAt          DateTime?
+  
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId, reportType, reportDate])
+  @@map("management_reports")
 }
 

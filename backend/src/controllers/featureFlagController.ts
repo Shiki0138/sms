@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { FeatureFlagService } from '../services/featureFlagService';
 
 export const featureFlagController = {
   /**
    * テナントで有効な機能一覧を取得
    */
-  async getEnabledFeatures(req: Request, res: Response) {
+  async getEnabledFeatures(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = req.user?.tenantId;
       if (!tenantId) {
@@ -27,7 +28,7 @@ export const featureFlagController = {
   /**
    * 特定の機能が有効かチェック
    */
-  async checkFeature(req: Request, res: Response) {
+  async checkFeature(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = req.user?.tenantId;
       const { featureKey } = req.params;
@@ -52,7 +53,7 @@ export const featureFlagController = {
   /**
    * 管理者用：全フィーチャーフラグを取得
    */
-  async getAllFeatureFlags(req: Request, res: Response) {
+  async getAllFeatureFlags(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -75,7 +76,7 @@ export const featureFlagController = {
   /**
    * 管理者用：フィーチャーフラグを作成
    */
-  async createFeatureFlag(req: Request, res: Response) {
+  async createFeatureFlag(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -97,7 +98,7 @@ export const featureFlagController = {
   /**
    * 管理者用：フィーチャーフラグを更新
    */
-  async updateFeatureFlag(req: Request, res: Response) {
+  async updateFeatureFlag(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -120,7 +121,7 @@ export const featureFlagController = {
   /**
    * 管理者用：特定テナントの機能を有効/無効化
    */
-  async setTenantFeatureFlag(req: Request, res: Response) {
+  async setTenantFeatureFlag(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -150,7 +151,7 @@ export const featureFlagController = {
   /**
    * 管理者用：テナントの機能設定を取得
    */
-  async getTenantFeatureSettings(req: Request, res: Response) {
+  async getTenantFeatureSettings(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -174,7 +175,7 @@ export const featureFlagController = {
   /**
    * 初期フィーチャーフラグをセットアップ（一度だけ実行）
    */
-  async setupInitialFeatureFlags(req: Request, res: Response) {
+  async setupInitialFeatureFlags(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -196,7 +197,7 @@ export const featureFlagController = {
   /**
    * 本番環境向け初期設定を実行
    */
-  async setupProductionFlags(req: Request, res: Response) {
+  async setupProductionFlags(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -221,7 +222,7 @@ export const featureFlagController = {
   /**
    * 【緊急】本番環境完全設定実行
    */
-  async setupProductionProductionFlags(req: Request, res: Response) {
+  async setupProductionProductionFlags(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -269,7 +270,7 @@ export const featureFlagController = {
   /**
    * 段階的リリース - 展開率更新
    */
-  async updateRolloutPercentage(req: Request, res: Response) {
+  async updateRolloutPercentage(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -296,7 +297,7 @@ export const featureFlagController = {
   /**
    * ベータテスト機能を有効化
    */
-  async enableBetaFeatures(req: Request, res: Response) {
+  async enableBetaFeatures(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {
@@ -320,7 +321,7 @@ export const featureFlagController = {
   /**
    * 緊急機能無効化
    */
-  async emergencyDisableFeature(req: Request, res: Response) {
+  async emergencyDisableFeature(req: AuthenticatedRequest, res: Response) {
     try {
       // 管理者権限チェック
       if (!req.user?.isAdmin) {

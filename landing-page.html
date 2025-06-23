@@ -56,11 +56,18 @@
         }
 
         .landing-page body {
-            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             line-height: 1.6;
             color: var(--text-color);
             background: var(--bg-color);
             overflow-x: hidden;
+        }
+        
+        /* 全要素のフォントを統一 */
+        .landing-page * {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
         }
 
         .landing-page .container {
@@ -230,10 +237,13 @@
             font-weight: 800;
             text-align: center;
             margin-bottom: 60px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--text-color);
+        }
+        
+        /* Benefits と Urgency セクション内のタイトルは白色 */
+        .landing-page .benefits-section .section-title,
+        .landing-page .urgency-section .section-title {
+            color: white !important;
         }
 
         .landing-page .pain-points {
@@ -306,9 +316,11 @@
 
         .landing-page .screenshot-image {
             width: 100%;
-            height: 200px;
-            object-fit: cover;
+            height: auto;
+            object-fit: contain;
             border-bottom: 1px solid #E9ECEF;
+            background: #f5f5f5;
+            padding: 10px;
         }
 
         .landing-page .screenshot-caption {
@@ -528,7 +540,7 @@
         /* Urgency Section */
         .landing-page .urgency-section {
             padding: 80px 0;
-            background: linear-gradient(135deg, #FF4757 0%, #FF6B9D 100%);
+            background: #2c3e50;
             color: var(--white);
             text-align: center;
         }
@@ -838,8 +850,25 @@
                 gap: 20px;
             }
             
-            .landing-page .screenshot-image {
-                height: 180px;
+            /* スマホ用フォントサイズ調整 */
+            .landing-page .hero-title {
+                font-size: 28px !important;
+            }
+            
+            .landing-page .hero-subtitle {
+                font-size: 16px !important;
+            }
+            
+            .landing-page .section-title {
+                font-size: 24px !important;
+            }
+            
+            .landing-page h2 {
+                font-size: 22px !important;
+            }
+            
+            .landing-page h3 {
+                font-size: 18px !important;
             }
         }
 
@@ -862,10 +891,6 @@
 
             .landing-page .guarantees-grid {
                 grid-template-columns: 1fr;
-            }
-            
-            .landing-page .screenshot-image {
-                height: 150px;
             }
             
             .landing-page .screenshot-caption {
@@ -1044,7 +1069,7 @@
     <section class="authority-section">
         <div class="container">
             <h2 class="section-title">
-                業界のプロが選ぶ理由
+                特徴
             </h2>
             
             <div class="authority-stats">
@@ -1066,53 +1091,13 @@
                 </div>
             </div>
             
-            <div class="testimonials">
-                <div class="testimonial">
-                    <p class="testimonial-text">
-                        「システム導入で業務効率が劇的に改善。データ分析で戦略的な意思決定が可能になり、プロフェッショナルなサロン運営を実現できています。」
-                    </p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar">田</div>
-                        <div class="author-info">
-                            <h4>田中美容子さん</h4>
-                            <p>Hair Salon TANAKA 代表</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="testimonial">
-                    <p class="testimonial-text">
-                        「直感的なUIでスタッフのトレーニング時間を大幅短縮。リアルタイムデータで経営判断の精度が向上し、競合他店との差別化が実現できています。」
-                    </p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar">佐</div>
-                        <div class="author-info">
-                            <h4>佐藤花子さん</h4>
-                            <p>Beauty Salon SATO オーナー</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="testimonial">
-                    <p class="testimonial-text">
-                        「統合プラットフォームにより業務プロセスが標準化され、品質の一貫性を保てるようになりました。顧客満足度とリピート率の向上により、安定した収益基盤を構築できています。」
-                    </p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar">山</div>
-                        <div class="author-info">
-                            <h4>山田太郎さん</h4>
-                            <p>YAMADA HAIR 経営者</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
 
     <!-- Benefits Section -->
     <section class="benefits-section">
         <div class="container">
-            <h2 class="section-title" style="color: white;">
+            <h2 class="section-title" style="color: white !important;">
                 あなたが手に入れるもの
             </h2>
             
@@ -1316,10 +1301,10 @@
     </section>
 
     <!-- Urgency Section -->
-    <section class="urgency-section">
+    <section class="urgency-section" style="background: #2c3e50;">
         <div class="container">
             <div class="urgency-content">
-                <h2 class="section-title" style="color: white; margin-bottom: 30px;">
+                <h2 class="section-title" style="color: white !important; margin-bottom: 30px;">
                     🎯 テストユーザー募集中
                 </h2>
                 
@@ -1392,127 +1377,21 @@
             <div class="form-container">
                 <div class="form-header">
                     <h2 class="form-title">
-                        🚀 PROFESSIONAL TRIAL APPLICATION
+                        無料体験申し込み
                     </h2>
                     <p class="form-subtitle">
-                        スマート統合プラットフォームの14日間無料体験。プロフェッショナルな美容室運営を体験してください。
+                        スマート統合プラットフォームの14日間無料体験
                     </p>
                 </div>
                 
-                <!-- フォーム送信先設定説明 -->
-                <div class="form-info" style="background: #F0F9FF; padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid var(--secondary-color);">
-                    <h4 style="margin: 0 0 10px 0; color: var(--primary-color); font-size: 16px;">📋 データの取り扱いについて</h4>
-                    <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: var(--text-light); line-height: 1.6;">
-                        <li>ご入力いただいた情報はGoogleフォームで安全に管理されます</li>
-                        <li>個人情報はシステムの無料体験のみに使用します</li>
-                        <li>第三者への提供や営業目的での使用はいたしません</li>
-                        <li>データはシステム連携完了後に安全に削除されます</li>
-                    </ul>
+                <div style="text-align: center; padding: 40px 0;">
+                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfxBaIJVRJJi3AmNab8Wqj3p2jq9CtwKEzUaM5tOpFZIG8GAQ/viewform?usp=dialog" 
+                       target="_blank" 
+                       class="cta-primary" 
+                       style="display: inline-block; font-size: 20px; padding: 20px 50px;">
+                        申し込みフォームへ
+                    </a>
                 </div>
-                
-                <form class="premium-form" id="salon-form" action="https://docs.google.com/forms/d/e/1FAIpQLSf_ACTUAL_FORM_ID_HERE/formResponse" method="POST" target="hidden_iframe">
-                    <div class="form-group">
-                        <label for="name" class="form-label">
-                            お名前 <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            id="name" 
-                            name="entry.NAME_FIELD_ID" 
-                            class="form-input"
-                            placeholder="山田 太郎"
-                            required
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="salon-name" class="form-label">
-                            美容室名 <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            id="salon-name" 
-                            name="entry.SALON_NAME_FIELD_ID" 
-                            class="form-input"
-                            placeholder="YAMADA HAIR STUDIO"
-                            required
-                        >
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email" class="form-label">
-                            メールアドレス <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="email" 
-                            id="email" 
-                            name="entry.EMAIL_FIELD_ID" 
-                            class="form-input"
-                            placeholder="yamada@example.com"
-                            required
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="phone" class="form-label">
-                            電話番号 <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="tel" 
-                            id="phone" 
-                            name="entry.PHONE_FIELD_ID" 
-                            class="form-input"
-                            placeholder="09012345678"
-                            required
-                        >
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="experience" class="form-label">
-                            美容師歴 <span class="required">*</span>
-                        </label>
-                        <select id="experience" name="entry.EXPERIENCE_FIELD_ID" class="form-select" required>
-                            <option value="">選択してください</option>
-                            <option value="1-3年">1-3年</option>
-                            <option value="4-7年">4-7年</option>
-                            <option value="8-15年">8-15年</option>
-                            <option value="16年以上">16年以上</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="role" class="form-label">
-                            ポジション <span class="required">*</span>
-                        </label>
-                        <select id="role" name="entry.ROLE_FIELD_ID" class="form-select" required>
-                            <option value="">選択してください</option>
-                            <option value="オーナー">オーナー</option>
-                            <option value="マネージャー">マネージャー</option>
-                            <option value="スタイリスト">スタイリスト</option>
-                            <option value="カラリスト">カラリスト</option>
-                            <option value="アシスタント">アシスタント</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="monthly-sales" class="form-label">
-                            月商規模（任意）
-                        </label>
-                        <select id="monthly-sales" name="entry.MONTHLY_SALES_FIELD_ID" class="form-select">
-                            <option value="">選択してください</option>
-                            <option value="100万円未満">100万円未満</option>
-                            <option value="100-300万円">100-300万円</option>
-                            <option value="300-500万円">300-500万円</option>
-                            <option value="500-1000万円">500-1000万円</option>
-                            <option value="1000万円以上">1000万円以上</option>
-                            <option value="非公開">答えたくない</option>
-                        </select>
-                    </div>
-                    
-                    <button type="submit" class="cta-primary" id="submit-btn" style="width: 100%; margin: 30px 0; font-size: 18px; padding: 20px;">
-                        🚀 START PROFESSIONAL TRIAL
-                    </button>
-                </form>
 
                 <div class="trust-indicators">
                     <div class="trust-item">
@@ -1558,8 +1437,6 @@
         📱 無料体験に申し込む
     </a>
 
-    <!-- Hidden iframe for form submission -->
-    <iframe name="hidden_iframe" style="display:none;"></iframe>
 
     <!-- JavaScript -->
     <script>
@@ -1595,20 +1472,7 @@
             }
         });
 
-        // Form submission handling
-        document.getElementById('salon-form').addEventListener('submit', function(e) {
-            const submitBtn = document.getElementById('submit-btn');
-            const originalText = submitBtn.innerHTML;
-            
-            // Show loading state
-            submitBtn.innerHTML = '<span class="loading"></span> 送信中...';
-            submitBtn.disabled = true;
-            
-            // Reset after 3 seconds (simulating successful submission)
-            setTimeout(() => {
-                showSuccessMessage();
-            }, 3000);
-        });
+        // Form submission handling - removed since we're using external Google Form
 
         // Success message
         function showSuccessMessage() {
@@ -1660,14 +1524,7 @@
             observer.observe(el);
         });
 
-        // Form validation
-        const form = document.getElementById('salon-form');
-        const inputs = form.querySelectorAll('input[required], select[required]');
-        
-        inputs.forEach(input => {
-            input.addEventListener('blur', validateField);
-            input.addEventListener('input', clearError);
-        });
+        // Form validation - removed since we're using external Google Form
 
         function validateField(e) {
             const field = e.target;
@@ -1730,40 +1587,7 @@
             return /^[0-9-+()]+$/.test(phone);
         }
 
-        // Auto-save form data
-        function saveFormData() {
-            const formData = {};
-            inputs.forEach(input => {
-                formData[input.name] = input.value;
-            });
-            localStorage.setItem('salonFormData', JSON.stringify(formData));
-        }
-
-        function loadFormData() {
-            const savedData = localStorage.getItem('salonFormData');
-            if (savedData) {
-                const formData = JSON.parse(savedData);
-                inputs.forEach(input => {
-                    if (formData[input.name]) {
-                        input.value = formData[input.name];
-                    }
-                });
-            }
-        }
-
-        // Load saved data on page load
-        window.addEventListener('load', loadFormData);
-
-        // Save data periodically
-        setInterval(saveFormData, 30000); // Every 30 seconds
-
-        // Save data before page unload
-        window.addEventListener('beforeunload', saveFormData);
-
-        // Clear saved data after successful submission
-        function clearSavedData() {
-            localStorage.removeItem('salonFormData');
-        }
+        // Auto-save form data - removed since we're using external Google Form
 
         // Analytics tracking (placeholder)
         function trackEvent(eventName, properties = {}) {
@@ -1782,12 +1606,7 @@
             });
         });
 
-        // Track form submission
-        form.addEventListener('submit', () => {
-            trackEvent('form_submit', {
-                form_id: 'salon-form'
-            });
-        });
+        // Track form submission - removed since we're using external Google Form
 
         // Track scroll depth
         let maxScrollDepth = 0;

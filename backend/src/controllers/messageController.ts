@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { createError, asyncHandler } from '../middleware/errorHandler';
@@ -102,7 +103,7 @@ const segmentQuerySchema = z.object({
 /**
  * Get all message threads with pagination and filtering
  */
-export const getThreads = asyncHandler(async (req: Request, res: Response) => {
+export const getThreads = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { page, limit, status, channel, assignedStaffId, search, sortBy, sortOrder } = 
     threadQuerySchema.parse(req.query);
   const tenantId = req.user!.tenantId;
@@ -214,7 +215,7 @@ export const getThreads = asyncHandler(async (req: Request, res: Response) => {
 /**
  * Get thread by ID with messages
  */
-export const getThreadById = asyncHandler(async (req: Request, res: Response) => {
+export const getThreadById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const tenantId = req.user!.tenantId;
   const { page = 1, limit = 50 } = req.query;
@@ -291,7 +292,7 @@ export const getThreadById = asyncHandler(async (req: Request, res: Response) =>
 /**
  * Create new message thread
  */
-export const createThread = asyncHandler(async (req: Request, res: Response) => {
+export const createThread = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = createThreadSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 
@@ -367,7 +368,7 @@ export const createThread = asyncHandler(async (req: Request, res: Response) => 
 /**
  * Update thread (assign staff, change status, add tags)
  */
-export const updateThread = asyncHandler(async (req: Request, res: Response) => {
+export const updateThread = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const data = updateThreadSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
@@ -468,7 +469,7 @@ export const updateThread = asyncHandler(async (req: Request, res: Response) => 
 /**
  * Send message to thread
  */
-export const sendMessage = asyncHandler(async (req: Request, res: Response) => {
+export const sendMessage = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = sendMessageSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 
@@ -542,7 +543,7 @@ export const sendMessage = asyncHandler(async (req: Request, res: Response) => {
 /**
  * Mark messages as read
  */
-export const markMessagesAsRead = asyncHandler(async (req: Request, res: Response) => {
+export const markMessagesAsRead = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { threadId } = req.params;
   const tenantId = req.user!.tenantId;
 
@@ -582,7 +583,7 @@ export const markMessagesAsRead = asyncHandler(async (req: Request, res: Respons
 /**
  * Get thread statistics
  */
-export const getThreadStats = asyncHandler(async (req: Request, res: Response) => {
+export const getThreadStats = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
 
   const [
@@ -637,7 +638,7 @@ export const getThreadStats = asyncHandler(async (req: Request, res: Response) =
 /**
  * Perform RFM analysis for customer segmentation
  */
-export const performRFMAnalysis = asyncHandler(async (req: Request, res: Response) => {
+export const performRFMAnalysis = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
   const broadcastService = new BroadcastService(tenantId);
 
@@ -701,7 +702,7 @@ export const performRFMAnalysis = asyncHandler(async (req: Request, res: Respons
 /**
  * Create customer segment
  */
-export const createSegment = asyncHandler(async (req: Request, res: Response) => {
+export const createSegment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = createSegmentSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
   const broadcastService = new BroadcastService(tenantId);
@@ -750,7 +751,7 @@ export const createSegment = asyncHandler(async (req: Request, res: Response) =>
 /**
  * Get customers in a segment
  */
-export const getSegmentCustomers = asyncHandler(async (req: Request, res: Response) => {
+export const getSegmentCustomers = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const requestData = createSegmentSchema.shape.criteria.parse(req.body);
   const { page, limit } = segmentQuerySchema.parse(req.query);
   const tenantId = req.user!.tenantId;
@@ -785,7 +786,7 @@ export const getSegmentCustomers = asyncHandler(async (req: Request, res: Respon
 /**
  * Create and send broadcast campaign
  */
-export const createBroadcastCampaign = asyncHandler(async (req: Request, res: Response) => {
+export const createBroadcastCampaign = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = createBroadcastSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
   const broadcastService = new BroadcastService(tenantId);
@@ -851,7 +852,7 @@ export const createBroadcastCampaign = asyncHandler(async (req: Request, res: Re
 /**
  * Get broadcast campaign analytics
  */
-export const getBroadcastAnalytics = asyncHandler(async (req: Request, res: Response) => {
+export const getBroadcastAnalytics = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { campaignId } = req.params;
   const tenantId = req.user!.tenantId;
   const broadcastService = new BroadcastService(tenantId);
@@ -877,7 +878,7 @@ export const getBroadcastAnalytics = asyncHandler(async (req: Request, res: Resp
 /**
  * Get broadcast campaigns list
  */
-export const getBroadcastCampaigns = asyncHandler(async (req: Request, res: Response) => {
+export const getBroadcastCampaigns = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { page = 1, limit = 20 } = req.query;
   const tenantId = req.user!.tenantId;
 
@@ -950,7 +951,7 @@ export const getBroadcastCampaigns = asyncHandler(async (req: Request, res: Resp
 /**
  * Test message personalization
  */
-export const testPersonalization = asyncHandler(async (req: Request, res: Response) => {
+export const testPersonalization = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { template, customerId } = z.object({
     template: z.string().min(1, 'Template is required'),
     customerId: z.string().min(1, 'Customer ID is required'),

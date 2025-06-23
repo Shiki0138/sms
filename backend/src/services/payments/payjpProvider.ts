@@ -252,4 +252,41 @@ export class PayjpPaymentProvider implements IPaymentProvider {
   private async handleSubscriptionDeleted(data: any): Promise<void> {
     logger.info('Processing Pay.jp subscription deletion:', data.id);
   }
+
+  async refundPayment(paymentId: string, amount?: number, reason?: string): Promise<PaymentResult> {
+    try {
+      const refundData: any = {
+        charge: paymentId
+      };
+
+      if (amount) {
+        refundData.amount = Math.round(amount); // Pay.JPは整数のみ
+      }
+
+      if (reason) {
+        refundData.reason = reason;
+      }
+
+      const refund = await this.makeRequest('/refunds', 'POST', refundData);
+
+      logger.info('Pay.jp refund created:', {
+        refundId: refund.id,
+        chargeId: paymentId,
+        amount: refund.amount
+      });
+
+      return {
+        success: true,
+        paymentId: refund.id,
+        amount: refund.amount,
+        message: '返金処理が完了しました'
+      };
+    } catch (error: any) {
+      logger.error('Pay.jp refund error:', error);
+      return {
+        success: false,
+        errorMessage: '返金処理に失敗しました。サポートにお問い合わせください。'
+      };
+    }
+  }
 }

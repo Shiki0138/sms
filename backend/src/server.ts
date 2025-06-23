@@ -39,6 +39,7 @@ import featureFlagsRouter from './routes/featureFlags';
 import customersRouter from './routes/customers';
 import messagesRouter from './routes/messages';
 import reservationsRouter from './routes/reservations';
+import { aiShiftManagementRouter } from './routes/aiShiftManagement';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -142,6 +143,20 @@ app.use(`${apiPrefix}/features`, featureFlagsRouter);
 app.use(`${apiPrefix}/customers`, customersRouter);
 app.use(`${apiPrefix}/messages`, messagesRouter);
 app.use(`${apiPrefix}/reservations`, reservationsRouter);
+app.use(`${apiPrefix}/ai-shift`, aiShiftManagementRouter);
+
+// 新機能ルート
+import supportBeauticianRoutes from './routes/supportBeautician';
+import salaryDashboardRoutes from './routes/salaryDashboard';
+import businessStrategyRoutes from './routes/businessStrategy';
+app.use(`${apiPrefix}/support-beautician`, supportBeauticianRoutes);
+app.use(`${apiPrefix}/salary`, salaryDashboardRoutes);
+app.use(`${apiPrefix}/business-strategy`, businessStrategyRoutes);
+
+// テスト環境専用ルート
+import testEnvironmentRoutes from './routes/testEnvironment';
+app.use(`${apiPrefix}/test`, testEnvironmentRoutes);
+
 // 🧠 美容室スタッフが感動するAI分析システム (一時的に無効化)
 // app.use(`${apiPrefix}/emotional-analytics`, emotionalAnalyticsRouter);
 // 🪄 美容室スタッフが『まるで魔法！』と驚く外部API統合システム (一時的に無効化)

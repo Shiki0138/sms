@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import { createError, asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { InstagramApiService, LineApiService } from '../services/externalApiService';
+import { parseReservationEmail } from '../services/emailParser';
+import { addDays, addHours } from 'date-fns';
 
 const prisma = new PrismaClient();
 
@@ -418,6 +420,259 @@ async function findTenantByLineChannelId(channelId: string): Promise<string | nu
   // In production, this should be mapped through tenant settings
   const tenant = await prisma.tenant.findFirst({
     where: { isActive: true },
+  });
+  
+  return tenant?.id || null;
+}
+
+/**
+ * Email Webhook Handler for HotPepper Beauty reservations
+ * Supports multiple email service providers (SendGrid, Mailgun, etc.)
+ */
+export const emailWebhook = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    // Detect email service provider
+    const provider = detectEmailProvider(req);
+    
+    // Parse email data based on provider
+    const emailData = parseEmailWebhookData(provider, req);
+    
+    if (!emailData) {
+      logger.warn('Failed to parse email webhook data', { provider, headers: req.headers });
+      return res.status(400).json({ error: 'Invalid email data' });
+    }
+    
+    // Parse reservation from email
+    const reservation = parseReservationEmail(
+      emailData.subject,
+      emailData.body,
+      emailData.from
+    );
+    
+    if (!reservation) {
+      logger.info('Email is not a HotPepper reservation', { subject: emailData.subject });
+      return res.status(200).json({ message: 'Not a reservation email' });
+    }
+    
+    // Find tenant based on forwarding email address
+    const tenantId = await findTenantByEmail(emailData.to);
+    
+    if (!tenantId) {
+      logger.warn('No tenant found for email address', { email: emailData.to });
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+    
+    // Check for duplicate reservation
+    const existingReservation = await prisma.reservation.findFirst({
+      where: {
+        tenantId,
+        startTime: reservation.startTime,
+        customer: {
+          name: reservation.customerName
+        }
+      }
+    });
+    
+    if (existingReservation) {
+      logger.info('Duplicate reservation detected', { 
+        reservationId: existingReservation.id,
+        customerName: reservation.customerName,
+        startTime: reservation.startTime
+      });
+      return res.status(200).json({ message: 'Reservation already exists' });
+    }
+    
+    // Find or create customer
+    let customer = await prisma.customer.findFirst({
+      where: {
+        tenantId,
+        OR: [
+          { phone: reservation.phone },
+          { email: reservation.email },
+          { name: reservation.customerName }
+        ]
+      }
+    });
+    
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          tenantId,
+          name: reservation.customerName,
+          phone: reservation.phone,
+          email: reservation.email,
+          visitCount: 0,
+        }
+      });
+      
+      logger.info('New customer created from HotPepper email', {
+        customerId: customer.id,
+        name: customer.name
+      });
+    }
+    
+    // Create reservation
+    const endTime = addHours(reservation.startTime, 2); // Default 2 hours duration
+    
+    const newReservation = await prisma.reservation.create({
+      data: {
+        tenantId,
+        customerId: customer.id,
+        startTime: reservation.startTime,
+        endTime,
+        status: reservation.status,
+        source: reservation.source,
+        notes: reservation.notes,
+        menuContent: reservation.menuContent,
+        paymentStatus: 'pending',
+        reminderSent: false
+      }
+    });
+    
+    logger.info('Reservation created from HotPepper email', {
+      reservationId: newReservation.id,
+      customerId: customer.id,
+      customerName: reservation.customerName,
+      startTime: reservation.startTime,
+      tenantId
+    });
+    
+    // Send confirmation email to salon
+    // TODO: Implement email notification to salon
+    
+    res.status(201).json({
+      success: true,
+      reservationId: newReservation.id,
+      message: 'Reservation created successfully'
+    });
+    
+  } catch (error) {
+    logger.error('Email webhook processing error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
+    res.status(500).json({ error: 'Failed to process email webhook' });
+  }
+});
+
+/**
+ * Detect email service provider from request
+ */
+function detectEmailProvider(req: Request): string {
+  const userAgent = req.headers['user-agent'] || '';
+  const headers = req.headers;
+  
+  if (headers['x-sendgrid-webhook-id']) return 'sendgrid';
+  if (headers['x-mailgun-signature']) return 'mailgun';
+  if (headers['x-postmark-server-token']) return 'postmark';
+  if (userAgent.includes('Mandrill')) return 'mandrill';
+  if (headers['x-ses-message-id']) return 'ses';
+  
+  return 'generic';
+}
+
+/**
+ * Parse email data based on provider
+ */
+function parseEmailWebhookData(provider: string, req: Request): {
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+  html?: string;
+} | null {
+  try {
+    switch (provider) {
+      case 'sendgrid':
+        return {
+          from: req.body.from,
+          to: req.body.to,
+          subject: req.body.subject,
+          body: req.body.text || req.body.html || '',
+          html: req.body.html
+        };
+        
+      case 'mailgun':
+        return {
+          from: req.body.sender || req.body.from,
+          to: req.body.recipient,
+          subject: req.body.subject,
+          body: req.body['body-plain'] || req.body['body-html'] || '',
+          html: req.body['body-html']
+        };
+        
+      case 'postmark':
+        return {
+          from: req.body.From,
+          to: req.body.To,
+          subject: req.body.Subject,
+          body: req.body.TextBody || req.body.HtmlBody || '',
+          html: req.body.HtmlBody
+        };
+        
+      case 'mandrill':
+        const mandrillEvent = req.body.mandrill_events ? JSON.parse(req.body.mandrill_events)[0] : req.body;
+        return {
+          from: mandrillEvent.msg.from_email,
+          to: mandrillEvent.msg.email,
+          subject: mandrillEvent.msg.subject,
+          body: mandrillEvent.msg.text || mandrillEvent.msg.html || '',
+          html: mandrillEvent.msg.html
+        };
+        
+      case 'ses':
+        const sesMessage = JSON.parse(req.body.Message);
+        const mail = sesMessage.mail;
+        return {
+          from: mail.source,
+          to: mail.destination[0],
+          subject: mail.commonHeaders.subject,
+          body: sesMessage.content || '',
+          html: undefined
+        };
+        
+      default:
+        // Generic format
+        return {
+          from: req.body.from || req.body.sender,
+          to: req.body.to || req.body.recipient,
+          subject: req.body.subject,
+          body: req.body.text || req.body.body || req.body.html || '',
+          html: req.body.html
+        };
+    }
+  } catch (error) {
+    logger.error('Failed to parse email webhook data', { provider, error });
+    return null;
+  }
+}
+
+/**
+ * Find tenant by forwarding email address
+ */
+async function findTenantByEmail(email: string): Promise<string | null> {
+  // Extract the part before @ to get the tenant identifier
+  // Format: salon-[tenantId]@yourdomain.com
+  const match = email.match(/salon-([a-zA-Z0-9]+)@/);
+  
+  if (!match) {
+    // Try to find by settings
+    const setting = await prisma.tenantSetting.findFirst({
+      where: {
+        key: 'hotpepper_email',
+        value: email
+      }
+    });
+    
+    return setting?.tenantId || null;
+  }
+  
+  const tenantId = match[1];
+  
+  // Verify tenant exists
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId }
   });
   
   return tenant?.id || null;

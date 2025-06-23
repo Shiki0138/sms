@@ -1,20 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { createError } from '../middleware/errorHandler';
 
-// Extend Request interface to include user property
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-    tenantId: string;
-    staffId: string;
-    userId: string;
-    role: "ADMIN" | "STAFF" | "MANAGER";
-  };
-}
+// AuthenticatedRequest is already imported from '../types/auth'
 
 const prisma = new PrismaClient();
 
@@ -37,9 +27,9 @@ export const createFeedback = async (req: AuthenticatedRequest, res: Response) =
     } = req.body;
 
     // For simple test mode, use demo values if user is not authenticated
-    const userId = req.user?.id || 'demo-user-id';
+    const userId = req.user?.staffId || 'demo-user-id';
     const userEmailAddress = req.user?.email || 'demo@salon.test';
-    const userName = req.user?.name || 'Demo User';
+    const userName = 'Demo User'; // name not available in JWTPayload
     const tenantId = req.user?.tenantId || 'demo-tenant-id';
 
     // Create feedback record
@@ -89,7 +79,7 @@ export const createFeedback = async (req: AuthenticatedRequest, res: Response) =
 export const submitQuickRating = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { rating, timestamp } = req.body;
-    const userId = req.user?.id || 'demo-user-id';
+    const userId = req.user?.staffId || 'demo-user-id';
     const userEmailAddress = req.user?.email || 'demo@salon.test';
     const tenantId = req.user?.tenantId || 'demo-tenant-id';
 

@@ -20,9 +20,7 @@ declare module 'express-session' {
 declare global {
   namespace Express {
     interface Request {
-      user?: JWTPayload;
       rawBody?: Buffer;
-      tenantId?: string;
       recordLoginAttempt?: (success: boolean) => void;
     }
   }
@@ -44,6 +42,8 @@ export interface LoginResponse {
   token: string;
   expiresIn: string;
 }
+
+import { Request } from 'express';
 
 export interface AuthenticatedRequest extends Request {
   user?: JWTPayload;

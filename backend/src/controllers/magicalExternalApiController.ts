@@ -3,7 +3,8 @@
  * 「美容室スタッフが『これは魔法？』と驚くAPI統合」
  */
 
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import magicalExternalApi from '../services/magicalExternalApiService';
 import { logger } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/auth';

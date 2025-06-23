@@ -26,7 +26,9 @@ import CSVImporter from './components/CSVImporter'
 import BulkMessageSender from './components/BulkMessageSender'
 import ServiceHistoryModal from './components/ServiceHistoryModal'
 import FeatureRequestForm from './components/FeatureRequestForm'
+import AIShiftManagement from './components/AIShiftManagement'
 import FilteredCustomerView from './components/FilteredCustomerView'
+import TestModeIndicator from './components/TestMode/TestModeIndicator'
 import { 
   MessageSquare, 
   Calendar, 
@@ -63,7 +65,9 @@ import {
   Bot,
   Loader2,
   Shield,
-  Lightbulb
+  Lightbulb,
+  Crown,
+  TestTube
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -173,7 +177,7 @@ function App() {
   }, [])
 
   const [activeTab, setActiveTab] = useState('messages')
-  const [activeView, setActiveView] = useState<'main' | 'upgrade'>('main')
+  const [activeView, setActiveView] = useState<'main' | 'upgrade' | 'test-environment'>('main')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [replyMessage, setReplyMessage] = useState('')
   const [replyingToThread, setReplyingToThread] = useState<string | null>(null)
@@ -314,35 +318,19 @@ function App() {
     }
   }
 
-  // Handle Instagram link click
+  // Handle Instagram link click (テストモードでは無効)
   const handleInstagramClick = (instagramId: string) => {
-    window.open(`https://www.instagram.com/${instagramId}`, '_blank')
+    alert('テストモードでは外部サイトへのアクセスは制限されています。\nInstagram ID: ' + instagramId)
   }
 
-  // Handle email click
+  // Handle email click (テストモードでは無効)
   const handleEmailClick = (email: string) => {
-    window.location.href = `mailto:${email}`
+    alert('テストモードではメール送信は制限されています。\nメールアドレス: ' + email)
   }
 
-  // Handle LINE click
+  // Handle LINE click (テストモードでは無効)
   const handleLineClick = () => {
-    // Try to open LINE app on mobile, fallback to web
-    const lineUrl = 'line://'
-    const lineWebUrl = 'https://line.me/'
-    
-    const userAgent = navigator.userAgent.toLowerCase()
-    const isMobile = /iphone|ipad|android/.test(userAgent)
-    
-    if (isMobile) {
-      // Try to open LINE app
-      window.location.href = lineUrl
-      // Fallback to web version after a delay
-      setTimeout(() => {
-        window.open(lineWebUrl, '_blank')
-      }, 1000)
-    } else {
-      window.open(lineWebUrl, '_blank')
-    }
+    alert('テストモードではLINEアプリの起動は制限されています。')
   }
   
   // Get menu icon based on menu content
@@ -628,7 +616,7 @@ function App() {
     }
 
     // デモ用：実際の実装では、サーバーに保存する
-    const nextCustomerNumber = `C${String(customers?.customers.length + 1 || 1).padStart(3, '0')}`
+    const nextCustomerNumber = `C${String((customers?.customers.length || 0) + 1).padStart(3, '0')}`
     
     console.log('新規顧客登録:', {
       customerNumber: nextCustomerNumber,
@@ -1029,9 +1017,9 @@ function App() {
                     {customer.phone && (
                       <div className="flex items-center">
                         <Phone className="w-4 h-4 mr-1 flex-shrink-0" />
-                        <a href={`tel:${customer.phone}`} className="break-all hover:text-blue-600 transition-colors">
-                          {customer.phone}
-                        </a>
+                        <span className="break-all text-gray-600">
+                          {customer.phone} <span className="text-xs text-gray-500">(テストモード)</span>
+                        </span>
                       </div>
                     )}
                     {customer.email && (
@@ -1432,6 +1420,17 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* テストモード表示 */}
+      <TestModeIndicator 
+        isTestMode={true}
+        accountInfo={{
+          username: 'owner001',
+          name: '田中 一郎',
+          salonName: 'Hair Studio TOKYO',
+          salonType: 'ヘアサロン'
+        }}
+      />
+      
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="px-4 sm:px-6 py-4">
@@ -1450,8 +1449,11 @@ function App() {
                 <div>
                   <h1 className="text-lg sm:text-xl font-bold text-gray-900">
                     美容室統合管理システム
+                    <span className="ml-2 bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded">
+                      テストモード
+                    </span>
                   </h1>
-                  <p className="text-xs text-gray-600 hidden sm:block">統合管理プラットフォーム</p>
+                  <p className="text-xs text-gray-600 hidden sm:block">統合管理プラットフォーム（デモ環境）</p>
                 </div>
               </div>
             </div>
@@ -1468,6 +1470,15 @@ function App() {
                   <span className="font-medium">{unreadCount}件の未読</span>
                 </div>
               )}
+              {/* テスト環境リンク */}
+              <button
+                onClick={() => setActiveView('test-environment')}
+                className="hidden sm:flex items-center space-x-2 text-yellow-600 hover:text-yellow-800 px-3 py-2 rounded-lg text-sm hover:bg-yellow-100 transition-colors border border-yellow-200"
+              >
+                <TestTube className="w-4 h-4" />
+                <span>テスト環境</span>
+              </button>
+              
               <div className="flex items-center space-x-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm border border-green-200">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="hidden sm:inline font-medium">オンライン</span>
@@ -1491,9 +1502,9 @@ function App() {
           fixed md:static inset-y-0 left-0 z-40
           w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0 md:h-screen md:sticky md:top-16
+          md:translate-x-0 h-full md:h-screen md:sticky md:top-16 flex flex-col
         `}>
-          <div className="p-4 md:p-6 pt-20 md:pt-6">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-20 md:pt-6">
             <div className="space-y-2">
               <button
                 onClick={() => {
@@ -1618,6 +1629,24 @@ function App() {
               
               <button
                 onClick={() => {
+                  setActiveTab('ai-shift-management')
+                  setIsSidebarOpen(false)
+                }}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === 'ai-shift-management' 
+                    ? 'bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-200' 
+                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50'
+                }`}
+              >
+                <Bot className="w-5 h-5 flex-shrink-0 text-purple-600" />
+                <span className="font-medium">AIシフト最適化</span>
+                <span className="ml-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  革新
+                </span>
+              </button>
+              
+              <button
+                onClick={() => {
                   setActiveTab('feature-request')
                   setIsSidebarOpen(false)
                   setUnreadFeatureRequests(0) // Clear notification count when visiting page
@@ -1673,11 +1702,11 @@ function App() {
                 </p>
               </div>
             </div>
-            
-            {/* ユーザープロファイル */}
-            <div className="mt-6">
-              <UserProfile />
-            </div>
+          </div>
+          
+          {/* ユーザープロファイル - サイドバー下部に固定 */}
+          <div className="p-4 md:p-6 pt-0 border-t border-gray-200 bg-white">
+            <UserProfile />
           </div>
         </nav>
 
@@ -1699,6 +1728,24 @@ function App() {
                 <UpgradePlan />
               </div>
             )}
+
+            {activeView === 'test-environment' && (
+              <div>
+                <div className="mb-4">
+                  <button
+                    onClick={() => setActiveView('main')}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>メインに戻る</span>
+                  </button>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">テスト環境設定</h2>
+                  <p className="text-gray-600">テスト環境の設定機能は開発中です。</p>
+                </div>
+              </div>
+            )}
             
             {activeView === 'main' && showFilteredCustomerView && (
               <FilteredCustomerView
@@ -1716,6 +1763,7 @@ function App() {
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'reservations' && <ReservationsList />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'analytics' && <CustomerAnalyticsDashboard />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && <PremiumMarketingDashboard />}
+            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'ai-shift-management' && <AIShiftManagement />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && <FeatureRequestForm onNewRequest={handleNewFeatureRequest} />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (
               <div className="space-y-6">
@@ -1996,10 +2044,10 @@ function App() {
                         <tr className="bg-gray-50">
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">電話番号</td>
                           <td className="px-4 py-3 text-sm">
-                            <a href={`tel:${selectedCustomer.phone}`} className="text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                            <span className="text-gray-600 flex items-center">
                               {selectedCustomer.phone}
-                              <Phone className="w-3 h-3 ml-1" />
-                            </a>
+                              <span className="text-xs text-gray-500 ml-2">(テストモード)</span>
+                            </span>
                           </td>
                         </tr>
                       )}

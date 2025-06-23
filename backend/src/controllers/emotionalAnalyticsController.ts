@@ -3,7 +3,8 @@
  * 「美容室スタッフが『このAI、すごすぎる！』と感動するAPI」
  */
 
-import { Request, Response } from 'express'
+import { Response } from 'express'
+import { AuthenticatedRequest } from '../types/auth';
 import emotionalAI from '../services/emotional-ai-analytics'
 import { logger } from '../utils/logger'
 import { AuthenticatedRequest } from '../types/auth'

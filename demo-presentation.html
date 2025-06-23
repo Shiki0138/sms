@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beauty Salon Manager - 美容室経営を変える統合管理システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+        
+        .presentation-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            padding: 60px;
+            background: white;
+            overflow: hidden;
+        }
+        
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* タイトルスライド */
+        .title-slide {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        
+        .title-slide h1 {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .title-slide .subtitle {
+            font-size: 1.8em;
+            opacity: 0.9;
+        }
+        
+        .title-slide .date {
+            position: absolute;
+            bottom: 60px;
+            font-size: 1.2em;
+            opacity: 0.7;
+        }
+        
+        /* 通常スライド */
+        h2 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .content {
+            max-width: 1000px;
+            width: 100%;
+        }
+        
+        /* 課題スライド */
+        .problems-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .problem-card {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .problem-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .problem-card .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .problem-card h3 {
+            font-size: 1.4em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        
+        .problem-card p {
+            color: #777;
+            line-height: 1.6;
+        }
+        
+        /* 機能スライド */
+        .features-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-top: 40px;
+        }
+        
+        .feature-box {
+            background: #f8f8f8;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .feature-box:hover {
+            border-color: #667eea;
+            background: white;
+            transform: scale(1.05);
+        }
+        
+        .feature-box .icon {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .feature-box h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .feature-box p {
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        /* 効果スライド */
+        .effects-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            margin-top: 50px;
+        }
+        
+        .effect-item {
+            text-align: center;
+        }
+        
+        .effect-number {
+            font-size: 4em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .effect-label {
+            font-size: 1.3em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        
+        .effect-desc {
+            color: #777;
+            font-size: 0.9em;
+        }
+        
+        /* スクリーンショット */
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .screenshot-item {
+            text-align: center;
+        }
+        
+        .screenshot-item img {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        
+        .screenshot-item h3 {
+            font-size: 1.2em;
+            color: #555;
+        }
+        
+        /* 料金スライド */
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 50px;
+        }
+        
+        .pricing-card {
+            background: white;
+            border-radius: 10px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            position: relative;
+            transition: transform 0.3s;
+        }
+        
+        .pricing-card.recommended {
+            border: 3px solid #667eea;
+            transform: scale(1.05);
+        }
+        
+        .pricing-card.recommended::before {
+            content: "おすすめ";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #667eea;
+            color: white;
+            padding: 5px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .pricing-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .pricing-card .price {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .pricing-card .price-unit {
+            font-size: 0.9em;
+            color: #777;
+            margin-bottom: 30px;
+        }
+        
+        .pricing-card ul {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+        
+        .pricing-card li {
+            padding: 8px 0;
+            color: #666;
+        }
+        
+        .pricing-card li:before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        /* 導入事例 */
+        .case-study {
+            background: #f8f8f8;
+            border-radius: 10px;
+            padding: 40px;
+            margin-top: 40px;
+        }
+        
+        .case-study h3 {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .case-results {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .result-item {
+            text-align: center;
+        }
+        
+        .result-item .before {
+            font-size: 1.2em;
+            color: #999;
+            text-decoration: line-through;
+        }
+        
+        .result-item .arrow {
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .result-item .after {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        /* FAQ */
+        .faq-container {
+            max-width: 800px;
+            margin: 40px auto 0;
+        }
+        
+        .faq-item {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .faq-item h4 {
+            font-size: 1.2em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .faq-item p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        /* CTA */
+        .cta-section {
+            text-align: center;
+            margin-top: 50px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 20px 60px;
+            border-radius: 50px;
+            font-size: 1.3em;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .cta-button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .cta-note {
+            margin-top: 20px;
+            color: #777;
+        }
+        
+        /* ナビゲーション */
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .nav-button {
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .nav-button:hover {
+            background: rgba(0,0,0,0.8);
+        }
+        
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <!-- スライド1: タイトル -->
+        <div class="slide active title-slide">
+            <h1>Beauty Salon Manager</h1>
+            <p class="subtitle">美容室経営を変える統合管理システム</p>
+            <p class="date">2025年6月23日 デモンストレーション</p>
+        </div>
+        
+        <!-- スライド2: 現状の課題 -->
+        <div class="slide">
+            <div class="content">
+                <h2>美容室経営の課題</h2>
+                <div class="problems-grid">
+                    <div class="problem-card">
+                        <div class="icon">📝</div>
+                        <h3>紙の予約帳</h3>
+                        <p>予約管理が煩雑<br>ダブルブッキングのリスク</p>
+                    </div>
+                    <div class="problem-card">
+                        <div class="icon">👥</div>
+                        <h3>顧客情報の散在</h3>
+                        <p>カルテがバラバラ<br>履歴が追えない</p>
+                    </div>
+                    <div class="problem-card">
+                        <div class="icon">📊</div>
+                        <h3>売上分析が困難</h3>
+                        <p>手計算で時間がかかる<br>戦略が立てられない</p>
+                    </div>
+                    <div class="problem-card">
+                        <div class="icon">📱</div>
+                        <h3>顧客とのコミュニケーション</h3>
+                        <p>個別連絡で手間<br>リピート率が上がらない</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- スライド3: システムの特徴 -->
+        <div class="slide">
+            <div class="content">
+                <h2>5つの主要機能</h2>
+                <div class="features-container">
+                    <div class="feature-box">
+                        <div class="icon">👥</div>
+                        <h3>顧客管理</h3>
+                        <p>顧客情報・施術履歴を一元管理。写真付きで前回スタイルも確認可能</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">📅</div>
+                        <h3>予約管理</h3>
+                        <p>ドラッグ&ドロップで簡単予約。スタッフ別カレンダーで一目瞭然</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">💰</div>
+                        <h3>売上管理</h3>
+                        <p>リアルタイムで売上確認。スタッフ別・メニュー別の詳細分析</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">📱</div>
+                        <h3>メッセージ配信</h3>
+                        <p>LINE・メール一括配信。ターゲットを絞ったマーケティング</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">📊</div>
+                        <h3>分析・レポート</h3>
+                        <p>顧客分析・売上推移をグラフ化。経営判断をサポート</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">🔐</div>
+                        <h3>セキュリティ</h3>
+                        <p>SSL暗号化・自動バックアップで大切なデータを保護</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- スライド4: 導入効果 -->
+        <div class="slide">
+            <div class="content">
+                <h2>導入効果</h2>
+                <div class="effects-grid">
+                    <div class="effect-item">
+                        <div class="effect-number">30%</div>
+                        <div class="effect-label">業務効率化</div>
+                        <div class="effect-desc">予約管理・顧客管理の時間を大幅削減</div>
+                    </div>
+                    <div class="effect-item">
+                        <div class="effect-number">20%</div>
+                        <div class="effect-label">売上向上</div>
+                        <div class="effect-desc">適切なマーケティングでリピート率アップ</div>
+                    </div>
+                    <div class="effect-item">
+                        <div class="effect-number">95%</div>
+                        <div class="effect-label">顧客満足度</div>
+                        <div class="effect-desc">きめ細かいサービスで満足度向上</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- スライド5: 画面イメージ -->
+        <div class="slide">
+            <div class="content">
+                <h2>主要画面のご紹介</h2>
+                <div class="screenshots-grid">
+                    <div class="screenshot-item">
+                        <img src="/images/dashboard-demo.png" alt="ダッシュボード">
+                        <h3>ダッシュボード</h3>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="/images/customer-demo.png" alt="顧客管理">
+                        <h3>顧客管理</h3>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="/images/calendar-demo.png" alt="予約カレンダー">
+                        <h3>予約カレンダー</h3>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="/images/analytics-demo.png" alt="売上分析">
+                        <h3>売上分析</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- スライド6: 料金プラン -->
+        <div class="slide">
+            <div class="content">
+                <h2>料金プラン</h2>
+                <div class="pricing-cards">
+                    <div class="pricing-card">
+                        <h3>スタータープラン</h3>
+                        <div class="price">¥9,800</div>
+                        <div class="price-unit">月額（税別）</div>
+                        <ul>
+                            <li>顧客管理（500名まで）</li>
+                            <li>予約管理</li>
+                            <li>売上管理</li>
+                            <li>メール配信（月100通）</li>
+                            <li>基本サポート</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-card recommended">
+                        <h3>スタンダードプラン</h3>
+                        <div class="price">¥19,800</div>
+                        <div class="price-unit">月額（税別）</div>
+                        <ul>
+                            <li>顧客管理（無制限）</li>
+                            <li>予約管理</li>
+                            <li>売上管理・分析</li>
+                            <li>LINE・メール配信（月1000通）</li>
+                            <li>優先サポート</li>
+                            <li>データエクスポート</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-card">
+                        <h3>プレミアムプラン</h3>
+                        <div class="price">¥39,800</div>
+                        <div class="price-unit">月額（税別）</div>
+                        <ul>
+                            <li>全機能無制限</li>
+                            <li>複数店舗対応</li>
+                            <li>POSレジ連携</li>
+                            <li>専任サポート</li>
+                            <li>カスタマイズ対応</li>
+                            <li>導入研修付き</li>
+                        </ul>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 30px; font-size: 1.2em; color: #667eea;">
+                    🎉 今なら14日間無料トライアル実施中！
+                </p>
+            </div>
+        </div>
+        
+        <!-- スライド7: 導入事例 -->
+        <div class="slide">
+            <div class="content">
+                <h2>導入事例</h2>
+                <div class="case-study">
+                    <h3>Hair Studio TOKYO 様（渋谷区・スタッフ5名）</h3>
+                    <p style="color: #666; line-height: 1.8;">
+                        「紙の予約帳からの脱却を目指して導入しました。最初は不安もありましたが、<br>
+                        直感的な操作性で、スタッフ全員がすぐに使いこなせるようになりました。<br>
+                        顧客分析機能を活用して、休眠顧客へのアプローチを強化した結果、<br>
+                        3ヶ月でリピート率が大幅に向上しました。」
+                    </p>
+                    <div class="case-results">
+                        <div class="result-item">
+                            <div class="before">月商120万円</div>
+                            <div class="arrow">↓</div>
+                            <div class="after">月商150万円</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="before">リピート率65%</div>
+                            <div class="arrow">↓</div>
+                            <div class="after">リピート率82%</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="before">新規顧客10名/月</div>
+                            <div class="arrow">↓</div>
+                            <div class="after">新規顧客18名/月</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- スライド8: サポート体制 -->
+        <div class="slide">
+            <div class="content">
+                <h2>充実のサポート体制</h2>
+                <div class="features-container">
+                    <div class="feature-box">
+                        <div class="icon">🎓</div>
+                        <h3>導入研修</h3>
+                        <p>専門スタッフが訪問し、実際の操作を丁寧にレクチャー</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">📹</div>
+                        <h3>動画マニュアル</h3>
+                        <p>24時間いつでも見れる操作説明動画を完備</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">💬</div>
+                        <h3>LINEサポート</h3>
+                        <p>操作で困ったらLINEですぐに質問可能</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">📞</div>
+                        <h3>電話サポート</h3>
+                        <p>平日10:00-18:00 専門スタッフが対応</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">🔄</div>
+                        <h3>データ移行支援</h3>
+                        <p>既存システムからのデータ移行を無料サポート</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">🆙</div>
+                        <h3>定期アップデート</h3>
+                        <p>お客様の声を反映した機能改善を継続実施</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- スライド9: よくある質問 -->
+        <div class="slide">
+            <div class="content">
+                <h2>よくあるご質問</h2>
+                <div class="faq-container">
+                    <div class="faq-item">
+                        <h4>Q. パソコンが苦手なスタッフでも使えますか？</h4>
+                        <p>A. はい、スマートフォンを使える方なら問題ありません。直感的な操作性を重視して設計されており、導入研修でしっかりサポートいたします。</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Q. 既存の顧客データは移行できますか？</h4>
+                        <p>A. はい、CSVファイルでの一括インポートに対応しています。移行作業も無料でサポートさせていただきます。</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Q. セキュリティは大丈夫ですか？</h4>
+                        <p>A. SSL暗号化通信、定期的な自動バックアップ、アクセス権限管理など、万全のセキュリティ対策を実施しています。</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Q. 途中で解約できますか？</h4>
+                        <p>A. はい、最低利用期間はございません。月単位でいつでも解約可能です。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- スライド10: お問い合わせ -->
+        <div class="slide">
+            <div class="content">
+                <h2>まずは無料でお試しください</h2>
+                <div class="cta-section">
+                    <p style="font-size: 1.5em; color: #666; margin-bottom: 40px; line-height: 1.8;">
+                        14日間、全ての機能を無料でお試しいただけます。<br>
+                        クレジットカード登録も不要です。<br>
+                        まずは実際に触って、効果を実感してください。
+                    </p>
+                    <a href="#" class="cta-button">無料トライアルを始める</a>
+                    <p class="cta-note">
+                        ※ 自動的に課金されることはありません<br>
+                        ※ いつでもキャンセル可能です
+                    </p>
+                    <div style="margin-top: 60px;">
+                        <h3 style="font-size: 1.3em; margin-bottom: 20px;">お問い合わせ</h3>
+                        <p style="font-size: 1.1em; color: #666;">
+                            📞 03-1234-5678（平日10:00-18:00）<br>
+                            ✉️ info@beautysalon-manager.jp<br>
+                            💬 LINE: @beautysalon_manager
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ナビゲーション -->
+    <div class="navigation">
+        <button class="nav-button" onclick="previousSlide()">◀ 前へ</button>
+        <button class="nav-button" onclick="nextSlide()">次へ ▶</button>
+    </div>
+    
+    <!-- スライドカウンター -->
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">10</span>
+    </div>
+    
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('total-slides').textContent = totalSlides;
+        
+        function showSlide(index) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+            document.getElementById('current-slide').textContent = index + 1;
+        }
+        
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            showSlide(currentSlide);
+        }
+        
+        function previousSlide() {
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            showSlide(currentSlide);
+        }
+        
+        // キーボードナビゲーション
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') previousSlide();
+        });
+        
+        // フルスクリーン機能
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

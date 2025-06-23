@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { paymentService } from '../services/paymentService';
 import { logger } from '../utils/logger';
 import { PrismaClient } from '@prisma/client';
@@ -9,7 +10,7 @@ const prisma = new PrismaClient();
 export class PaymentController {
 
   // PaymentIntent作成
-  async createPaymentIntent(req: Request, res: Response) {
+  async createPaymentIntent(req: AuthenticatedRequest, res: Response) {
     try {
       const { amount, currency = 'jpy', customerId, reservationId, paymentMethod = 'card', metadata = {} } = req.body;
       const tenantId = req.user!.tenantId;
@@ -20,16 +21,37 @@ export class PaymentController {
         });
       }
 
-      // モック実装
-      const mockClientSecret = `pi_mock_${Date.now()}_secret_mock`;
-      const mockPaymentId = `pi_mock_${Date.now()}`;
+      // 決済リクエストを作成
+      const paymentRequest = {
+        amount,
+        currency,
+        customerId,
+        paymentMethodId: paymentMethod,
+        description: metadata.description || `予約ID: ${reservationId}`,
+        metadata: {
+          ...metadata,
+          tenantId,
+          reservationId,
+          customerId
+        }
+      };
 
-      res.json({
-        success: true,
-        clientSecret: mockClientSecret,
-        paymentId: mockPaymentId,
-        requiresAction: false
-      });
+      // 決済サービスを使用して処理
+      const result = await paymentService.createPayment(paymentRequest);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          clientSecret: result.clientSecret,
+          paymentId: result.paymentId,
+          requiresAction: result.requiresAction || false
+        });
+      } else {
+        res.status(400).json({
+          error: result.errorMessage || '決済処理に失敗しました',
+          errorCode: result.errorCode
+        });
+      }
     } catch (error) {
       logger.error('PaymentIntent creation error:', error);
       res.status(500).json({ error: 'サーバーエラーが発生しました' });
@@ -38,7 +60,7 @@ export class PaymentController {
 
 
   // 返金処理
-  async refundPayment(req: Request, res: Response) {
+  async refundPayment(req: AuthenticatedRequest, res: Response) {
     try {
       const { paymentId } = req.params;
       const { amount, reason = '顧客都合による返金' } = req.body;
@@ -55,22 +77,57 @@ export class PaymentController {
         return res.status(404).json({ error: '決済情報が見つかりません' });
       }
 
-      // Refund functionality would be implemented here
-      const result = {
-        success: true,
-        refundId: 'mock_refund_id',
-        amount: amount || payment.amount
-      };
+      // 返金可能な状態かチェック
+      if (payment.status !== 'succeeded') {
+        return res.status(400).json({ error: '返金可能な決済ではありません' });
+      }
+
+      // 部分返金の場合、金額チェック
+      if (amount && amount > payment.amount) {
+        return res.status(400).json({ error: '返金額が決済額を超えています' });
+      }
+
+      // 決済サービスを使用して返金処理
+      const result = await paymentService.refundPayment(
+        payment.providerPaymentId,
+        amount,
+        reason
+      );
 
       if (result.success) {
+        // 返金記録を保存
+        await prisma.refund.create({
+          data: {
+            paymentId: payment.id,
+            amount: result.amount || amount || payment.amount,
+            reason,
+            status: 'succeeded',
+            providerRefundId: result.paymentId || '',
+            tenantId
+          }
+        });
+
+        // 元の決済の状態を更新
+        if (!amount || amount === payment.amount) {
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: { status: 'refunded' }
+          });
+        } else {
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: { status: 'partially_refunded' }
+          });
+        }
+
         res.json({
           success: true,
-          refundId: result.refundId,
+          refundId: result.paymentId,
           amount: result.amount
         });
       } else {
         res.status(400).json({
-          error: '返金処理に失敗しました'
+          error: result.errorMessage || '返金処理に失敗しました'
         });
       }
     } catch (error) {
@@ -80,24 +137,96 @@ export class PaymentController {
   }
 
   // Stripe Webhook処理
-  async handleStripeWebhook(req: Request, res: Response) {
+  async handleStripeWebhook(req: AuthenticatedRequest, res: Response) {
     try {
-      // Webhook処理のモック
-      logger.info('Stripe webhook received:', req.body);
-      res.json({ received: true });
-    } catch (error) {
+      const signature = req.headers['stripe-signature'] as string;
+      
+      if (!signature) {
+        return res.status(400).json({ error: 'Missing stripe signature' });
+      }
+
+      // 決済サービスのStripeプロバイダーを取得してWebhook処理
+      const stripeProvider = paymentService.getProvider('stripe');
+      if (stripeProvider && 'handleWebhook' in stripeProvider) {
+        await stripeProvider.handleWebhook(req.body, signature);
+        res.json({ received: true });
+      } else {
+        res.status(400).json({ error: 'Stripe provider not configured' });
+      }
+    } catch (error: any) {
       logger.error('Stripe webhook error:', error);
+      
+      // Stripe署名検証エラーの場合は400を返す
+      if (error.type === 'StripeSignatureVerificationError') {
+        return res.status(400).json({ error: 'Invalid signature' });
+      }
+      
       res.status(500).json({ error: 'サーバーエラーが発生しました' });
     }
   }
 
   // 新規決済処理
-  async createPayment(req: Request, res: Response) {
+  async createPayment(req: AuthenticatedRequest, res: Response) {
     try {
-      res.json({
-        success: true,
-        message: 'Mock payment created'
-      });
+      const { amount, customerId, reservationId, paymentMethodId, description, metadata = {} } = req.body;
+      const tenantId = req.user!.tenantId;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: '有効な金額が必要です' });
+      }
+
+      if (!customerId) {
+        return res.status(400).json({ error: '顧客IDが必要です' });
+      }
+
+      if (!paymentMethodId) {
+        return res.status(400).json({ error: '決済方法が必要です' });
+      }
+
+      // 決済リクエストを作成
+      const paymentRequest = {
+        amount,
+        currency: 'jpy',
+        customerId,
+        paymentMethodId,
+        description: description || `予約ID: ${reservationId}`,
+        metadata: {
+          ...metadata,
+          tenantId,
+          reservationId,
+          customerId
+        }
+      };
+
+      // 決済処理を実行
+      const result = await paymentService.createPayment(paymentRequest);
+
+      if (result.success) {
+        // 決済成功時、予約の支払い状態を更新
+        if (reservationId) {
+          await prisma.reservation.update({
+            where: { id: reservationId },
+            data: { 
+              paymentStatus: 'paid',
+              paymentId: result.paymentId
+            }
+          });
+        }
+
+        res.json({
+          success: true,
+          paymentId: result.paymentId,
+          amount: result.amount,
+          message: result.message || '決済が完了しました'
+        });
+      } else {
+        res.status(400).json({
+          error: result.errorMessage || '決済処理に失敗しました',
+          errorCode: result.errorCode,
+          requiresAction: result.requiresAction,
+          clientSecret: result.clientSecret
+        });
+      }
     } catch (error) {
       logger.error('Payment creation error:', error);
       res.status(500).json({ error: 'サーバーエラーが発生しました' });
@@ -105,13 +234,48 @@ export class PaymentController {
   }
 
   // 支払い状態確認
-  async checkPaymentStatus(req: Request, res: Response) {
+  async checkPaymentStatus(req: AuthenticatedRequest, res: Response) {
     try {
       const { paymentId } = req.params;
+      const tenantId = req.user!.tenantId;
+      
+      // データベースから決済情報を取得
+      const payment = await prisma.payment.findFirst({
+        where: {
+          OR: [
+            { id: paymentId },
+            { providerPaymentId: paymentId }
+          ],
+          tenantId
+        },
+      });
+
+      if (!payment) {
+        return res.status(404).json({ error: '決済情報が見つかりません' });
+      }
+
+      // 返金額の合計を計算
+      const refunds = await prisma.refund.findMany({
+        where: { paymentId: payment.id }
+      });
+      
+      const totalRefunded = refunds.reduce((sum, refund) => {
+        if (refund.status === 'succeeded') {
+          return sum + refund.amount;
+        }
+        return sum;
+      }, 0);
+
       res.json({
         success: true,
-        paymentId,
-        status: 'succeeded'
+        paymentId: payment.id,
+        providerPaymentId: payment.providerPaymentId,
+        status: payment.status,
+        amount: payment.amount,
+        refundedAmount: totalRefunded,
+        currency: payment.currency,
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt
       });
     } catch (error) {
       logger.error('Payment status check error:', error);
@@ -120,7 +284,7 @@ export class PaymentController {
   }
 
   // 現在のサブスクリプション情報を取得
-  async getCurrentSubscription(req: Request, res: Response) {
+  async getCurrentSubscription(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = req.user!.tenantId;
       
@@ -164,7 +328,7 @@ export class PaymentController {
   }
 
   // 支払い履歴を取得
-  async getPaymentHistory(req: Request, res: Response) {
+  async getPaymentHistory(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = req.user!.tenantId;
       const { page = 1, limit = 20 } = req.query;
@@ -206,7 +370,7 @@ export class PaymentController {
   }
 
   // 使用量情報を取得
-  async getUsageInfo(req: Request, res: Response) {
+  async getUsageInfo(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = req.user!.tenantId;
       
@@ -280,7 +444,7 @@ export class PaymentController {
   }
 
   // プランの利用可能な機能を取得
-  async getAvailableFeatures(req: Request, res: Response) {
+  async getAvailableFeatures(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = req.user!.tenantId;
       
@@ -315,7 +479,7 @@ export class PaymentController {
   }
 
   // 決済プロバイダー設定を取得
-  async getProviderSettings(req: Request, res: Response) {
+  async getProviderSettings(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = req.user!.tenantId;
       
@@ -337,7 +501,7 @@ export class PaymentController {
   }
 
   // 決済プロバイダーを変更
-  async updateProviderSettings(req: Request, res: Response) {
+  async updateProviderSettings(req: AuthenticatedRequest, res: Response) {
     try {
       const tenantId = req.user!.tenantId;
       const { provider } = req.body;

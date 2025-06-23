@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { z } from 'zod';
 import { createError, asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -20,10 +21,10 @@ const getDataSchema = z.object({
 /**
  * Save auto-save data
  */
-export const saveAutoSaveData = asyncHandler(async (req: Request, res: Response) => {
+export const saveAutoSaveData = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const validatedData = saveDataSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
-  const userId = req.user!.userId;
+  const userId = req.user!.staffId;
 
   const autoSaveData = {
     tenantId,
@@ -46,10 +47,10 @@ export const saveAutoSaveData = asyncHandler(async (req: Request, res: Response)
 /**
  * Get auto-save data
  */
-export const getAutoSaveData = asyncHandler(async (req: Request, res: Response) => {
+export const getAutoSaveData = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { dataType, entityId } = getDataSchema.parse(req.query);
   const tenantId = req.user!.tenantId;
-  const userId = req.user!.userId;
+  const userId = req.user!.staffId;
 
   const data = await AutoSaveService.getData(tenantId, userId, dataType, entityId);
 
@@ -76,9 +77,9 @@ export const getAutoSaveData = asyncHandler(async (req: Request, res: Response) 
 /**
  * Get all user auto-save data
  */
-export const getUserAutoSaveData = asyncHandler(async (req: Request, res: Response) => {
+export const getUserAutoSaveData = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
-  const userId = req.user!.userId;
+  const userId = req.user!.staffId;
   const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
 
   const dataList = await AutoSaveService.getUserData(tenantId, userId, limit);
@@ -100,10 +101,10 @@ export const getUserAutoSaveData = asyncHandler(async (req: Request, res: Respon
 /**
  * Delete auto-save data
  */
-export const deleteAutoSaveData = asyncHandler(async (req: Request, res: Response) => {
+export const deleteAutoSaveData = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { dataType, entityId } = getDataSchema.parse(req.query);
   const tenantId = req.user!.tenantId;
-  const userId = req.user!.userId;
+  const userId = req.user!.staffId;
 
   const success = await AutoSaveService.deleteData(tenantId, userId, dataType, entityId);
 
@@ -120,7 +121,7 @@ export const deleteAutoSaveData = asyncHandler(async (req: Request, res: Respons
 /**
  * Get auto-save statistics (admin only)
  */
-export const getAutoSaveStatistics = asyncHandler(async (req: Request, res: Response) => {
+export const getAutoSaveStatistics = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
   
   // 管理者権限チェック
@@ -139,7 +140,7 @@ export const getAutoSaveStatistics = asyncHandler(async (req: Request, res: Resp
 /**
  * Restore data from auto-save
  */
-export const restoreFromAutoSave = asyncHandler(async (req: Request, res: Response) => {
+export const restoreFromAutoSave = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { dataType, entityId, targetId } = z.object({
     dataType: z.string(),
     entityId: z.string().optional(),
@@ -147,7 +148,7 @@ export const restoreFromAutoSave = asyncHandler(async (req: Request, res: Respon
   }).parse(req.body);
 
   const tenantId = req.user!.tenantId;
-  const userId = req.user!.userId;
+  const userId = req.user!.staffId;
 
   // 自動保存データを取得
   const autoSaveData = await AutoSaveService.getData(tenantId, userId, dataType, entityId);

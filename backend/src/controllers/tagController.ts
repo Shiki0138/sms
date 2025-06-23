@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { createError, asyncHandler } from '../middleware/errorHandler';
@@ -18,7 +19,7 @@ const updateTagSchema = createTagSchema.partial();
 /**
  * Get all tags for a tenant
  */
-export const getTags = asyncHandler(async (req: Request, res: Response) => {
+export const getTags = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
   const { type } = req.query;
 
@@ -53,7 +54,7 @@ export const getTags = asyncHandler(async (req: Request, res: Response) => {
 /**
  * Get tag by ID
  */
-export const getTagById = asyncHandler(async (req: Request, res: Response) => {
+export const getTagById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const tenantId = req.user!.tenantId;
 
@@ -85,7 +86,7 @@ export const getTagById = asyncHandler(async (req: Request, res: Response) => {
 /**
  * Create new tag
  */
-export const createTag = asyncHandler(async (req: Request, res: Response) => {
+export const createTag = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = createTagSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 
@@ -139,7 +140,7 @@ export const createTag = asyncHandler(async (req: Request, res: Response) => {
 /**
  * Update tag
  */
-export const updateTag = asyncHandler(async (req: Request, res: Response) => {
+export const updateTag = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const data = updateTagSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
@@ -203,7 +204,7 @@ export const updateTag = asyncHandler(async (req: Request, res: Response) => {
 /**
  * Delete tag
  */
-export const deleteTag = asyncHandler(async (req: Request, res: Response) => {
+export const deleteTag = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const tenantId = req.user!.tenantId;
 
@@ -260,7 +261,7 @@ export const deleteTag = asyncHandler(async (req: Request, res: Response) => {
 /**
  * Get popular tags
  */
-export const getPopularTags = asyncHandler(async (req: Request, res: Response) => {
+export const getPopularTags = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
   const { type, limit = 10 } = req.query;
 

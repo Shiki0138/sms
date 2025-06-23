@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { SecurityService } from '../utils/security';
@@ -25,7 +26,7 @@ export class SecurityController {
   /**
    * セキュリティイベントログ取得
    */
-  async getSecurityLogs(req: Request, res: Response): Promise<void> {
+  async getSecurityLogs(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
       const query = {
@@ -118,7 +119,7 @@ export class SecurityController {
   /**
    * ログイン履歴取得
    */
-  async getLoginHistory(req: Request, res: Response): Promise<void> {
+  async getLoginHistory(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
       const query = {
@@ -186,7 +187,7 @@ export class SecurityController {
   /**
    * セキュリティ統計取得
    */
-  async getSecurityStats(req: Request, res: Response): Promise<void> {
+  async getSecurityStats(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
       const days = parseInt(req.query.days as string) || 30;
@@ -210,7 +211,7 @@ export class SecurityController {
   /**
    * アクティブセッション一覧取得
    */
-  async getActiveSessions(req: Request, res: Response): Promise<void> {
+  async getActiveSessions(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
 
@@ -255,7 +256,7 @@ export class SecurityController {
   /**
    * セッション終了
    */
-  async terminateSession(req: Request, res: Response): Promise<void> {
+  async terminateSession(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { sessionId } = req.params;
       const user = req.user;
@@ -310,7 +311,7 @@ export class SecurityController {
   /**
    * アカウントロック解除
    */
-  async unlockAccount(req: Request, res: Response): Promise<void> {
+  async unlockAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { staffId } = UnlockAccountSchema.parse(req.body);
       const user = req.user;
@@ -384,7 +385,7 @@ export class SecurityController {
   /**
    * 2FA バックアップコード再生成
    */
-  async regenerateBackupCodes(req: Request, res: Response): Promise<void> {
+  async regenerateBackupCodes(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const user = req.user;
 
@@ -438,7 +439,7 @@ export class SecurityController {
   /**
    * セキュリティレポート生成
    */
-  async generateSecurityReport(req: Request, res: Response): Promise<void> {
+  async generateSecurityReport(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
       const days = parseInt(req.query.days as string) || 30;

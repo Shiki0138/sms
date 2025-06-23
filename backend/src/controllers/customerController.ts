@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { z } from 'zod';
 import { createError, asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -36,7 +37,7 @@ const customerQuerySchema = z.object({
 /**
  * Get all customers with pagination and filtering
  */
-export const getCustomers = asyncHandler(async (req: Request, res: Response) => {
+export const getCustomers = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { page, limit, search, tags, sortBy, sortOrder } = customerQuerySchema.parse(req.query);
   const tenantId = req.user!.tenantId;
 
@@ -111,7 +112,7 @@ export const getCustomers = asyncHandler(async (req: Request, res: Response) => 
 /**
  * Get customer by ID
  */
-export const getCustomerById = asyncHandler(async (req: Request, res: Response) => {
+export const getCustomerById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const tenantId = req.user!.tenantId;
 
@@ -188,7 +189,7 @@ export const getCustomerById = asyncHandler(async (req: Request, res: Response) 
 /**
  * Create new customer
  */
-export const createCustomer = asyncHandler(async (req: Request, res: Response) => {
+export const createCustomer = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = createCustomerSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
   const { tags, ...customerData } = data;
@@ -261,7 +262,7 @@ export const createCustomer = asyncHandler(async (req: Request, res: Response) =
       entityType: 'Customer',
       entityId: customer.id,
       description: `Customer created: ${customer.name}`,
-      staffId: req.user!.userId,
+      staffId: req.user!.staffId,
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
       tenantId,
@@ -271,7 +272,7 @@ export const createCustomer = asyncHandler(async (req: Request, res: Response) =
   logger.info(`Customer created: ${customer.name}`, {
     customerId: customer.id,
     tenantId,
-    createdBy: req.user!.userId,
+    createdBy: req.user!.staffId,
   });
 
   res.status(201).json({ 
@@ -287,7 +288,7 @@ export const createCustomer = asyncHandler(async (req: Request, res: Response) =
 /**
  * Update customer
  */
-export const updateCustomer = asyncHandler(async (req: Request, res: Response) => {
+export const updateCustomer = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const data = updateCustomerSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
@@ -386,7 +387,7 @@ export const updateCustomer = asyncHandler(async (req: Request, res: Response) =
       entityType: 'Customer',
       entityId: customer.id,
       description: `Customer updated: ${customer.name}`,
-      staffId: req.user!.userId,
+      staffId: req.user!.staffId,
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
       tenantId,
@@ -396,7 +397,7 @@ export const updateCustomer = asyncHandler(async (req: Request, res: Response) =
   logger.info(`Customer updated: ${customer.name}`, {
     customerId: customer.id,
     tenantId,
-    updatedBy: req.user!.userId,
+    updatedBy: req.user!.staffId,
   });
 
   res.status(200).json({ 
@@ -412,7 +413,7 @@ export const updateCustomer = asyncHandler(async (req: Request, res: Response) =
 /**
  * Delete customer
  */
-export const deleteCustomer = asyncHandler(async (req: Request, res: Response) => {
+export const deleteCustomer = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const tenantId = req.user!.tenantId;
 
@@ -450,7 +451,7 @@ export const deleteCustomer = asyncHandler(async (req: Request, res: Response) =
       entityType: 'Customer',
       entityId: id,
       description: `Customer deleted: ${customer.name}`,
-      staffId: req.user!.userId,
+      staffId: req.user!.staffId,
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
       tenantId,
@@ -460,7 +461,7 @@ export const deleteCustomer = asyncHandler(async (req: Request, res: Response) =
   logger.info(`Customer deleted: ${customer.name}`, {
     customerId: id,
     tenantId,
-    deletedBy: req.user!.userId,
+    deletedBy: req.user!.staffId,
   });
 
   res.status(200).json({ message: 'Customer deleted successfully' });
@@ -469,7 +470,7 @@ export const deleteCustomer = asyncHandler(async (req: Request, res: Response) =
 /**
  * Get customer statistics
  */
-export const getCustomerStats = asyncHandler(async (req: Request, res: Response) => {
+export const getCustomerStats = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
 
   const [
@@ -537,7 +538,7 @@ export const uploadCustomerPhotoMiddleware = multerConfig.single('photo');
 /**
  * Upload customer photo (最適化版)
  */
-export const uploadCustomerPhoto = asyncHandler(async (req: Request, res: Response) => {
+export const uploadCustomerPhoto = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
   const { customerId } = req.params; // パラメータから取得に変更
   const tenantId = req.user!.tenantId;
@@ -595,7 +596,7 @@ export const uploadCustomerPhoto = asyncHandler(async (req: Request, res: Respon
         entityType: 'Customer',
         entityId: customerId,
         description: `顧客写真をアップロード: ${customer.name}`,
-        staffId: req.user!.userId,
+        staffId: req.user!.staffId,
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
         tenantId,
@@ -608,7 +609,7 @@ export const uploadCustomerPhoto = asyncHandler(async (req: Request, res: Respon
       customerId,
       customerName: customer.name,
       tenantId,
-      uploadedBy: req.user!.userId,
+      uploadedBy: req.user!.staffId,
       originalSize: req.file.size,
       processingTime: `${processingTime}ms`,
       compressionStats
@@ -649,7 +650,7 @@ export const uploadCustomerPhoto = asyncHandler(async (req: Request, res: Respon
 /**
  * Delete customer photo
  */
-export const deleteCustomerPhoto = asyncHandler(async (req: Request, res: Response) => {
+export const deleteCustomerPhoto = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { customerId } = req.params;
   const tenantId = req.user!.tenantId;
 
@@ -693,7 +694,7 @@ export const deleteCustomerPhoto = asyncHandler(async (req: Request, res: Respon
         entityType: 'Customer',
         entityId: customerId,
         description: `顧客写真を削除: ${customer.name}`,
-        staffId: req.user!.userId,
+        staffId: req.user!.staffId,
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
         tenantId,
@@ -704,7 +705,7 @@ export const deleteCustomerPhoto = asyncHandler(async (req: Request, res: Respon
       customerId,
       customerName: customer.name,
       tenantId,
-      deletedBy: req.user!.userId
+      deletedBy: req.user!.staffId
     });
 
     res.status(200).json({ 
@@ -726,7 +727,7 @@ export const deleteCustomerPhoto = asyncHandler(async (req: Request, res: Respon
 /**
  * Get customer photo variants
  */
-export const getCustomerPhotoVariants = asyncHandler(async (req: Request, res: Response) => {
+export const getCustomerPhotoVariants = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { customerId } = req.params;
   const tenantId = req.user!.tenantId;
 

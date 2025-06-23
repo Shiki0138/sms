@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { createError, asyncHandler } from '../middleware/errorHandler';
@@ -127,7 +128,7 @@ const noShowPredictionSchema = z.object({
 /**
  * Get reservations with filtering
  */
-export const getReservations = asyncHandler(async (req: Request, res: Response) => {
+export const getReservations = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { startDate, endDate, staffId, source, status, page, limit } = 
     reservationQuerySchema.parse(req.query);
   const tenantId = req.user!.tenantId;
@@ -195,7 +196,7 @@ export const getReservations = asyncHandler(async (req: Request, res: Response) 
 /**
  * Get reservation by ID
  */
-export const getReservationById = asyncHandler(async (req: Request, res: Response) => {
+export const getReservationById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const tenantId = req.user!.tenantId;
 
@@ -231,7 +232,7 @@ export const getReservationById = asyncHandler(async (req: Request, res: Respons
 /**
  * Create new reservation
  */
-export const createReservation = asyncHandler(async (req: Request, res: Response) => {
+export const createReservation = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = createReservationSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 
@@ -350,7 +351,7 @@ export const createReservation = asyncHandler(async (req: Request, res: Response
 /**
  * Update reservation
  */
-export const updateReservation = asyncHandler(async (req: Request, res: Response) => {
+export const updateReservation = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   
   // Log incoming request for debugging
@@ -465,7 +466,7 @@ export const updateReservation = asyncHandler(async (req: Request, res: Response
 /**
  * Delete reservation
  */
-export const deleteReservation = asyncHandler(async (req: Request, res: Response) => {
+export const deleteReservation = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const tenantId = req.user!.tenantId;
 
@@ -507,7 +508,7 @@ export const deleteReservation = asyncHandler(async (req: Request, res: Response
 /**
  * Import Hot Pepper reservations from CSV
  */
-export const importHotpepperReservations = asyncHandler(async (req: Request, res: Response) => {
+export const importHotpepperReservations = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { csvData } = hotpepperImportSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 
@@ -646,7 +647,7 @@ export const importHotpepperReservations = asyncHandler(async (req: Request, res
 /**
  * Get reservation statistics
  */
-export const getReservationStats = asyncHandler(async (req: Request, res: Response) => {
+export const getReservationStats = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -715,7 +716,7 @@ export const getReservationStats = asyncHandler(async (req: Request, res: Respon
 /**
  * Sync Google Calendar events to reservations
  */
-export const syncGoogleCalendar = asyncHandler(async (req: Request, res: Response) => {
+export const syncGoogleCalendar = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { startDate, endDate, calendarId } = googleCalendarSyncSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 
@@ -772,7 +773,7 @@ export const syncGoogleCalendar = asyncHandler(async (req: Request, res: Respons
 /**
  * Optimize booking suggestions using smart booking algorithm
  */
-export const optimizeBooking = asyncHandler(async (req: Request, res: Response) => {
+export const optimizeBooking = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = optimizeBookingSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 
@@ -818,7 +819,7 @@ export const optimizeBooking = asyncHandler(async (req: Request, res: Response) 
 /**
  * Get availability analysis for a specific date
  */
-export const getAvailabilityAnalysis = asyncHandler(async (req: Request, res: Response) => {
+export const getAvailabilityAnalysis = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { date } = availabilityQuerySchema.parse({ date: req.params.date });
   const tenantId = req.user!.tenantId;
 
@@ -846,7 +847,7 @@ export const getAvailabilityAnalysis = asyncHandler(async (req: Request, res: Re
 /**
  * Create smart booking with optimization
  */
-export const createSmartBooking = asyncHandler(async (req: Request, res: Response) => {
+export const createSmartBooking = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = smartBookSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 
@@ -981,7 +982,7 @@ export const createSmartBooking = asyncHandler(async (req: Request, res: Respons
 /**
  * Get demand predictions for a date range
  */
-export const getDemandPredictions = asyncHandler(async (req: Request, res: Response) => {
+export const getDemandPredictions = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { startDate, endDate } = demandPredictionSchema.parse(req.query);
   const tenantId = req.user!.tenantId;
 
@@ -1020,7 +1021,7 @@ export const getDemandPredictions = asyncHandler(async (req: Request, res: Respo
 /**
  * Predict no-show probability for a customer
  */
-export const predictNoShow = asyncHandler(async (req: Request, res: Response) => {
+export const predictNoShow = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { customerId, reservationDate } = noShowPredictionSchema.parse(req.body);
   const tenantId = req.user!.tenantId;
 

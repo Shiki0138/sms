@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { instagramWebhook, lineWebhook } from '../controllers/webhookController';
+import { instagramWebhook, lineWebhook, emailWebhook } from '../controllers/webhookController';
 
 const router = Router();
 
@@ -35,5 +35,19 @@ router.get('/instagram', (req, res) => {
  * @access  Public (verified via signature)
  */
 router.post('/line', lineWebhook);
+
+/**
+ * @route   POST /api/v1/webhooks/email
+ * @desc    Email webhook endpoint for HotPepper Beauty reservations
+ * @access  Public (for email service providers)
+ */
+router.post('/email', emailWebhook);
+
+/**
+ * @route   POST /api/v1/webhooks/hotpepper
+ * @desc    Alternative endpoint for HotPepper Beauty email webhooks
+ * @access  Public (for email service providers)
+ */
+router.post('/hotpepper', emailWebhook);
 
 export default router;
