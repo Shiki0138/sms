@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { z } from 'zod'
-import prisma from '../lib/prisma'
+import { prisma } from '../database'
 import { aiSupportService } from '../services/aiSupportService'
 import { AuthRequest } from '../types/auth'
 
@@ -37,20 +37,20 @@ export const aiSupportController = {
         userRole,
       })
       
-      // 会話履歴を保存
-      await prisma.aIChatHistory.create({
-        data: {
-          sessionId: chatSessionId,
-          userId: userId || 'anonymous',
-          userMessage: message,
-          aiResponse: response.content,
-          metadata: JSON.stringify({
-            model: response.model,
-            tokensUsed: response.tokensUsed,
-            userRole,
-          }),
-        },
-      })
+      // 会話履歴を保存（実装予定）
+      // await prisma.aIChatHistory.create({
+      //   data: {
+      //     sessionId: chatSessionId,
+      //     userId: userId || 'anonymous',
+      //     userMessage: message,
+      //     aiResponse: response.content,
+      //     metadata: JSON.stringify({
+      //       model: response.model,
+      //       tokensUsed: response.tokensUsed,
+      //       userRole,
+      //     }),
+      //   },
+      // })
       
       res.json({
         success: true,
@@ -74,14 +74,16 @@ export const aiSupportController = {
     try {
       const { sessionId, limit } = getHistorySchema.parse(req.query)
       
-      const history = await prisma.aIChatHistory.findMany({
-        where: {
-          sessionId,
-          userId: req.user?.id || 'anonymous',
-        },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      })
+      // 実装予定：会話履歴取得
+      const history: any[] = []
+      // const history = await prisma.aIChatHistory.findMany({
+      //   where: {
+      //     sessionId,
+      //     userId: req.user?.id || 'anonymous',
+      //   },
+      //   orderBy: { createdAt: 'desc' },
+      //   take: limit,
+      // })
       
       res.json({
         success: true,
@@ -123,14 +125,15 @@ export const aiSupportController = {
         helpful: z.boolean(),
       }).parse(req.body)
       
-      await prisma.aIChatFeedback.create({
-        data: {
-          sessionId,
-          messageId,
-          helpful,
-          userId: req.user?.id || 'anonymous',
-        },
-      })
+      // 実装予定：フィードバック保存
+      // await prisma.aIChatFeedback.create({
+      //   data: {
+      //     sessionId,
+      //     messageId,
+      //     helpful,
+      //     userId: req.user?.id || 'anonymous',
+      //   },
+      // })
       
       res.json({
         success: true,

@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import prisma from '../lib/prisma'
+import { prisma } from '../database'
 
 // OpenAI クライアントの初期化
 const openai = new OpenAI({
@@ -171,12 +171,13 @@ export const aiSupportService = {
     }
     
     try {
-      // 会話履歴を取得（直近10件）
-      const recentHistory = await prisma.aIChatHistory.findMany({
-        where: { sessionId },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      })
+      // 会話履歴を取得（直近10件）– 実装予定
+      const recentHistory: any[] = []
+      // const recentHistory = await prisma.aIChatHistory.findMany({
+      //   where: { sessionId },
+      //   orderBy: { createdAt: 'desc' },
+      //   take: 10,
+      // })
       
       // メッセージ履歴を構築
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [

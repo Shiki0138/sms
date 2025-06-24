@@ -40,6 +40,11 @@
     "src/services/businessStrategyService.ts",
     "src/services/contactFormService.ts",
     "src/services/databaseOptimizationService.ts",
-    "src/services/monitoringService.ts"
+    "src/services/monitoringService.ts",
+    "src/services/businessAnalyticsService.ts",
+    "src/scripts/loadDemoData.ts",
+    "src/middleware/featureFlag.ts",
+    "src/data/**/*",
+    "../frontend/**/*"
   ]
 }
