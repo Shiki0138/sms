@@ -110,7 +110,7 @@ jobs:
           CI: true
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./${{ matrix.workspace }}/coverage/lcov.info
           flags: ${{ matrix.workspace }}
@@ -147,7 +147,7 @@ jobs:
           npm run build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.workspace }}-build
           path: |

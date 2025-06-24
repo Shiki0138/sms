@@ -62,7 +62,7 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/salon_test
 
     - name: 📊 カバレッジアップロード
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage/lcov.info
@@ -141,7 +141,7 @@ jobs:
         NODE_ENV: test
 
     - name: 📊 E2Eテスト結果アップロード
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: playwright-report
