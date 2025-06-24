@@ -74,7 +74,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, { limits: PlanLimits; featur
       maxAIRepliesPerMonth: 0, // AI機能なし
       maxDataExport: 3, // 基本エクスポートのみ
       analyticsRetentionDays: 30,
-      supportLevel: 'email'
+      supportLevel: 'email_chat'
     },
     features: {
       // 基本機能のみ
@@ -94,9 +94,9 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, { limits: PlanLimits; featur
       performanceAnalytics: false,
       advancedReporting: false,
       
-      // 外部連携なし
-      lineIntegration: false,
-      instagramIntegration: false,
+      // 外部連携可能
+      lineIntegration: true,  // LINE連携可能
+      instagramIntegration: true,  // Instagram連携可能
       
       // エクスポート機能制限
       csvExport: true,  // 基本CSVエクスポートのみ
@@ -157,7 +157,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, { limits: PlanLimits; featur
       
       // カスタマイズ制限
       customReports: false,  // カスタムレポートはプレミアムのみ
-      apiAccess: false       // API アクセスはプレミアムのみ
+      apiAccess: false       // API アクセスは全プランで不可
     }
   },
   
@@ -168,7 +168,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, { limits: PlanLimits; featur
       maxAIRepliesPerMonth: -1, // 無制限
       maxDataExport: -1, // 無制限
       analyticsRetentionDays: 365,
-      supportLevel: 'phone_24h'
+      supportLevel: 'line_chat_24h'
     },
     features: {
       // 全機能フルアクセス
@@ -204,7 +204,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, { limits: PlanLimits; featur
       
       // カスタマイズフル
       customReports: true,    // カスタムレポート機能
-      apiAccess: true         // フルAPI アクセス
+      apiAccess: false        // API アクセスは全プランで不可
     }
   }
 }

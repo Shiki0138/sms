@@ -1254,6 +1254,35 @@ model SupportStaffRequest {
   @@map("support_staff_requests")
 }
 
+// AIチャット履歴
+model AIChatHistory {
+  id          String   @id @default(cuid())
+  sessionId   String
+  userId      String
+  userMessage String
+  aiResponse  String
+  metadata    String?  // JSON: model, tokensUsed, etc
+  createdAt   DateTime @default(now())
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@map("ai_chat_history")
+}
+
+// AIチャットフィードバック
+model AIChatFeedback {
+  id        String   @id @default(cuid())
+  sessionId String
+  messageId String
+  userId    String
+  helpful   Boolean
+  comment   String?
+  createdAt DateTime @default(now())
+  
+  @@index([sessionId])
+  @@map("ai_chat_feedback")
+}
+
 // 応援スタッフからの応募
 model SupportStaffApplication {
   id              String   @id @default(cuid())

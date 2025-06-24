@@ -26,15 +26,15 @@ const FeatureComparison: React.FC<FeatureComparisonProps> = ({ currentPlan, comp
     { category: 'スタッフ管理', name: '権限管理', light: false, standard: true, premium_ai: true },
     
     // 予約管理
-    { category: '予約管理', name: 'ドラッグ&ドロップ', light: false, standard: true, premium_ai: true },
-    { category: '予約管理', name: '繰り返し予約', light: false, standard: true, premium_ai: true },
+    { category: '予約管理', name: 'ドラッグ&ドロップ', light: true, standard: true, premium_ai: true },
+    { category: '予約管理', name: '繰り返し予約', light: true, standard: true, premium_ai: true },
     { category: '予約管理', name: '予約リマインダー', light: '手動', standard: '自動', premium_ai: 'AI最適化' },
     { category: '予約管理', name: '空き時間検索', light: false, standard: true, premium_ai: 'AI提案' },
     
     // メッセージ機能
-    { category: 'メッセージ', name: 'LINE連携', light: false, standard: true, premium_ai: true },
-    { category: 'メッセージ', name: 'Instagram連携', light: false, standard: true, premium_ai: true },
-    { category: 'メッセージ', name: '一括送信', light: '月100件', standard: '月500件', premium_ai: '無制限' },
+    { category: 'メッセージ', name: 'LINE連携', light: true, standard: true, premium_ai: true },
+    { category: 'メッセージ', name: 'Instagram連携', light: true, standard: true, premium_ai: true },
+    { category: 'メッセージ', name: '一括送信', light: '月10件', standard: '月500件', premium_ai: '無制限' },
     { category: 'メッセージ', name: 'AI自動返信', light: false, standard: '月200回', premium_ai: '無制限' },
     
     // AI機能
@@ -56,7 +56,7 @@ const FeatureComparison: React.FC<FeatureComparisonProps> = ({ currentPlan, comp
     { category: '決済', name: '複数決済対応', light: false, standard: false, premium_ai: true },
     { category: 'セキュリティ', name: '2段階認証', light: true, standard: true, premium_ai: true },
     { category: 'セキュリティ', name: 'IPアドレス制限', light: true, standard: true, premium_ai: true },
-    { category: 'カスタマイズ', name: 'API利用', light: false, standard: false, premium_ai: true },
+    { category: 'カスタマイズ', name: 'API利用', light: false, standard: false, premium_ai: false },
     { category: 'サポート', name: 'サポート', light: 'メール＋チャット', standard: 'メール＋チャット', premium_ai: 'LINE＋チャット' }
   ]
 

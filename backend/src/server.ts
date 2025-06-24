@@ -150,10 +150,12 @@ import supportBeauticianRoutes from './routes/supportBeautician';
 import salaryDashboardRoutes from './routes/salaryDashboard';
 import businessStrategyRoutes from './routes/businessStrategy';
 import supportStaffRoutes from './routes/supportStaff';
+import aiSupportRoutes from './routes/aiSupport';
 app.use(`${apiPrefix}/support-beautician`, supportBeauticianRoutes);
 app.use(`${apiPrefix}/salary`, salaryDashboardRoutes);
 app.use(`${apiPrefix}/business-strategy`, businessStrategyRoutes);
 app.use(`${apiPrefix}/support-staff`, supportStaffRoutes);
+app.use(`${apiPrefix}/ai-support`, aiSupportRoutes);
 
 // テスト環境専用ルート
 import testEnvironmentRoutes from './routes/testEnvironment';

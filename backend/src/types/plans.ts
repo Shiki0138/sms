@@ -73,10 +73,11 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
     name: 'light',
     displayName: 'ライトプラン',
     price: 9800,  // 29800から値下げ
-    description: '小規模サロン向けの基本機能パック。予約管理・顧客管理・一括送信の基本機能を提供',
+    description: '小規模サロン向けの基本機能パック。予約管理・顧客管理・一括送信・外部連携の基本機能を提供',
     color: '#10B981',
     features: [
-      'bulk_operations'  // 一括操作機能を追加
+      'bulk_operations',        // 一括操作機能
+      'external_integrations'   // 外部連携機能を追加（LINE/Instagram）
     ],
     limits: {
       maxStaff: 3,
@@ -84,9 +85,9 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
       maxReservations: 300,
       maxAIReplies: 0,      // AI機能なし
       maxExports: 3,        // 基本的なエクスポートのみ
-      maxBulkMessages: 100, // 月100件の一括送信に変更
+      maxBulkMessages: 10,  // 月10件の一括送信に変更
       maxStorageGB: 1,
-      maxAPICallsPerDay: 50 // 制限的なAPI使用
+      maxAPICallsPerDay: 0  // API使用不可
     }
   },
   standard: {
@@ -112,7 +113,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
       maxExports: 20,         // 月20回のエクスポート
       maxBulkMessages: 500,   // 月500件の一括送信
       maxStorageGB: 5,
-      maxAPICallsPerDay: 500
+      maxAPICallsPerDay: 0  // API使用不可
     }
   },
   premium_ai: {
@@ -144,7 +145,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
       maxExports: -1,         // 無制限エクスポート
       maxBulkMessages: -1,    // 無制限一括送信
       maxStorageGB: 100,      // 100GB（実質無制限）
-      maxAPICallsPerDay: -1   // 無制限API使用
+      maxAPICallsPerDay: 0    // API使用不可
     }
   }
 };

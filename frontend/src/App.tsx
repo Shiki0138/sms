@@ -29,6 +29,7 @@ import FeatureRequestForm from './components/FeatureRequestForm'
 import AIShiftManagement from './components/AIShiftManagement'
 import FilteredCustomerView from './components/FilteredCustomerView'
 import TestModeIndicator from './components/TestMode/TestModeIndicator'
+import ChatWidget from './components/AIChat/ChatWidget'
 import { 
   MessageSquare, 
   Calendar, 
@@ -2462,6 +2463,9 @@ function App() {
         }}
         onUpdateStylistNotes={handleUpdateStylistNotes}
       />
+
+      {/* AI Chat Widget */}
+      <ChatWidget />
 
     </div>
   )

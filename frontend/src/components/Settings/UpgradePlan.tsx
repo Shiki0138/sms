@@ -95,7 +95,7 @@ const UpgradePlan: React.FC = () => {
       { icon: 'messaging', text: '全チャネル統合', included: true },
       { icon: 'export', text: '無制限エクスポート', included: true },
       { icon: 'realtime', text: 'リアルタイムダッシュボード', included: true },
-      { icon: 'premium', text: '優先サポート・API アクセス', included: true }
+      { icon: 'premium', text: 'LINE＋チャットサポート（24時間）', included: true }
     ]
   }
 
@@ -262,7 +262,7 @@ const UpgradePlan: React.FC = () => {
                       {Math.round((1 - PLAN_PRICING[plan].monthly / PLAN_PRICING[plan].originalPrice) * 100)}% OFF
                     </div>
                   )}
-                  {!isCurrentPlan && !isDowngrade && (
+                  {!isDowngrade && (
                     <div className="mt-2 text-sm text-green-600 font-medium">
                       初期費用: ¥{PLAN_PRICING[plan].setup.toLocaleString()}
                     </div>
