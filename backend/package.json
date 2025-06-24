@@ -4,11 +4,12 @@
   "description": "美容室向けSaaS統合管理システム - バックエンドAPI",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
+    "dev": "nodemon",
     "dev-demo": "nodemon src/server-demo.ts",
     "dev-simple": "nodemon src/server-simple.ts",
     "dev-test": "nodemon src/server-test.ts",
     "dev-minimal": "nodemon src/minimal-server.ts",
+    "dev-working": "nodemon --config nodemon-working.json",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest",

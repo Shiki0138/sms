@@ -26,6 +26,7 @@ export class JWTService {
     const jwtPayload = {
       ...payload,
       // Ensure all required fields are present
+      id: payload.id,
       staffId: payload.staffId,
       userId: payload.userId,
       email: payload.email,
@@ -76,6 +77,7 @@ export class JWTService {
     userAgent?: string
   ): Promise<TokenPair> {
     const accessToken = this.generateAccessToken({
+      id: staff.id,
       staffId: staff.id,
       userId: staff.id,
       tenantId: staff.tenantId,

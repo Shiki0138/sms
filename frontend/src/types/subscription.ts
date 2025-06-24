@@ -8,7 +8,7 @@ export interface PlanLimits {
   maxAIRepliesPerMonth: number
   maxDataExport: number // 月間エクスポート回数
   analyticsRetentionDays: number // 分析データ保持期間
-  supportLevel: 'email' | 'priority_email' | 'phone_24h'
+  supportLevel: 'email' | 'priority_email' | 'phone_24h' | 'email_chat' | 'line_chat_24h'
 }
 
 export interface PlanFeatures {

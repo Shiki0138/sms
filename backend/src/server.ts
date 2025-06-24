@@ -121,8 +121,8 @@ app.use('/api/v1/auth', authRateLimit);
 app.use('/api', apiRateLimit);
 
 // Health check routes (Cloud Run optimized)
-app.use('/health', healthRouter);
-app.use('/', healthRouter);
+// app.use('/health', healthRouter);
+// app.use('/', healthRouter);
 
 // API Routes
 const apiPrefix = `/api/${process.env.API_VERSION || 'v1'}`;
@@ -138,7 +138,7 @@ app.use(`${apiPrefix}/auth`, authRouter);
 app.use(`${apiPrefix}/security`, securityRouter);
 app.use(`${apiPrefix}/reminders`, remindersRouter);
 app.use(`${apiPrefix}/test-reminders`, testRemindersRouter);
-app.use(`${apiPrefix}/payments`, paymentsRouter);
+// app.use(`${apiPrefix}/payments`, paymentsRouter);
 app.use(`${apiPrefix}/features`, featureFlagsRouter);
 app.use(`${apiPrefix}/customers`, customersRouter);
 app.use(`${apiPrefix}/messages`, messagesRouter);
@@ -146,14 +146,14 @@ app.use(`${apiPrefix}/reservations`, reservationsRouter);
 app.use(`${apiPrefix}/ai-shift`, aiShiftManagementRouter);
 
 // 新機能ルート
-import supportBeauticianRoutes from './routes/supportBeautician';
-import salaryDashboardRoutes from './routes/salaryDashboard';
-import businessStrategyRoutes from './routes/businessStrategy';
+// import supportBeauticianRoutes from './routes/supportBeautician';
+// import salaryDashboardRoutes from './routes/salaryDashboard';
+// import businessStrategyRoutes from './routes/businessStrategy';
 import supportStaffRoutes from './routes/supportStaff';
 import aiSupportRoutes from './routes/aiSupport';
-app.use(`${apiPrefix}/support-beautician`, supportBeauticianRoutes);
-app.use(`${apiPrefix}/salary`, salaryDashboardRoutes);
-app.use(`${apiPrefix}/business-strategy`, businessStrategyRoutes);
+// app.use(`${apiPrefix}/support-beautician`, supportBeauticianRoutes);
+// app.use(`${apiPrefix}/salary`, salaryDashboardRoutes);
+// app.use(`${apiPrefix}/business-strategy`, businessStrategyRoutes);
 app.use(`${apiPrefix}/support-staff`, supportStaffRoutes);
 app.use(`${apiPrefix}/ai-support`, aiSupportRoutes);
 
@@ -188,6 +188,10 @@ app.get('/api/v1/system/performance', (req, res) => {
       userMessage: '心配ありません、システムは正常に動作しています'
     })
   }
+})
+
+app.get('/', (req, res) => {
+  res.send('🎉 Salon Management API is running!')
 })
 
 app.get('/api/v1/system/health', (req, res) => {
@@ -294,8 +298,8 @@ async function startServer() {
     // Initialize notification service
     initializeNotificationService(httpServer);
 
-    // Initialize analytics service
-    await analyticsService.startRealtimeAnalytics('default-tenant');
+    // Initialize analytics service (disabled for now - requires tenant setup)
+    // await analyticsService.startRealtimeAnalytics('default-tenant');
 
     // Start HTTP server
     httpServer.listen(port, () => {
@@ -306,12 +310,12 @@ async function startServer() {
       logger.info(`💾 Database: SQLite (Connected)`);
       logger.info(`⏰ Scheduler: Auto-message service started`);
       logger.info(`🔔 Notifications: WebSocket service started`);
-      logger.info(`📊 Analytics: Real-time analytics and ML prediction system started`);
+      // logger.info(`📊 Analytics: Real-time analytics and ML prediction system started`);
       logger.info(`\\n✨ 統合メッセージ管理システム - Production Mode`);
       logger.info(`   LINE & Instagram DM 一元管理システム`);
       logger.info(`   自動リマインダー・フォローアップメッセージ機能付き`);
       logger.info(`   リアルタイム通知システム搭載`);
-      logger.info(`   AI予測分析・リアルタイムダッシュボード搭載`);
+      logger.info(`   応援スタッフプラットフォーム機能実装済み`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

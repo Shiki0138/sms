@@ -13,9 +13,12 @@
     "exactOptionalPropertyTypes": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["node", "express"],
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/**/*.d.ts"],
+  "files": ["src/index.d.ts"],
   "exclude": [
     "node_modules",
     "dist",
@@ -30,6 +33,13 @@
     "src/routes/emotional-analytics.ts",
     "src/routes/magical-external-apis.ts",
     "src/services/emotional-ai-analytics.ts",
-    "src/services/magicalExternalApiService.ts"
+    "src/services/magicalExternalApiService.ts",
+    "src/services/paymentService.ts",
+    "src/controllers/supportBeauticianController.ts",
+    "src/controllers/salaryDashboardController.ts",
+    "src/services/businessStrategyService.ts",
+    "src/services/contactFormService.ts",
+    "src/services/databaseOptimizationService.ts",
+    "src/services/monitoringService.ts"
   ]
 }

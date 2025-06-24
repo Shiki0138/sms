@@ -363,6 +363,7 @@ export class AuthController {
 
       // 新しいアクセストークン生成
       const newAccessToken = JWTService.generateAccessToken({
+        id: staff.id,
         staffId: staff.id,
         userId: staff.id,
         tenantId: staff.tenantId,

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Check, X, Sparkles } from 'lucide-react'
-import { SubscriptionPlan } from '../../types/subscription'
+import { SubscriptionPlan, PLAN_CONFIGS } from '../../types/subscription'
 
 interface FeatureComparisonProps {
   currentPlan: SubscriptionPlan
@@ -16,14 +16,27 @@ interface Feature {
 }
 
 const FeatureComparison: React.FC<FeatureComparisonProps> = ({ currentPlan, compact = false }) => {
+  // プラン設定から動的に機能情報を生成
   const features: Feature[] = [
     // 基本機能
-    { category: '顧客管理', name: '顧客登録・編集', light: '500名まで', standard: '2,000名まで', premium_ai: '無制限' },
+    { 
+      category: '顧客管理', 
+      name: '顧客登録・編集', 
+      light: PLAN_CONFIGS.light.limits.maxCustomers === -1 ? '無制限' : `${PLAN_CONFIGS.light.limits.maxCustomers}名まで`, 
+      standard: PLAN_CONFIGS.standard.limits.maxCustomers === -1 ? '無制限' : `${PLAN_CONFIGS.standard.limits.maxCustomers.toLocaleString()}名まで`, 
+      premium_ai: '無制限' 
+    },
     { category: '顧客管理', name: '顧客写真管理', light: false, standard: true, premium_ai: true },
-    { category: '顧客管理', name: '顧客セグメント分析', light: false, standard: true, premium_ai: true },
-    { category: 'スタッフ管理', name: 'スタッフ登録', light: '3名まで', standard: '10名まで', premium_ai: '無制限' },
+    { category: '顧客管理', name: '顧客セグメント分析', light: PLAN_CONFIGS.light.features.customerAnalytics, standard: PLAN_CONFIGS.standard.features.customerAnalytics, premium_ai: PLAN_CONFIGS.premium_ai.features.customerAnalytics },
+    { 
+      category: 'スタッフ管理', 
+      name: 'スタッフ登録', 
+      light: `${PLAN_CONFIGS.light.limits.maxStaff}名まで`, 
+      standard: `${PLAN_CONFIGS.standard.limits.maxStaff}名まで`, 
+      premium_ai: '無制限' 
+    },
     { category: 'スタッフ管理', name: 'シフト管理', light: '基本', standard: '詳細', premium_ai: 'AI最適化' },
-    { category: 'スタッフ管理', name: '権限管理', light: false, standard: true, premium_ai: true },
+    { category: 'スタッフ管理', name: '権限管理', light: PLAN_CONFIGS.light.features.userManagement, standard: PLAN_CONFIGS.standard.features.userManagement, premium_ai: PLAN_CONFIGS.premium_ai.features.userManagement },
     
     // 予約管理
     { category: '予約管理', name: 'ドラッグ&ドロップ', light: true, standard: true, premium_ai: true },
@@ -32,10 +45,10 @@ const FeatureComparison: React.FC<FeatureComparisonProps> = ({ currentPlan, comp
     { category: '予約管理', name: '空き時間検索', light: false, standard: true, premium_ai: 'AI提案' },
     
     // メッセージ機能
-    { category: 'メッセージ', name: 'LINE連携', light: true, standard: true, premium_ai: true },
-    { category: 'メッセージ', name: 'Instagram連携', light: true, standard: true, premium_ai: true },
+    { category: 'メッセージ', name: 'LINE連携 ✅', light: true, standard: true, premium_ai: true },
+    { category: 'メッセージ', name: 'Instagram連携 ✅', light: true, standard: true, premium_ai: true },
     { category: 'メッセージ', name: '一括送信', light: '月10件', standard: '月500件', premium_ai: '無制限' },
-    { category: 'メッセージ', name: 'AI自動返信', light: false, standard: '月200回', premium_ai: '無制限' },
+    { category: 'メッセージ', name: 'AI自動返信', light: PLAN_CONFIGS.light.features.aiReplyGeneration, standard: '月200回', premium_ai: '無制限' },
     
     // AI機能
     { category: 'AI機能', name: '感情分析', light: false, standard: '基本', premium_ai: '高度' },
@@ -46,7 +59,7 @@ const FeatureComparison: React.FC<FeatureComparisonProps> = ({ currentPlan, comp
     
     // 分析・レポート
     { category: '分析', name: '売上推移', light: '月次', standard: '日次', premium_ai: 'リアルタイム' },
-    { category: '分析', name: '顧客分析', light: false, standard: true, premium_ai: true },
+    { category: '分析', name: '顧客分析', light: PLAN_CONFIGS.light.features.customerAnalytics, standard: PLAN_CONFIGS.standard.features.customerAnalytics, premium_ai: PLAN_CONFIGS.premium_ai.features.customerAnalytics },
     { category: '分析', name: 'RFM分析', light: false, standard: false, premium_ai: true },
     { category: '分析', name: 'LTV分析', light: false, standard: false, premium_ai: true },
     { category: '分析', name: 'エクスポート', light: 'CSV月3回', standard: '無制限', premium_ai: '全形式対応' },
@@ -56,7 +69,7 @@ const FeatureComparison: React.FC<FeatureComparisonProps> = ({ currentPlan, comp
     { category: '決済', name: '複数決済対応', light: false, standard: false, premium_ai: true },
     { category: 'セキュリティ', name: '2段階認証', light: true, standard: true, premium_ai: true },
     { category: 'セキュリティ', name: 'IPアドレス制限', light: true, standard: true, premium_ai: true },
-    { category: 'カスタマイズ', name: 'API利用', light: false, standard: false, premium_ai: false },
+    { category: 'カスタマイズ', name: 'API利用', light: PLAN_CONFIGS.light.features.apiAccess, standard: PLAN_CONFIGS.standard.features.apiAccess, premium_ai: PLAN_CONFIGS.premium_ai.features.apiAccess },
     { category: 'サポート', name: 'サポート', light: 'メール＋チャット', standard: 'メール＋チャット', premium_ai: 'LINE＋チャット' }
   ]
 

@@ -165,6 +165,11 @@ export const aiSupportService = {
   async generateResponse(params: GenerateResponseParams): Promise<AIResponse> {
     const { message, sessionId, userId, userRole } = params
     
+    // テストモードかデモモードの場合はモックレスポンスを返す
+    if (process.env.NODE_ENV === 'test' || process.env.DEMO_MODE === 'true' || !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-your-openai-api-key-here') {
+      return this.generateMockResponse(message)
+    }
+    
     try {
       // 会話履歴を取得（直近10件）
       const recentHistory = await prisma.aIChatHistory.findMany({
@@ -313,5 +318,88 @@ export const aiSupportService = {
     }
     
     return faqs
+  },
+
+  // テストモード用のモックレスポンス生成
+  generateMockResponse(message: string): AIResponse {
+    const lowerMessage = message.toLowerCase()
+    
+    // 挨拶や基本的な質問への対応
+    if (lowerMessage.includes('こんにちは') || lowerMessage.includes('はじめまして')) {
+      return {
+        content: 'こんにちは！美容室管理システムのテスト環境へようこそ。✨\n\nこちらはデモ用のAIサポートです。システムの使い方について何でもお聞きください！',
+        suggestions: ['予約の登録方法', '顧客管理について', 'よくある質問'],
+        model: 'mock-ai-v1',
+        tokensUsed: 0
+      }
+    }
+    
+    // 予約関連の質問
+    if (lowerMessage.includes('予約')) {
+      return {
+        content: '予約管理についてですね！📅\n\n【予約の登録方法】\n1. サイドメニューから「予約管理」をクリック\n2. 「新規予約」ボタンをクリック\n3. お客様情報、日時、メニューを選択\n4. 「予約を確定」ボタンをクリック\n\nテスト環境では実際のデータは保存されませんが、操作を体験できます。',
+        suggestions: ['予約の変更方法', '予約確認メール', '顧客管理について'],
+        model: 'mock-ai-v1',
+        tokensUsed: 0
+      }
+    }
+    
+    // 顧客管理関連の質問
+    if (lowerMessage.includes('顧客') || lowerMessage.includes('お客')) {
+      return {
+        content: '顧客管理についてお答えします！👥\n\n【新規顧客登録】\n1. 「顧客管理」メニューをクリック\n2. 「新規顧客登録」ボタンをクリック\n3. お名前、連絡先などを入力\n4. 「登録」ボタンをクリック\n\n【来店履歴の確認】\n- 顧客一覧からお客様を選択\n- 「来店履歴」タブで詳細を確認できます',
+        suggestions: ['顧客の検索方法', 'タグ機能について', 'メッセージ送信'],
+        model: 'mock-ai-v1',
+        tokensUsed: 0
+      }
+    }
+    
+    // メッセージ機能関連
+    if (lowerMessage.includes('メッセージ') || lowerMessage.includes('line') || lowerMessage.includes('instagram')) {
+      return {
+        content: 'メッセージ機能についてご説明します！💬\n\n【個別メッセージ送信】\n1. 顧客管理画面でお客様を選択\n2. 「メッセージ送信」ボタンをクリック\n3. メッセージを入力して送信\n\n【一括メッセージ】\n- メッセージメニューから「一括送信」を選択\n- 送信対象を絞り込んで一度に複数のお客様へ送信可能\n\n※テスト環境では実際の送信は行われません',
+        suggestions: ['LINE連携設定', 'Instagram連携', '自動メッセージ'],
+        model: 'mock-ai-v1',
+        tokensUsed: 0
+      }
+    }
+    
+    // 売上・分析関連
+    if (lowerMessage.includes('売上') || lowerMessage.includes('分析') || lowerMessage.includes('レポート')) {
+      return {
+        content: '売上分析機能についてご案内します！📊\n\n【売上確認】\n- ダッシュボードで日別・月別売上を確認\n- 「分析」メニューから詳細なレポートを表示\n\n【人気メニュー分析】\n- メニュー別の予約数・売上ランキング\n- 期間を指定して傾向を分析\n\n【データエクスポート】\n- CSV、Excel、PDFでレポート出力可能',
+        suggestions: ['スタッフ別売上', 'メニュー分析', 'データエクスポート'],
+        model: 'mock-ai-v1',
+        tokensUsed: 0
+      }
+    }
+    
+    // 設定関連
+    if (lowerMessage.includes('設定') || lowerMessage.includes('営業時間') || lowerMessage.includes('定休日')) {
+      return {
+        content: 'システム設定についてお答えします！⚙️\n\n【基本設定】\n- 営業時間の設定\n- 定休日・祝日の設定\n- 店舗情報の管理\n\n【スタッフ管理】\n- スタッフの追加・編集\n- 権限設定（管理者/マネージャー/スタッフ）\n- シフト管理\n\n【外部連携】\n- LINE、Instagram APIの設定\n- Googleカレンダー連携',
+        suggestions: ['スタッフ権限について', 'シフト管理', '外部API設定'],
+        model: 'mock-ai-v1',
+        tokensUsed: 0
+      }
+    }
+    
+    // テスト環境について
+    if (lowerMessage.includes('テスト') || lowerMessage.includes('デモ') || lowerMessage.includes('試用')) {
+      return {
+        content: 'テスト環境についてご説明します！🧪\n\n【テスト環境の特徴】\n- 本番環境と同じUIで操作体験可能\n- データは保存されません（セッション終了で削除）\n- 外部API（メール送信等）は無効化\n- AI機能はモック応答で動作\n\n【利用可能な機能】\n✅ 予約管理\n✅ 顧客管理\n✅ メッセージ機能（送信なし）\n✅ 分析・レポート\n✅ 設定画面',
+        suggestions: ['本番環境との違い', '利用制限について', '機能一覧'],
+        model: 'mock-ai-v1',
+        tokensUsed: 0
+      }
+    }
+    
+    // その他・デフォルトレスポンス
+    return {
+      content: 'ご質問ありがとうございます！🤖\n\nこちらはテスト環境用のAIサポートです。美容室管理システムの使い方について、お気軽にお聞きください。\n\n【よくあるご質問】\n• 予約の登録・変更方法\n• 顧客管理の使い方\n• メッセージ機能について\n• 売上分析の見方\n• システム設定方法\n\nより具体的にお聞きいただければ、詳しくご説明いたします！',
+      suggestions: ['予約管理の使い方', '顧客管理について', 'メッセージ機能', '売上分析'],
+      model: 'mock-ai-v1',
+      tokensUsed: 0
+    }
   },
 }

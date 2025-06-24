@@ -1,4 +1,5 @@
 export interface JWTPayload {
+  id: string; // プライマリID
   staffId: string;
   userId: string; // staffIdと同じ値（後方互換性）
   email: string;
@@ -47,10 +48,16 @@ import { Request } from 'express';
 
 export interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
+  staff?: JWTPayload;
+  tenantId?: string;
+  role?: string;
   params: any;
   query: any;
   body: any;
 }
+
+// AuthRequestのエイリアス（互換性のため）
+export type AuthRequest = AuthenticatedRequest;
 
 export interface RegisterRequest {
   email: string;

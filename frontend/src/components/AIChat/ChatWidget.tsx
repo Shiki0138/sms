@@ -33,9 +33,14 @@ const ChatWidget: React.FC = () => {
   // 初期メッセージ
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      const isTestMode = window.location.hostname === 'localhost' || window.location.hostname.includes('test') || window.location.hostname.includes('demo')
+      const welcomeText = isTestMode 
+        ? 'こんにちは！美容室管理システムのテスト環境へようこそ。✨\n\nこちらはデモ用のAIサポートです。システムの使い方について何でもお聞きください！\n\n※テストモードでは実際のOpenAI APIは使用せず、モック応答で動作します。'
+        : 'こんにちは！美容室管理システムのサポートアシスタントです。✨\n\nシステムの使い方や機能について、何でもお気軽にご質問ください。'
+      
       setMessages([{
         id: 'welcome',
-        text: 'こんにちは！美容室管理システムのサポートアシスタントです。✨\n\nシステムの使い方や機能について、何でもお気軽にご質問ください。',
+        text: welcomeText,
         sender: 'ai',
         timestamp: new Date(),
         suggestions: ['予約の登録方法', '顧客情報の確認', 'よくある質問']
@@ -180,7 +185,12 @@ const ChatWidget: React.FC = () => {
             <MessageCircle className="w-5 h-5" />
             <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-yellow-300" />
           </div>
-          <span className="font-semibold">AIサポート</span>
+          <div className="flex flex-col">
+            <span className="font-semibold">AIサポート</span>
+            {(window.location.hostname === 'localhost' || window.location.hostname.includes('test') || window.location.hostname.includes('demo')) && (
+              <span className="text-xs text-blue-200">テストモード</span>
+            )}
+          </div>
           {isLoading && (
             <div className="ml-2">
               <div className="animate-pulse flex space-x-1">

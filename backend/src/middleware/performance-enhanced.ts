@@ -184,15 +184,17 @@ export const enhancedPerformanceMiddleware = (req: Request, res: Response, next:
   const startMemory = process.memoryUsage()
 
   // 美容室業務に優しいヘッダー設定
-  res.setHeader('X-Salon-System', '💫 Beauty Management System')
-  res.setHeader('X-Performance-Goal', '⚡ Lightning Fast Experience')
+  if (!res.headersSent) {
+    res.setHeader('X-Salon-System', 'Beauty Management System')
+    res.setHeader('X-Performance-Goal', 'Lightning Fast Experience')
+  }
 
   // レスポンス完了時の処理
   res.on('finish', () => {
     const endTime = Date.now()
     const duration = endTime - startTime
     const endMemory = process.memoryUsage()
-
+  
     const metric: PerformanceMetrics = {
       startTime,
       endTime,
@@ -204,13 +206,17 @@ export const enhancedPerformanceMiddleware = (req: Request, res: Response, next:
       userAgent: req.get('User-Agent'),
       ip: req.ip
     }
-
+  
     performanceTracker.recordMetric(metric)
-
-    // 美容室スタッフへの応答時間フィードバック
-    res.setHeader('X-Response-Time', `${duration}ms`)
-    res.setHeader('X-Performance-Quality', performanceTracker.getQualityLevel(duration))
-    res.setHeader('X-User-Experience', duration <= PERFORMANCE_TARGETS.EXCELLENT ? '😊 快適' : '🔧 最適化中')
+  
+    // 💡 ヘッダーが送信されていない場合のみ setHeader を呼ぶ
+    if (!res.headersSent) {
+      res.setHeader('X-Response-Time', `${duration}ms`)
+      res.setHeader('X-Performance-Quality', performanceTracker.getQualityLevel(duration))
+      res.setHeader('X-User-Experience', duration <= PERFORMANCE_TARGETS.EXCELLENT ? '😊 快適' : '🔧 最適化中')
+    } else {
+      logger.warn('⚠️ Header already sent, skipped setting X-Performance headers')
+    }
   })
 
   next()
