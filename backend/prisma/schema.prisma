@@ -63,6 +63,7 @@ model Tenant {
   businessInsights     BusinessInsight[]
   businessGoals        BusinessGoal[]
   managementReports    ManagementReport[]
+  supportStaffRequests SupportStaffRequest[]
 
   // 💫 美容室業務高速化インデックス
   @@index([isActive]) // アクティブ店舗検索最適化
@@ -132,6 +133,7 @@ model Staff {
   salaryDashboards        SalaryDashboard[] @relation("SalaryDashboard")
   dailySalaryRecords      DailySalaryRecord[] @relation("DailySalaryRecord")
   staffAchievements       StaffAchievement[] @relation("StaffAchievement")
+  supportStaffRequests    SupportStaffRequest[] @relation("SupportStaffRequester")
 
   @@map("staff")
 }
@@ -1128,115 +1130,231 @@ model TenantFeatureFlag {
   @@map("tenant_feature_flags")
 }
 
-// 応援美容師サービス
-model SupportRequest {
+// 応援スタッフプラットフォーム
+model SupportStaffProfile {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  phone           String
+  profilePhoto    String?
+  
+  // スキル・資格
+  skills          String   // JSON配列: ["cut", "color", "perm", "nail", "eyelash"]
+  licenses        String?  // JSON配列: 保有資格
+  experience      Int      // 経験年数
+  specialties     String?  // 得意分野
+  
+  // 希望条件
+  preferredAreas  String   // JSON配列: 希望勤務地域
+  maxDistance     Int      @default(20) // km単位
+  minHourlyRate   Float    // 最低希望時給
+  
+  // 評価・実績
+  rating          Float    @default(0) // 0-5
+  completedCount  Int      @default(0) // 完了件数
+  
+  // ステータス
+  isActive        Boolean  @default(true)
+  isVerified      Boolean  @default(false) // 本人確認済み
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  availabilities  SupportStaffAvailability[]
+  applications    SupportStaffApplication[]
+  matches         SupportStaffMatch[]
+  
+  @@index([isActive, isVerified])
+  @@map("support_staff_profiles")
+}
+
+// 応援スタッフ勤務可能期間
+model SupportStaffAvailability {
+  id              String   @id @default(cuid())
+  staffProfileId  String
+  
+  // 勤務可能期間
+  availableFrom   DateTime
+  availableTo     DateTime
+  
+  // 勤務条件
+  availableDays   String   // JSON配列: ["monday", "tuesday", ...]
+  availableHours  String   // JSON配列: ["09:00-12:00", "13:00-18:00"]
+  hourlyRate      Float    // 希望時給
+  
+  // 対応可能サービス
+  services        String   // JSON配列: この期間で対応可能なサービス
+  
+  // エリア設定
+  preferredAreas  String?  // JSON配列: この期間の希望エリア（プロフィールと異なる場合）
+  
+  notes           String?  // 備考
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  staffProfile    SupportStaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  applications    SupportStaffApplication[]
+  
+  @@index([staffProfileId, isActive])
+  @@index([availableFrom, availableTo])
+  @@map("support_staff_availabilities")
+}
+
+// 店舗からの応援依頼
+model SupportStaffRequest {
   id              String   @id @default(cuid())
   tenantId        String
-  requesterId     String   // 応援を求める美容師のID
+  requesterId     String   // 依頼したスタッフのID
+  
+  // 依頼内容
   title           String
   description     String
-  requiredSkills  String?  // JSON配列: ["cut", "color", "perm"]
-  preferredTime   DateTime
-  duration        Int      // 分単位
-  hourlyRate      Float    // 時給
+  requiredSkills  String   // JSON配列: 必要スキル
+  
+  // 勤務詳細
+  workDate        DateTime
+  startTime       String   // "09:00"
+  endTime         String   // "18:00"
+  breakTime       Int      @default(60) // 休憩時間（分）
+  
+  // 報酬
+  hourlyRate      Float
+  transportationFee Float? // 交通費
+  
+  // 場所
   location        String   // 店舗住所
-  latitude        Float?
-  longitude       Float?
-  maxDistance     Int      @default(10) // km単位
-  urgencyLevel    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  latitude        Float
+  longitude       Float
+  nearestStation  String?  // 最寄り駅
+  
+  // ステータス
+  urgencyLevel    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
   status          String   @default("OPEN") // OPEN, MATCHED, CONFIRMED, COMPLETED, CANCELLED
+  
+  // 表示設定
+  isPublic        Boolean  @default(true) // 一般公開
+  maxApplications Int      @default(10) // 最大応募数
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
   // Relations
   tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  requester       Staff         @relation("SupportRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  responses       SupportResponse[]
-  matchedSupport  SupportMatch?
+  requester       Staff         @relation("SupportStaffRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  applications    SupportStaffApplication[]
+  match           SupportStaffMatch?
   
   @@index([tenantId, status])
-  @@index([status, preferredTime])
-  @@index([latitude, longitude]) // 位置情報検索用
-  @@map("support_requests")
+  @@index([status, workDate])
+  @@index([latitude, longitude])
+  @@map("support_staff_requests")
 }
 
-// 応援美容師の可用性登録
-model SupportAvailability {
-  id           String   @id @default(cuid())
-  staffId      String
-  tenantId     String
-  availableFrom DateTime
-  availableTo   DateTime
-  skills       String   // JSON配列: ["cut", "color", "perm"]
-  hourlyRate   Float
-  maxDistance  Int      @default(15) // km単位
-  notes        String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  // Relations
-  staff        Staff    @relation("SupportStaff", fields: [staffId], references: [id], onDelete: Cascade)
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  responses    SupportResponse[]
-  
-  @@index([staffId, isActive])
-  @@index([tenantId, availableFrom, availableTo])
-  @@map("support_availability")
-}
-
-// 応援申し込み
-model SupportResponse {
+// 応援スタッフからの応募
+model SupportStaffApplication {
   id              String   @id @default(cuid())
   requestId       String
-  availabilityId  String
-  responderId     String
-  message         String?
-  proposedRate    Float?   // 提案時給（交渉可能）
-  status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
+  staffProfileId  String
+  availabilityId  String?
+  
+  // 応募内容
+  message         String?  // 応募メッセージ
+  proposedRate    Float?   // 提案時給（異なる場合）
+  canArrive       Boolean  @default(true) // 到着可能か
+  estimatedArrival String? // 到着予定時刻
+  
+  // ステータス
+  status          String   @default("PENDING") // PENDING, VIEWED, SHORTLISTED, ACCEPTED, REJECTED
+  viewedAt        DateTime?
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
   // Relations
-  request         SupportRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  availability    SupportAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
-  responder       Staff              @relation("SupportResponder", fields: [responderId], references: [id], onDelete: Cascade)
-  match           SupportMatch?
+  request         SupportStaffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  staffProfile    SupportStaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  availability    SupportStaffAvailability? @relation(fields: [availabilityId], references: [id], onDelete: SetNull)
+  match           SupportStaffMatch?
   
-  @@unique([requestId, responderId])
+  @@unique([requestId, staffProfileId])
   @@index([requestId, status])
-  @@map("support_responses")
+  @@index([staffProfileId])
+  @@map("support_staff_applications")
 }
 
-// マッチング確定
-model SupportMatch {
+// マッチング成立
+model SupportStaffMatch {
   id              String   @id @default(cuid())
   requestId       String   @unique
-  responseId      String   @unique
-  supporterId     String
-  requesterId     String
+  applicationId   String   @unique
+  supportStaffId  String
+  
+  // 確定条件
   agreedRate      Float
-  startTime       DateTime
-  endTime         DateTime
+  agreedStartTime String
+  agreedEndTime   String
+  transportationFee Float?
+  
+  // 実績
   actualStartTime DateTime?
   actualEndTime   DateTime?
-  status          String   @default("CONFIRMED") // CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
-  rating          Int?     // 1-5 相互評価
-  feedback        String?
-  paymentStatus   String   @default("PENDING") // PENDING, PAID, DISPUTED
+  actualBreakTime Int?     // 実際の休憩時間（分）
+  
+  // 評価
+  staffRating     Int?     // 1-5 店舗→スタッフ評価
+  tenantRating    Int?     // 1-5 スタッフ→店舗評価
+  staffFeedback   String?
+  tenantFeedback  String?
+  
+  // ステータス
+  status          String   @default("CONFIRMED") // CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED, DISPUTED
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
   // Relations
-  request         SupportRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  response        SupportResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
-  supporter       Staff           @relation("Supporter", fields: [supporterId], references: [id], onDelete: Cascade)
-  requester       Staff           @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  request         SupportStaffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  application     SupportStaffApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  supportStaff    SupportStaffProfile @relation(fields: [supportStaffId], references: [id], onDelete: Cascade)
   
-  @@index([status, startTime])
-  @@index([supporterId, status])
-  @@index([requesterId, status])
-  @@map("support_matches")
+  @@index([status])
+  @@index([supportStaffId, status])
+  @@map("support_staff_matches")
+}
+
+// 応援スタッフ通知設定
+model SupportStaffNotification {
+  id              String   @id @default(cuid())
+  staffProfileId  String?
+  tenantId        String?
+  
+  // 通知タイプ
+  type            String   // NEW_REQUEST, APPLICATION_STATUS, MATCH_CONFIRMED, REMINDER
+  
+  // 通知内容
+  title           String
+  message         String
+  actionUrl       String?
+  
+  // ステータス
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+  
+  // メタデータ
+  metadata        String?  // JSON: 追加情報
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([staffProfileId, isRead])
+  @@index([tenantId, isRead])
+  @@map("support_staff_notifications")
 }
 
 // 給料見える化 - 月別給与サマリー

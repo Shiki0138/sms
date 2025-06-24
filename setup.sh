@@ -3,6 +3,9 @@
 # 🚀 Multi-Agent Communication Demo 環境構築
 # 参考: setup_full_environment.sh
 
+SESSION_MAIN="salon_multiagent"
+SESSION_PRE="salon_president"
+
 set -e  # エラー時に停止
 
 # 色付きログ関数

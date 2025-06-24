@@ -72,17 +72,19 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
     type: 'light',
     name: 'light',
     displayName: 'ライトプラン',
-    price: 29800,
-    description: '小規模サロン向けの基本機能パック。予約管理と顧客管理の基本機能のみ提供',
+    price: 9800,  // 29800から値下げ
+    description: '小規模サロン向けの基本機能パック。予約管理・顧客管理・一括送信の基本機能を提供',
     color: '#10B981',
-    features: [], // 基本機能のみ、追加機能なし
+    features: [
+      'bulk_operations'  // 一括操作機能を追加
+    ],
     limits: {
       maxStaff: 3,
       maxCustomers: 500,
       maxReservations: 300,
       maxAIReplies: 0,      // AI機能なし
       maxExports: 3,        // 基本的なエクスポートのみ
-      maxBulkMessages: 0,   // 一括送信なし
+      maxBulkMessages: 100, // 月100件の一括送信に変更
       maxStorageGB: 1,
       maxAPICallsPerDay: 50 // 制限的なAPI使用
     }
@@ -91,7 +93,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
     type: 'standard', 
     name: 'standard',
     displayName: 'スタンダードプラン',
-    price: 49800,
+    price: 29800,  // 49800から値下げ
     description: '成長サロン向けの充実機能。分析・マーケティング・AI返信機能を含む',
     color: '#3B82F6',
     isPopular: true,

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { PLAN_NAMES, PLAN_PRICING, SubscriptionPlan, PLAN_CONFIGS } from '../../types/subscription'
 import PaymentForm from '../Payment/PaymentForm'
+import FeatureComparison from './FeatureComparison'
 import { 
   Shield, 
   Zap, 
@@ -17,7 +18,9 @@ import {
   Sparkles,
   Clock,
   CreditCard,
-  ArrowRight
+  ArrowRight,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 
 const UpgradePlan: React.FC = () => {
@@ -25,6 +28,7 @@ const UpgradePlan: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [showDetailedComparison, setShowDetailedComparison] = useState(false)
 
   const plans: SubscriptionPlan[] = ['light', 'standard', 'premium_ai']
 
@@ -183,6 +187,11 @@ const UpgradePlan: React.FC = () => {
             </div>
           </div>
           <div className="text-right">
+            {PLAN_PRICING[currentPlan].originalPrice && (
+              <p className="text-sm text-blue-600 line-through">
+                ¥{PLAN_PRICING[currentPlan].originalPrice.toLocaleString()}
+              </p>
+            )}
             <p className="text-2xl font-bold text-blue-900">
               ¥{PLAN_PRICING[currentPlan].monthly.toLocaleString()}
             </p>
@@ -236,10 +245,23 @@ const UpgradePlan: React.FC = () => {
 
                 {/* 価格 */}
                 <div className="text-center mb-6">
-                  <div className="text-3xl font-bold text-gray-900">
+                  {/* 元の価格（見え消し） */}
+                  {PLAN_PRICING[plan].originalPrice && (
+                    <div className="text-lg text-gray-500 line-through mb-1">
+                      ¥{PLAN_PRICING[plan].originalPrice.toLocaleString()}
+                    </div>
+                  )}
+                  {/* 現在の価格 */}
+                  <div className="text-3xl font-bold text-red-600">
                     ¥{PLAN_PRICING[plan].monthly.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600">/ 月</div>
+                  {/* 割引率表示 */}
+                  {PLAN_PRICING[plan].originalPrice && (
+                    <div className="mt-1 inline-flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">
+                      {Math.round((1 - PLAN_PRICING[plan].monthly / PLAN_PRICING[plan].originalPrice) * 100)}% OFF
+                    </div>
+                  )}
                   {!isCurrentPlan && !isDowngrade && (
                     <div className="mt-2 text-sm text-green-600 font-medium">
                       初期費用: ¥{PLAN_PRICING[plan].setup.toLocaleString()}
@@ -306,6 +328,36 @@ const UpgradePlan: React.FC = () => {
           )
         })}
       </div>
+
+      {/* 詳細比較表の表示/非表示ボタン */}
+      <div className="mb-8">
+        <button
+          onClick={() => setShowDetailedComparison(!showDetailedComparison)}
+          className="w-full bg-white rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors flex items-center justify-between"
+        >
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-5 h-5 text-yellow-500" />
+            <span className="font-medium text-gray-900">
+              全機能の詳細比較を見る
+            </span>
+            <span className="text-sm text-gray-500">
+              （各プランで利用可能な機能を確認）
+            </span>
+          </div>
+          {showDetailedComparison ? (
+            <ChevronUp className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          )}
+        </button>
+      </div>
+
+      {/* 詳細機能比較表 */}
+      {showDetailedComparison && (
+        <div className="mb-8">
+          <FeatureComparison currentPlan={currentPlan} />
+        </div>
+      )}
 
       {/* アップグレードの理由 */}
       {selectedPlan && selectedPlan !== currentPlan && (

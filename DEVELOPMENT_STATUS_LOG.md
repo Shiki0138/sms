@@ -200,6 +200,13 @@ ea6aedc 🚀 本番デプロイ準備完了 - GitHub Secrets設定完了・ワ�
 
 ## 更新履歴
 
+### 2025年6月24日
+- ログインページからデモアカウント表示を完全削除
+  - `/frontend/src/components/Login.tsx` からデモ認証情報表示を削除
+  - `/frontend/src/components/Auth/LoginForm.tsx` からデモアカウントのクイックログインボタンと認証情報を削除
+  - TypeScriptエラーなし、ビルド正常
+  - テストユーザー向けのセキュリティ強化として永続的に非表示化
+
 ### 2025年6月23日
 - 初版作成
 - 現在の開発状況を包括的に記録

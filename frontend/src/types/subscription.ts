@@ -216,21 +216,32 @@ export const PLAN_NAMES: Record<SubscriptionPlan, string> = {
   premium_ai: 'AIプレミアムプラン'
 }
 
+// プラン料金情報の型定義
+export interface PlanPricing {
+  setup: number
+  monthly: number
+  originalPrice?: number // 元の定価（オプション）
+  annual: number
+}
+
 // プラン料金情報（バックエンドと統一）
-export const PLAN_PRICING = {
+export const PLAN_PRICING: Record<SubscriptionPlan, PlanPricing> = {
   light: {
     setup: 128000,
-    monthly: 29800,
+    monthly: 9800,
+    originalPrice: 29800, // 元の定価
     annual: 327800 // 1ヶ月分割引
   },
   standard: {
     setup: 128000,
-    monthly: 49800,
+    monthly: 29800,
+    originalPrice: 49800, // 元の定価
     annual: 547800 // 1ヶ月分割引
   },
   premium_ai: {
     setup: 198000,
     monthly: 79800,
+    originalPrice: 99800, // 元の定価
     annual: 877800 // 1ヶ月分割引
   }
 }

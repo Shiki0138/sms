@@ -132,17 +132,20 @@ export const PLAN_NAMES = {
 export const PLAN_PRICING = {
     light: {
         setup: 128000,
-        monthly: 29800,
+        monthly: 9800,
+        originalPrice: 29800, // 元の定価
         annual: 327800 // 1ヶ月分割引
     },
     standard: {
         setup: 128000,
-        monthly: 49800,
+        monthly: 29800,
+        originalPrice: 49800, // 元の定価
         annual: 547800 // 1ヶ月分割引
     },
     premium_ai: {
         setup: 198000,
         monthly: 79800,
+        originalPrice: 99800, // 元の定価
         annual: 877800 // 1ヶ月分割引
     }
 };
