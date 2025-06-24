@@ -1641,9 +1641,6 @@ function App() {
               >
                 <Bot className="w-5 h-5 flex-shrink-0 text-purple-600" />
                 <span className="font-medium">AIシフト最適化</span>
-                <span className="ml-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  革新
-                </span>
               </button>
               
               <button
