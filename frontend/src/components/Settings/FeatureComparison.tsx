@@ -208,7 +208,7 @@ const FeatureComparison: React.FC<FeatureComparisonProps> = ({ currentPlan, comp
           <ul className="mt-2 space-y-1 text-sm text-gray-600">
             <li>• 全機能無制限</li>
             <li>• 高度なAI分析・予測</li>
-            <li>• 24時間電話サポート</li>
+            <li>• LINE＋チャットサポート（24時間）</li>
           </ul>
         </div>
       </div>

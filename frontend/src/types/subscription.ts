@@ -227,19 +227,19 @@ export interface PlanPricing {
 // プラン料金情報（バックエンドと統一）
 export const PLAN_PRICING: Record<SubscriptionPlan, PlanPricing> = {
   light: {
-    setup: 128000,
+    setup: 49800,
     monthly: 9800,
     originalPrice: 29800, // 元の定価
     annual: 327800 // 1ヶ月分割引
   },
   standard: {
-    setup: 128000,
+    setup: 79800,
     monthly: 29800,
     originalPrice: 49800, // 元の定価
     annual: 547800 // 1ヶ月分割引
   },
   premium_ai: {
-    setup: 198000,
+    setup: 148000,
     monthly: 79800,
     originalPrice: 99800, // 元の定価
     annual: 877800 // 1ヶ月分割引
