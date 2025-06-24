@@ -52,8 +52,8 @@ model Tenant {
   feedback             Feedback[]
   quickRatings         QuickRating[]
   tenantFeatureFlags   TenantFeatureFlag[]
-  supportRequests      SupportRequest[]
-  supportAvailability  SupportAvailability[]
+  // supportRequests      SupportRequest[]
+  // supportAvailability  SupportAvailability[]
   salaryDashboards     SalaryDashboard[]
   incentiveRules       IncentiveRule[]
   staffAchievements    StaffAchievement[]
@@ -125,11 +125,11 @@ model Staff {
   securityEvents          SecurityEvent[] @relation("SecurityEvents")
   staffPerformance        StaffPerformance[]
   preferredByCustomers    Customer[] @relation("PreferredStaff")
-  supportRequests         SupportRequest[] @relation("SupportRequester")
-  supportAvailability     SupportAvailability[] @relation("SupportStaff")
-  supportResponses        SupportResponse[] @relation("SupportResponder")
-  supportAsSupporter      SupportMatch[] @relation("Supporter")
-  supportAsRequester      SupportMatch[] @relation("Requester")
+  // supportRequests         SupportRequest[] @relation("SupportRequester")
+  // supportAvailability     SupportAvailability[] @relation("SupportStaff")
+  // supportResponses        SupportResponse[] @relation("SupportResponder")
+  // supportAsSupporter      SupportMatch[] @relation("Supporter")
+  // supportAsRequester      SupportMatch[] @relation("Requester")
   salaryDashboards        SalaryDashboard[] @relation("SalaryDashboard")
   dailySalaryRecords      DailySalaryRecord[] @relation("DailySalaryRecord")
   staffAchievements       StaffAchievement[] @relation("StaffAchievement")

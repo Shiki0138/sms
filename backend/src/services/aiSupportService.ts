@@ -198,10 +198,10 @@ export const aiSupportService = {
       
       // OpenAI APIを呼び出し
       const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
         messages,
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '500'),
       })
       
       const responseContent = completion.choices[0]?.message?.content || 'お答えできません。'
@@ -212,7 +212,7 @@ export const aiSupportService = {
       return {
         content: responseContent,
         suggestions,
-        model: 'gpt-3.5-turbo',
+        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
         tokensUsed: completion.usage?.total_tokens || 0,
       }
     } catch (error) {

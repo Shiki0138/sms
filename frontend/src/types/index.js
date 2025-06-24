@@ -1,2 +1,3 @@
+"use strict";
 // Type definitions for the salon management system
-export {};
+Object.defineProperty(exports, "__esModule", { value: true });

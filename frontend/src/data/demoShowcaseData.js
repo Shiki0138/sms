@@ -1,8 +1,11 @@
+"use strict";
 // 🌟 明日の美容師向けデモ用データセット
 // 作成日: 2025-06-22
 // 目的: リアルで魅力的なデモンストレーション用データ
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.demoShowcaseData = exports.demoReservations = exports.demoSalesSummary = exports.demoMessages = exports.demoServiceHistory = exports.demoCustomers = exports.demoStaff = exports.demoSalonInfo = void 0;
 // 🏪 デモ美容室基本情報
-export const demoSalonInfo = {
+exports.demoSalonInfo = {
     id: 'demo-salon-2025',
     name: 'Beauty Salon DEMO',
     nameKana: 'ビューティーサロンデモ',
@@ -29,7 +32,7 @@ export const demoSalonInfo = {
     ]
 };
 // 👨‍💼 デモ用スタッフデータ
-export const demoStaff = [
+exports.demoStaff = [
     {
         id: 'staff-001',
         name: '佐藤 美咲',
@@ -92,7 +95,7 @@ export const demoStaff = [
     }
 ];
 // 👥 デモ用顧客データ（多様な顧客層）
-export const demoCustomers = [
+exports.demoCustomers = [
     {
         id: 'cust-001',
         name: '山田 花子',
@@ -489,15 +492,15 @@ const generateReservations = () => {
         // スタッフごとに予約を割り振り
         pattern.staffDistribution.forEach((count, staffIndex) => {
             for (let i = 0; i < count; i++) {
-                const customer = demoCustomers[customerIndex % demoCustomers.length];
+                const customer = exports.demoCustomers[customerIndex % exports.demoCustomers.length];
                 const startTime = `${String(timeSlot).padStart(2, '0')}:${i % 2 === 0 ? '00' : '30'}`;
                 const duration = customer.tags?.includes('VIP') ? 120 : 90;
                 reservations.push({
                     id: `res-${date.toISOString().split('T')[0]}-${customerIndex}`,
                     customerId: customer.id,
                     customerName: customer.name,
-                    staffId: demoStaff[staffIndex].id,
-                    staffName: demoStaff[staffIndex].name,
+                    staffId: exports.demoStaff[staffIndex].id,
+                    staffName: exports.demoStaff[staffIndex].name,
                     date: date.toISOString().split('T')[0],
                     time: startTime,
                     startTime: startTime,
@@ -574,7 +577,7 @@ const getBookingSource = (customer) => {
     return 'Web';
 };
 // 📊 施術履歴データ
-export const demoServiceHistory = demoCustomers.flatMap(customer => {
+exports.demoServiceHistory = exports.demoCustomers.flatMap(customer => {
     const historyCount = Math.floor(Math.random() * 3) + 3; // 3-5件の履歴
     const histories = [];
     for (let i = 0; i < historyCount; i++) {
@@ -585,8 +588,8 @@ export const demoServiceHistory = demoCustomers.flatMap(customer => {
             id: `hist-${customer.id}-${i}`,
             customerId: customer.id,
             customerName: customer.name,
-            staffId: customer.preferredStaff || demoStaff[0].id,
-            staffName: demoStaff.find(s => s.id === customer.preferredStaff)?.name || demoStaff[0].name,
+            staffId: customer.preferredStaff || exports.demoStaff[0].id,
+            staffName: exports.demoStaff.find(s => s.id === customer.preferredStaff)?.name || exports.demoStaff[0].name,
             date: date.toISOString().split('T')[0],
             service: getRandomMenu(customer),
             menuContent: getRandomMenu(customer),
@@ -602,7 +605,7 @@ export const demoServiceHistory = demoCustomers.flatMap(customer => {
     return histories;
 });
 // 💬 メッセージ履歴
-export const demoMessages = [
+exports.demoMessages = [
     {
         id: 'msg-001',
         customerId: 'cust-001',
@@ -718,7 +721,7 @@ export const demoMessages = [
     }
 ];
 // 📈 売上サマリーデータ
-export const demoSalesSummary = {
+exports.demoSalesSummary = {
     today: {
         revenue: 52000,
         customers: 5,
@@ -750,14 +753,14 @@ export const demoSalesSummary = {
     }
 };
 // 予約データ生成
-export const demoReservations = generateReservations();
+exports.demoReservations = generateReservations();
 // エクスポート
-export const demoShowcaseData = {
-    salon: demoSalonInfo,
-    staff: demoStaff,
-    customers: demoCustomers,
-    reservations: demoReservations,
-    serviceHistory: demoServiceHistory,
-    messages: demoMessages,
-    salesSummary: demoSalesSummary
+exports.demoShowcaseData = {
+    salon: exports.demoSalonInfo,
+    staff: exports.demoStaff,
+    customers: exports.demoCustomers,
+    reservations: exports.demoReservations,
+    serviceHistory: exports.demoServiceHistory,
+    messages: exports.demoMessages,
+    salesSummary: exports.demoSalesSummary
 };
