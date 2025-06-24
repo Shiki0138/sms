@@ -57,7 +57,7 @@ const FeatureComparison: React.FC<FeatureComparisonProps> = ({ currentPlan, comp
     { category: 'セキュリティ', name: '2段階認証', light: true, standard: true, premium_ai: true },
     { category: 'セキュリティ', name: 'IPアドレス制限', light: true, standard: true, premium_ai: true },
     { category: 'カスタマイズ', name: 'API利用', light: false, standard: false, premium_ai: true },
-    { category: 'サポート', name: 'サポート', light: 'メール', standard: '優先メール', premium_ai: '24時間電話' }
+    { category: 'サポート', name: 'サポート', light: 'メール＋チャット', standard: 'メール＋チャット', premium_ai: 'LINE＋チャット' }
   ]
 
   // カテゴリごとにグループ化
