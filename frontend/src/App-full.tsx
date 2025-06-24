@@ -17,12 +17,7 @@ import {
   X,
   ExternalLink,
   Save,
-  Eye,
-  EyeOff,
-  RefreshCw,
-  Link,
   User,
-  MapPin,
   Calendar as CalendarIcon,
   FileText,
   ChevronLeft,
@@ -30,7 +25,9 @@ import {
   Scissors,
   Palette,
   Star,
-  Sparkles
+  Sparkles,
+  Link,
+  RefreshCw
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -174,25 +171,6 @@ function App() {
   }
 
   // Handle LINE click
-  const handleLineClick = () => {
-    // Try to open LINE app on mobile, fallback to web
-    const lineUrl = 'line://'
-    const lineWebUrl = 'https://line.me/'
-    
-    const userAgent = navigator.userAgent.toLowerCase()
-    const isMobile = /iphone|ipad|android/.test(userAgent)
-    
-    if (isMobile) {
-      // Try to open LINE app
-      window.location.href = lineUrl
-      // Fallback to web version after a delay
-      setTimeout(() => {
-        window.open(lineWebUrl, '_blank')
-      }, 1000)
-    } else {
-      window.open(lineWebUrl, '_blank')
-    }
-  }
   
   // Get menu icon based on menu content
   const getMenuIcon = (menuContent: string) => {
