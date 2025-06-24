@@ -55,8 +55,9 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/salon_test
 
     - name: 🧪 ユニットテスト実行
-      run: npx jest --config jest.simple.config.js --coverage
+      run: npx jest --config jest.simple.config.js --coverage --maxWorkers=2
       env:
+        NODE_OPTIONS: "--max-old-space-size=4096"
         NODE_ENV: test
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/salon_test
 

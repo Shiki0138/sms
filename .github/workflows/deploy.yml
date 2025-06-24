@@ -45,8 +45,10 @@ jobs:
         cd ../frontend && npm ci
 
     - name: 🧪 クリティカルテスト実行
+      env:
+        NODE_OPTIONS: "--max-old-space-size=4096"
       run: |
-        npx jest --config jest.simple.config.js
+        npx jest --config jest.simple.config.js --maxWorkers=2
         echo "✅ クリティカルテスト完了"
 
     - name: 🏗️ ビルドテスト
@@ -229,4 +231,4 @@ jobs:
         message: |
           🚨 緊急事態: プロダクションデプロイ失敗
           🔄 自動ロールバックを実行しました
-          👥 @channel 至急対応をお願いします
+          👥 @channel 至急対応をお願いしますNODE_OPTIONS="--max-old-space-size=4096"
