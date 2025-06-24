@@ -49,20 +49,24 @@ const UpgradePlan = () => {
         light: [
             { icon: 'staff', text: 'スタッフ3名まで', included: true },
             { icon: 'customers', text: '顧客500名まで', included: true },
-            { icon: 'messaging', text: '基本メッセージ管理', included: true },
+            { icon: 'messaging', text: 'LINE/Instagram連携', included: true },
+            { icon: 'messaging', text: '一括送信（月10件）', included: true },
             { icon: 'export', text: 'CSVエクスポート（月3回）', included: true },
+            { icon: 'premium', text: 'メール＋チャットサポート', included: true },
             { icon: 'ai', text: 'AI機能', included: false },
             { icon: 'analytics', text: '高度な分析', included: false },
-            { icon: 'realtime', text: 'リアルタイムダッシュボード', included: false }
+            { icon: 'premium', text: 'API利用', included: false }
         ],
         standard: [
             { icon: 'staff', text: 'スタッフ10名まで', included: true },
             { icon: 'customers', text: '顧客2,000名まで', included: true },
+            { icon: 'messaging', text: 'LINE/Instagram連携', included: true },
             { icon: 'ai', text: 'AI返信機能（月200回）', included: true },
             { icon: 'analytics', text: '顧客分析・売上分析', included: true },
-            { icon: 'messaging', text: 'LINE/Instagram連携', included: true },
+            { icon: 'messaging', text: '一括送信（月500件）', included: true },
             { icon: 'export', text: '無制限エクスポート', included: true },
-            { icon: 'realtime', text: 'リアルタイムダッシュボード', included: false }
+            { icon: 'premium', text: 'メール＋チャットサポート', included: true },
+            { icon: 'premium', text: 'API利用', included: false }
         ],
         premium_ai: [
             { icon: 'staff', text: '無制限スタッフ', included: true },
@@ -72,7 +76,8 @@ const UpgradePlan = () => {
             { icon: 'messaging', text: '全チャネル統合', included: true },
             { icon: 'export', text: '無制限エクスポート', included: true },
             { icon: 'realtime', text: 'リアルタイムダッシュボード', included: true },
-            { icon: 'premium', text: '優先サポート・API アクセス', included: true }
+            { icon: 'premium', text: 'LINE＋チャットサポート（24時間）', included: true },
+            { icon: 'premium', text: 'API利用', included: false }
         ]
     };
     const handleUpgrade = async () => {
