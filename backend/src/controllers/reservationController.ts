@@ -328,7 +328,7 @@ export const createReservation = asyncHandler(async (req: AuthenticatedRequest, 
       action: 'RESERVATION_CREATED',
       entityType: 'Reservation',
       entityId: reservation.id,
-      description: `Reservation created: ${data.customerName || reservation.customer?.name || 'Unknown'} - ${data.menuContent}`,
+      description: `Reservation created: ${data.customerName || 'Unknown'} - ${data.menuContent}`,
       staffId: req.user!.userId,
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
@@ -780,15 +780,20 @@ export const optimizeBooking = asyncHandler(async (req: AuthenticatedRequest, re
   const smartBookingService = new SmartBookingService(tenantId);
   
   try {
-    const suggestions = await smartBookingService.optimizeBooking({
+    const bookingRequest: any = {
       menuContent: data.menuContent,
       estimatedDuration: data.estimatedDuration,
       preferredDate: data.preferredDate,
-      preferredTimeRange: data.preferredTimeRange,
       customerId: data.customerId,
       customerPriority: data.customerPriority,
       flexibility: data.flexibility,
-    });
+    };
+    
+    if (data.preferredTimeRange) {
+      bookingRequest.preferredTimeRange = data.preferredTimeRange;
+    }
+    
+    const suggestions = await smartBookingService.optimizeBooking(bookingRequest);
 
     logger.info('Booking optimization completed', {
       tenantId,

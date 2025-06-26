@@ -131,10 +131,10 @@ export async function seedDatabase() {
       },
       update: {},
       create: {
+        tenantId: tenant.id,
         name: 'VIP顧客',
         color: '#FFD700',
         type: 'CUSTOMER',
-        tenantId: tenant.id,
       },
     })
 
@@ -148,10 +148,10 @@ export async function seedDatabase() {
       },
       update: {},
       create: {
+        tenantId: tenant.id,
         name: '新規顧客',
         color: '#10B981',
         type: 'CUSTOMER',
-        tenantId: tenant.id,
       },
     })
 
@@ -165,10 +165,10 @@ export async function seedDatabase() {
       },
       update: {},
       create: {
+        tenantId: tenant.id,
         name: 'カラー希望',
         color: '#F59E0B',
         type: 'CUSTOMER',
-        tenantId: tenant.id,
       },
     })
 
@@ -182,10 +182,10 @@ export async function seedDatabase() {
       },
       update: {},
       create: {
+        tenantId: tenant.id,
         name: '急ぎ対応',
         color: '#EF4444',
         type: 'THREAD',
-        tenantId: tenant.id,
       },
     })
 
@@ -199,10 +199,10 @@ export async function seedDatabase() {
       },
       update: {},
       create: {
+        tenantId: tenant.id,
         name: 'フォローアップ',
         color: '#8B5CF6',
         type: 'THREAD',
-        tenantId: tenant.id,
       },
     })
 
