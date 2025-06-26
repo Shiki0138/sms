@@ -168,6 +168,9 @@ export const PERMISSIONS = {
   // System settings
   SETTINGS_READ: 'settings:read',
   SETTINGS_WRITE: 'settings:write',
+  
+  // Super admin permissions
+  SUPER_ADMIN: 'super_admin:all',
 } as const;
 
 /**

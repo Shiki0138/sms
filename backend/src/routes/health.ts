@@ -36,15 +36,16 @@ router.get('/', async (req: Request, res: Response) => {
     
     health.checks.database = {
       status: 'ok',
-      responseTime: dbResponseTime
-    };
+      responseTime: dbResponseTime,
+      error: undefined
+    } as any;
   } catch (error) {
     logger.error('Database health check failed:', error);
     health.checks.database = {
       status: 'error',
       responseTime: 0,
       error: error instanceof Error ? error.message : 'Unknown database error'
-    };
+    } as any;
   }
 
   // Memory health check
@@ -60,8 +61,9 @@ router.get('/', async (req: Request, res: Response) => {
       heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
       external: Math.round(memoryUsage.external / 1024 / 1024), // MB
       percent: Math.round(memoryUsagePercent)
-    }
-  };
+    },
+    error: undefined
+  } as any;
 
   // Overall health determination
   const hasErrors = Object.values(health.checks).some(check => check.status === 'error');
@@ -75,7 +77,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   // Response time
   const responseTime = Date.now() - startTime;
-  health.metrics.responseTime = responseTime;
+  (health.metrics as any).responseTime = responseTime;
 
   // HTTP status based on health
   const httpStatus = health.status === 'healthy' ? 200 : 
@@ -138,11 +140,7 @@ router.get('/metrics', (req: Request, res: Response) => {
   // Prometheus format
   let prometheusMetrics = '';
   Object.entries(metrics).forEach(([key, value]) => {
-    if (typeof value === 'string' && value.startsWith('#')) {
-      prometheusMetrics += value + '\n';
-    } else {
-      prometheusMetrics += `${key} ${value}\n`;
-    }
+    prometheusMetrics += `${key} ${value}\n`;
   });
 
   res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');

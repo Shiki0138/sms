@@ -31,20 +31,20 @@ export const createSupportRequest = async (req: AuthenticatedRequest, res: Respo
       urgencyLevel = 'MEDIUM'
     } = req.body;
 
-    const supportRequest = await prisma.supportRequest.create({
+    const supportRequest = await prisma.supportStaffRequest.create({
       data: {
-        tenantId: req.user?.tenantId,
-        requesterId: req.user?.staffId,
+        tenantId: req.user!.tenantId,
+        requesterId: req.user!.staffId,
         title,
         description,
         requiredSkills: JSON.stringify(requiredSkills || []),
-        preferredTime: new Date(preferredTime),
-        duration: parseInt(duration),
+        workDate: new Date(preferredTime),
+        startTime: '09:00',
+        endTime: '18:00',
         hourlyRate: parseFloat(hourlyRate),
         location,
-        latitude: latitude ? parseFloat(latitude) : null,
-        longitude: longitude ? parseFloat(longitude) : null,
-        maxDistance: parseInt(maxDistance),
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
         urgencyLevel
       },
       include: {
@@ -96,19 +96,19 @@ export const createAvailability = async (req: AuthenticatedRequest, res: Respons
       notes
     } = req.body;
 
-    const availability = await prisma.supportAvailability.create({
+    const availability = await prisma.supportStaffAvailability.create({
       data: {
-        staffId: req.user?.staffId,
-        tenantId: req.user?.tenantId,
+        staffProfileId: req.user!.staffId,
         availableFrom: new Date(availableFrom),
         availableTo: new Date(availableTo),
-        skills: JSON.stringify(skills || []),
+        availableDays: JSON.stringify(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']),
+        availableHours: JSON.stringify(['09:00-18:00']),
+        services: JSON.stringify(skills || []),
         hourlyRate: parseFloat(hourlyRate),
-        maxDistance: parseInt(maxDistance),
         notes
       },
       include: {
-        staff: {
+        staffProfile: {
           select: { id: true, name: true, email: true }
         }
       }
@@ -143,11 +143,11 @@ export const respondToRequest = async (req: AuthenticatedRequest, res: Response)
     const { availabilityId, message, proposedRate } = req.body;
 
     // 既に応答済みかチェック
-    const existingResponse = await prisma.supportResponse.findUnique({
+    const existingResponse = await prisma.supportStaffApplication.findUnique({
       where: {
-        requestId_responderId: {
+        requestId_staffProfileId: {
           requestId,
-          responderId: req.user?.staffId
+          staffProfileId: req.user!.staffId
         }
       }
     });
@@ -156,18 +156,18 @@ export const respondToRequest = async (req: AuthenticatedRequest, res: Response)
       return res.status(400).json({ error: '既にこの要請に応答済みです' });
     }
 
-    const response = await prisma.supportResponse.create({
+    const response = await prisma.supportStaffApplication.create({
       data: {
         requestId,
         availabilityId,
-        responderId: req.user?.staffId,
+        staffProfileId: req.user!.staffId,
         message,
         proposedRate: proposedRate ? parseFloat(proposedRate) : null
       },
       include: {
         availability: {
           include: {
-            staff: {
+            staffProfile: {
               select: { id: true, name: true, email: true }
             }
           }
@@ -200,14 +200,14 @@ export const respondToRequest = async (req: AuthenticatedRequest, res: Response)
 async function notifyNearbyStylists(request: any) {
   try {
     // 簡易的な距離計算（実装時はより精密な計算が必要）
-    const availableStylists = await prisma.supportAvailability.findMany({
+    const availableStylists = await prisma.supportStaffAvailability.findMany({
       where: {
         isActive: true,
-        availableFrom: { lte: request.preferredTime },
-        availableTo: { gte: request.preferredTime }
+        availableFrom: { lte: request.workDate },
+        availableTo: { gte: request.workDate }
       },
       include: {
-        staff: { select: { id: true, name: true, email: true } }
+        staffProfile: { select: { id: true, name: true, email: true } }
       }
     });
 
@@ -232,18 +232,18 @@ export const getSupportRequests = async (req: AuthenticatedRequest, res: Respons
 
     const { status = 'OPEN', page = 1, limit = 20 } = req.query;
 
-    const requests = await prisma.supportRequest.findMany({
+    const requests = await prisma.supportStaffRequest.findMany({
       where: {
-        tenantId: req.user?.tenantId,
+        tenantId: req.user!.tenantId,
         status: status as string
       },
       include: {
         requester: {
           select: { id: true, name: true }
         },
-        responses: {
+        applications: {
           include: {
-            responder: {
+            staffProfile: {
               select: { id: true, name: true }
             }
           }
@@ -283,9 +283,9 @@ export const getMyAvailability = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    const availability = await prisma.supportAvailability.findMany({
+    const availability = await prisma.supportStaffAvailability.findMany({
       where: {
-        staffId: req.user?.staffId,
+        staffProfileId: req.user!.staffId,
         isActive: true
       },
       orderBy: { availableFrom: 'asc' }
@@ -317,13 +317,13 @@ export const confirmMatch = async (req: AuthenticatedRequest, res: Response) => 
     const { agreedRate, startTime, endTime } = req.body;
 
     // 応答の詳細を取得
-    const response = await prisma.supportResponse.findUnique({
+    const response = await prisma.supportStaffApplication.findUnique({
       where: { id: responseId },
       include: {
         request: {
           include: { requester: true }
         },
-        responder: true
+        staffProfile: true
       }
     });
 
@@ -336,28 +336,31 @@ export const confirmMatch = async (req: AuthenticatedRequest, res: Response) => 
       return res.status(403).json({ error: 'マッチング確定権限がありません' });
     }
 
-    const match = await prisma.supportMatch.create({
+    const match = await prisma.supportStaffMatch.create({
       data: {
         requestId: response.requestId,
-        responseId: response.id,
-        supporterId: response.responderId,
-        requesterId: response.request.requesterId,
+        applicationId: response.id,
+        supportStaffId: response.staffProfileId,
         agreedRate: parseFloat(agreedRate),
-        startTime: new Date(startTime),
-        endTime: new Date(endTime)
+        agreedStartTime: startTime,
+        agreedEndTime: endTime
       },
       include: {
-        supporter: {
+        supportStaff: {
           select: { id: true, name: true, email: true }
         },
-        requester: {
-          select: { id: true, name: true, email: true }
+        request: {
+          include: {
+            requester: {
+              select: { id: true, name: true, email: true }
+            }
+          }
         }
       }
     });
 
     // 応援要請のステータスを更新
-    await prisma.supportRequest.update({
+    await prisma.supportStaffRequest.update({
       where: { id: response.requestId },
       data: { status: 'MATCHED' }
     });

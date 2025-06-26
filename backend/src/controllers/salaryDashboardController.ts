@@ -44,7 +44,7 @@ export const getSalaryDashboard = async (req: AuthenticatedRequest, res: Respons
 
     // ダッシュボードが存在しない場合は作成
     if (!dashboard) {
-      dashboard = await createSalaryDashboard(targetStaffId, req.user?.tenantId, Number(year), Number(month));
+      dashboard = await createSalaryDashboard(targetStaffId!, req.user?.tenantId!, Number(year), Number(month));
     } else {
       // データを最新に更新
       dashboard = await updateSalaryDashboard(dashboard.id);
@@ -86,7 +86,7 @@ export const setMonthlyGoal = async (req: AuthenticatedRequest, res: Response) =
     const dashboard = await prisma.salaryDashboard.upsert({
       where: {
         staffId_year_month: {
-          staffId: req.user?.staffId,
+          staffId: req.user!.staffId,
           year: Number(year),
           month: Number(month)
         }
@@ -95,8 +95,8 @@ export const setMonthlyGoal = async (req: AuthenticatedRequest, res: Response) =
         monthlyGoal: parseFloat(monthlyGoal)
       },
       create: {
-        staffId: req.user?.staffId,
-        tenantId: req.user?.tenantId,
+        staffId: req.user!.staffId,
+        tenantId: req.user!.tenantId,
         year: Number(year),
         month: Number(month),
         monthlyGoal: parseFloat(monthlyGoal)
@@ -151,7 +151,7 @@ export const recordDailySalary = async (req: AuthenticatedRequest, res: Response
     let dashboard = await prisma.salaryDashboard.findUnique({
       where: {
         staffId_year_month: {
-          staffId: req.user?.staffId,
+          staffId: req.user!.staffId,
           year,
           month
         }
@@ -159,14 +159,14 @@ export const recordDailySalary = async (req: AuthenticatedRequest, res: Response
     });
 
     if (!dashboard) {
-      dashboard = await createSalaryDashboard(req.user?.staffId, req.user?.tenantId, year, month);
+      dashboard = await createSalaryDashboard(req.user!.staffId, req.user!.tenantId, year, month);
     }
 
     // 日別記録を作成/更新
     const dailyRecord = await prisma.dailySalaryRecord.upsert({
       where: {
         staffId_date: {
-          staffId: req.user?.staffId,
+          staffId: req.user!.staffId,
           date: recordDate
         }
       },
@@ -182,7 +182,7 @@ export const recordDailySalary = async (req: AuthenticatedRequest, res: Response
       },
       create: {
         dashboardId: dashboard.id,
-        staffId: req.user?.staffId,
+        staffId: req.user!.staffId,
         date: recordDate,
         hoursWorked: parseFloat(hoursWorked),
         customersServed: parseInt(customersServed),

@@ -348,14 +348,14 @@ export class MonitoringService {
       }
 
       // データベースにアラート履歴保存
-      await prisma.systemAlert.create({
-        data: {
-          severity: severity.toUpperCase(),
-          message,
-          details: details ? JSON.stringify(details) : null,
-          resolved: false,
-          createdAt: new Date()
-        }
+      // Note: systemAlert model doesn't exist in the schema
+      // This is a stub implementation
+      logger.warn('SystemAlert model not found in schema - skipping database save', {
+        severity: severity.toUpperCase(),
+        message,
+        details: details ? JSON.stringify(details) : null,
+        resolved: false,
+        createdAt: new Date()
       });
 
     } catch (error) {
@@ -481,15 +481,10 @@ export class MonitoringService {
   }
 
   private static async getRecentAlerts(): Promise<any[]> {
-    return await prisma.systemAlert.findMany({
-      where: {
-        createdAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // 24時間以内
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 50
-    });
+    // Note: systemAlert model doesn't exist in the schema
+    // This is a stub implementation
+    logger.warn('SystemAlert model not found in schema - returning empty array');
+    return [];
   }
 
   private static async getPerformanceStatistics(): Promise<any> {

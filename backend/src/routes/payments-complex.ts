@@ -182,8 +182,7 @@ router.post('/reservations/:reservationId/payment', authenticateToken, async (re
         tenantId
       },
       include: {
-        customer: true,
-        menu: true
+        customer: true
       }
     });
 
@@ -195,19 +194,19 @@ router.post('/reservations/:reservationId/payment', authenticateToken, async (re
       return res.status(400).json({ error: 'この予約は既に支払い済みです' });
     }
 
-    // 金額検証（メニュー料金と一致するか）
-    const menuPrice = reservation.menu?.price || 0;
-    if (paymentType === 'full' && amount !== menuPrice) {
-      return res.status(400).json({ error: '支払い金額がメニュー料金と一致しません' });
+    // 金額検証（予約の総額と一致するか）
+    const totalAmount = Number(reservation.totalAmount) || 0;
+    if (paymentType === 'full' && amount !== totalAmount) {
+      return res.status(400).json({ error: '支払い金額が予約金額と一致しません' });
     }
 
-    if (paymentType === 'deposit' && amount > menuPrice) {
-      return res.status(400).json({ error: '前払い金額がメニュー料金を超えています' });
+    if (paymentType === 'deposit' && amount > totalAmount) {
+      return res.status(400).json({ error: '前払い金額が予約金額を超えています' });
     }
 
     // PaymentControllerのメソッドを使用
     req.body.reservationId = reservationId;
-    req.body.description = `${reservation.menu?.name || '美容室サービス'} - ${paymentType === 'full' ? '全額支払い' : '前払い'}`;
+    req.body.description = `${reservation.menuContent || '美容室サービス'} - ${paymentType === 'full' ? '全額支払い' : '前払い'}`;
     
     await paymentController.createPayment(req, res);
     
@@ -247,7 +246,7 @@ router.post('/reservations/:reservationId/cancel', authenticateToken, async (req
     const startTime = new Date(reservation.startTime);
     const hoursUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    let refundAmount = reservation.totalAmount;
+    let refundAmount = Number(reservation.totalAmount) || 0;
     let refundReason = reason;
 
     // キャンセル料金ポリシー適用
@@ -326,57 +325,60 @@ router.get('/analytics', authenticateToken, async (req, res) => {
     const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = endDate ? new Date(endDate as string) : new Date();
 
+    // TODO: payment model needs to be added to schema
+    // Using reservations as a proxy for payment data
     const [totalRevenue, paymentCount, refundAmount, successRate] = await Promise.all([
-      // 総売上
-      prisma.payment.aggregate({
+      // 総売上 - use reservations with paid status
+      prisma.reservation.aggregate({
         where: {
           tenantId,
-          status: 'succeeded',
+          paymentStatus: 'paid',
           createdAt: { gte: start, lte: end }
         },
-        _sum: { amount: true }
+        _sum: { totalAmount: true }
       }),
-      // 支払い回数
-      prisma.payment.count({
+      // 支払い回数 - count paid reservations
+      prisma.reservation.count({
         where: {
           tenantId,
-          status: 'succeeded',
+          paymentStatus: 'paid',
           createdAt: { gte: start, lte: end }
         }
       }),
-      // 返金額
-      prisma.payment.aggregate({
+      // 返金額 - count refunded reservations
+      prisma.reservation.aggregate({
         where: {
           tenantId,
-          status: 'refunded',
+          paymentStatus: 'refunded',
           createdAt: { gte: start, lte: end }
         },
-        _sum: { amount: true }
+        _sum: { totalAmount: true }
       }),
-      // 成功率計算用データ
-      prisma.payment.groupBy({
-        by: ['status'],
+      // 成功率計算用データ - group by payment status
+      prisma.reservation.groupBy({
+        by: ['paymentStatus'],
         where: {
           tenantId,
-          createdAt: { gte: start, lte: end }
+          createdAt: { gte: start, lte: end },
+          paymentStatus: { not: null }
         },
         _count: true
       })
     ]);
 
     const totalAttempts = successRate.reduce((sum, group) => sum + group._count, 0);
-    const successfulPayments = successRate.find(group => group.status === 'succeeded')?._count || 0;
+    const successfulPayments = successRate.find(group => group.paymentStatus === 'paid')?._count || 0;
     const calculatedSuccessRate = totalAttempts > 0 ? (successfulPayments / totalAttempts) * 100 : 0;
 
     await prisma.$disconnect();
 
     res.json({
       period: { start, end },
-      totalRevenue: totalRevenue._sum.amount || 0,
+      totalRevenue: Number(totalRevenue._sum.totalAmount) || 0,
       paymentCount,
-      refundAmount: refundAmount._sum.amount || 0,
+      refundAmount: Number(refundAmount._sum.totalAmount) || 0,
       successRate: Math.round(calculatedSuccessRate * 100) / 100,
-      netRevenue: (totalRevenue._sum.amount || 0) - (refundAmount._sum.amount || 0)
+      netRevenue: (Number(totalRevenue._sum.totalAmount) || 0) - (Number(refundAmount._sum.totalAmount) || 0)
     });
   } catch (error) {
     logger.error('Payment analytics error:', error);

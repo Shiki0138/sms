@@ -74,8 +74,8 @@ export class BusinessStrategyService {
       ] = await Promise.all([
         this.calculateBusinessMetrics(tenantId, period),
         this.analyzeCustomerSegments(tenantId, period),
-        this.analyzeOperationalEfficiency(tenantId, period),
-        this.analyzeMarketingEffectiveness(tenantId, period)
+        this.calculateOperationalMetrics(tenantId, period),
+        this.calculateMarketingMetrics(tenantId, period)
       ]);
 
       // AI戦略提案生成
@@ -172,7 +172,7 @@ export class BusinessStrategyService {
       _sum: { totalAmount: true }
     });
 
-    return result._sum.totalAmount || 0;
+    return result._sum.totalAmount ? Number(result._sum.totalAmount) : 0;
   }
 
   /**
@@ -245,7 +245,7 @@ export class BusinessStrategyService {
         tenantId,
         startTime: { gte: startDate, lte: endDate }
       },
-      include: { menu: true, staff: true }
+      include: { staff: true }
     });
 
     // 利用率計算
@@ -257,6 +257,7 @@ export class BusinessStrategyService {
     const completedReservations = reservations.filter(r => r.status === 'COMPLETED');
     const avgServiceTime = completedReservations.length > 0 
       ? completedReservations.reduce((sum, r) => {
+          if (!r.endTime) return sum;
           const duration = r.endTime.getTime() - r.startTime.getTime();
           return sum + (duration / (1000 * 60)); // 分に変換
         }, 0) / completedReservations.length
@@ -536,7 +537,7 @@ export class BusinessStrategyService {
       _avg: { totalSpent: true }
     });
     
-    return result._avg.totalSpent || 0;
+    return result._avg.totalSpent ? Number(result._avg.totalSpent) : 0;
   }
 
   private static async calculateTotalAvailableSlots(
@@ -571,7 +572,7 @@ export class BusinessStrategyService {
     if (staffPerformance.length === 0) return 0;
 
     const avgEfficiency = staffPerformance.reduce((sum, staff) => {
-      const revenue = staff._sum.totalAmount || 0;
+      const revenue = staff._sum.totalAmount ? Number(staff._sum.totalAmount) : 0;
       const bookings = staff._count;
       return sum + (revenue / Math.max(bookings, 1));
     }, 0) / staffPerformance.length;

@@ -33,9 +33,8 @@ export class StripePaymentProvider implements IPaymentProvider {
         
         return {
           success: false,
-          error: '🎭 デモモードでは決済機能は無効化されています',
-          paymentId: undefined,
-          transactionId: undefined
+          errorMessage: '🎭 デモモードでは決済機能は無効化されています',
+          paymentId: undefined
         }
       }
 

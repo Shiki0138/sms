@@ -7,13 +7,13 @@ import {
   getMyAvailability,
   confirmMatch
 } from '../controllers/supportBeauticianController';
-import { requireAuth } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
 import { requireFeatureFlag } from '../middleware/featureFlag';
 
 const router = express.Router();
 
 // 全ルートに認証を適用
-router.use(requireAuth);
+router.use(authenticateToken);
 
 // 応援要請関連
 router.post('/requests', createSupportRequest);

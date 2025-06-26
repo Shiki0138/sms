@@ -72,10 +72,10 @@ export interface Invoice {
   status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
   periodStart: Date;
   periodEnd: Date;
-  dueDate: Date;
-  paidAt?: Date;
-  invoiceUrl?: string;
-  invoicePdf?: string;
+  dueDate: Date | null;
+  paidAt?: Date | null;
+  invoiceUrl?: string | null;
+  invoicePdf?: string | null;
   createdAt: Date;
 }
 

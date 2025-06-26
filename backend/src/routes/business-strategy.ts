@@ -283,8 +283,8 @@ router.get('/forecasting/revenue',
       await prisma.$disconnect();
 
       // 簡易予測計算（実際はより高度な機械学習アルゴリズムを使用）
-      const forecast = historicalData && historicalData.length > 0 
-        ? this.calculateRevenueForecast(historicalData, Number(months))
+      const forecast = historicalData && Array.isArray(historicalData) && historicalData.length > 0 
+        ? calculateRevenueForecast(historicalData, Number(months))
         : [];
 
       res.json({
@@ -396,14 +396,17 @@ router.get('/kpi/progress',
       const prisma = new PrismaClient();
 
       // 目標値取得
-      const targets = await prisma.kpiTarget.findUnique({
+      // TODO: kpiTarget model needs to be added to schema
+      const targetSetting = await prisma.tenantSetting.findUnique({
         where: {
-          tenantId_period: {
+          tenantId_key: {
             tenantId,
-            period: period as string
+            key: 'kpi_targets'
           }
         }
       });
+      
+      const targets = targetSetting ? JSON.parse(targetSetting.value) : null;
 
       if (!targets) {
         return res.status(404).json({
@@ -438,30 +441,30 @@ router.get('/kpi/progress',
         }),
 
         // 稼働率計算（簡易）
-        this.calculateCurrentUtilization(tenantId, currentPeriodStart, currentPeriodEnd)
+        calculateCurrentUtilization(tenantId, currentPeriodStart, currentPeriodEnd)
       ]);
 
       await prisma.$disconnect();
 
       const progress = {
         revenue: {
-          target: targets.revenueTarget,
+          target: targets?.revenueTarget || 0,
           current: currentRevenue._sum.totalAmount || 0,
-          progress: targets.revenueTarget > 0 
-            ? Math.round(((currentRevenue._sum.totalAmount || 0) / targets.revenueTarget) * 100)
+          progress: targets?.revenueTarget > 0 
+            ? Math.round(((Number(currentRevenue._sum.totalAmount) || 0) / targets.revenueTarget) * 100)
             : 0
         },
         customerGrowth: {
-          target: targets.customerGrowthTarget,
+          target: targets?.customerGrowthTarget || 0,
           current: currentCustomers,
-          progress: targets.customerGrowthTarget > 0 
+          progress: targets?.customerGrowthTarget > 0 
             ? Math.round((currentCustomers / targets.customerGrowthTarget) * 100)
             : 0
         },
         utilization: {
-          target: targets.utilizationTarget,
+          target: targets?.utilizationTarget || 0,
           current: currentUtilization,
-          progress: targets.utilizationTarget > 0 
+          progress: targets?.utilizationTarget > 0 
             ? Math.round((currentUtilization / targets.utilizationTarget) * 100)
             : 0
         }
@@ -537,7 +540,7 @@ router.get('/competitive-analysis',
           }
         }),
 
-        this.calculateCurrentUtilization(tenantId, thirtyDaysAgo, new Date())
+        calculateCurrentUtilization(tenantId, thirtyDaysAgo, new Date())
       ]);
 
       await prisma.$disconnect();
@@ -547,23 +550,23 @@ router.get('/competitive-analysis',
         revenue: {
           own: ownRevenue._sum.totalAmount || 0,
           industry: industryBenchmarks.averageRevenue,
-          performance: this.calculatePerformanceRatio(
-            ownRevenue._sum.totalAmount || 0,
+          performance: calculatePerformanceRatio(
+            Number(ownRevenue._sum.totalAmount) || 0,
             industryBenchmarks.averageRevenue
           )
         },
         averageTicket: {
           own: ownRevenue._avg.totalAmount || 0,
           industry: industryBenchmarks.averageTicket,
-          performance: this.calculatePerformanceRatio(
-            ownRevenue._avg.totalAmount || 0,
+          performance: calculatePerformanceRatio(
+            Number(ownRevenue._avg.totalAmount) || 0,
             industryBenchmarks.averageTicket
           )
         },
         utilization: {
           own: ownUtilization,
           industry: industryBenchmarks.utilizationRate,
-          performance: this.calculatePerformanceRatio(
+          performance: calculatePerformanceRatio(
             ownUtilization,
             industryBenchmarks.utilizationRate
           )
@@ -575,7 +578,7 @@ router.get('/competitive-analysis',
         data: {
           industryBenchmarks,
           ownPerformance: comparison,
-          insights: this.generateCompetitiveInsights(comparison),
+          insights: generateCompetitiveInsights(comparison),
           lastUpdated: new Date().toISOString()
         }
       });
@@ -593,12 +596,12 @@ router.get('/competitive-analysis',
 // ヘルパーメソッド
 function calculateRevenueForecast(historicalData: any[], months: number): any[] {
   // 簡易線形回帰による予測
-  const forecast = [];
+  const forecast: any[] = [];
   
   if (historicalData.length === 0) return forecast;
 
   const avgGrowth = 0.05; // 5%成長と仮定
-  const lastRevenue = historicalData[historicalData.length - 1]?.revenue || 0;
+  const lastRevenue = Number(historicalData[historicalData.length - 1]?.revenue) || 0;
 
   for (let i = 1; i <= months; i++) {
     const predictedRevenue = lastRevenue * Math.pow(1 + avgGrowth, i);

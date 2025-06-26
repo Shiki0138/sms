@@ -6,12 +6,12 @@ import {
   getIncentiveRules,
   getStaffAchievements
 } from '../controllers/salaryDashboardController';
-import { requireAuth } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
 // 全ルートに認証を適用
-router.use(requireAuth);
+router.use(authenticateToken);
 
 // 給与ダッシュボード
 router.get('/dashboard', getSalaryDashboard);

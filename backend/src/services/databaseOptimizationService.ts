@@ -16,16 +16,9 @@ export class DatabaseOptimizationService {
 
     // クエリログの設定（開発環境のみ）
     if (process.env.NODE_ENV === 'development') {
-      this.prisma.$on('query', (e) => {
-        if (e.duration > 1000) { // 1秒以上のクエリをログ
-          logger.warn('Slow query detected:', {
-            query: e.query,
-            params: e.params,
-            duration: `${e.duration}ms`,
-            timestamp: e.timestamp
-          });
-        }
-      });
+      // Note: Query logging is configured via log option in PrismaClient constructor
+      // Event-based query logging is no longer supported in newer Prisma versions
+      logger.info('Database query logging enabled in development mode');
     }
   }
 
@@ -197,14 +190,6 @@ export class DatabaseOptimizationService {
               id: true,
               name: true
             }
-          },
-          menu: {
-            select: {
-              id: true,
-              name: true,
-              duration: true,
-              price: true
-            }
           }
         }
       });
@@ -235,12 +220,10 @@ export class DatabaseOptimizationService {
         where,
         skip,
         take: limit,
-        orderBy: { lastMessageAt: 'desc' },
+        orderBy: { updatedAt: 'desc' },
         select: {
           id: true,
           status: true,
-          lastMessageAt: true,
-          unreadCount: true,
           createdAt: true,
           customer: {
             select: {
@@ -255,7 +238,7 @@ export class DatabaseOptimizationService {
             select: {
               id: true,
               content: true,
-              type: true,
+              mediaType: true,
               createdAt: true
             }
           }

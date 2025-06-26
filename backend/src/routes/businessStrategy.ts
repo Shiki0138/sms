@@ -10,12 +10,12 @@ import {
   generateNewInsights,
   generateManagementReport
 } from '../controllers/businessStrategyController';
-import { requireAuth } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
 // 全ルートに認証を適用
-router.use(requireAuth);
+router.use(authenticateToken);
 
 // 管理者またはマネージャーのみアクセス可能
 router.use((req: any, res: any, next: any) => {

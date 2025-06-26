@@ -1,0 +1,202 @@
+name: Deploy to Production (GCP) - Fixed
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+env:
+  PROJECT_ID: salon-system-1750113683
+  REGION: asia-northeast1
+  BACKEND_SERVICE: salon-backend
+  DB_INSTANCE: salon-db-production
+  FRONTEND_BUCKET: salon-system-1750113683-salon-frontend
+
+jobs:
+  # 🧪 テスト実行
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+            backend/package-lock.json
+
+      # バックエンドビルドテスト
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Build backend
+        run: |
+          cd backend
+          npm run build
+
+      # フロントエンドビルドテスト
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+  # 🚀 本番環境デプロイ
+  deploy:
+    name: Deploy to GCP Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # Google Cloud認証
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      # バックエンドDockerイメージビルド
+      - name: Configure Docker to use gcloud as credential helper
+        run: gcloud auth configure-docker
+
+      - name: Build backend Docker image
+        run: |
+          cd backend
+          docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }} -f Dockerfile.gcp .
+
+      - name: Push backend Docker image
+        run: |
+          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}
+
+      # Cloud Runにバックエンドデプロイ
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.BACKEND_SERVICE }} \
+            --image=gcr.io/${{ env.PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --port=8080 \
+            --memory=2Gi \
+            --cpu=2 \
+            --min-instances=1 \
+            --max-instances=50 \
+            --timeout=300 \
+            --concurrency=100 \
+            --allow-unauthenticated \
+            --set-env-vars=NODE_ENV=production \
+            --set-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:${{ env.DB_INSTANCE }} \
+            --set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,JWT_REFRESH_SECRET=jwt-refresh-secret:latest,OPENAI_API_KEY=openai-api-key:latest,LINE_CHANNEL_ACCESS_TOKEN=line-channel-access-token:latest,LINE_CHANNEL_SECRET=line-channel-secret:latest,INSTAGRAM_ACCESS_TOKEN=instagram-access-token:latest
+
+      # バックエンドのURLを取得
+      - name: Get backend URL
+        id: backend-url
+        run: |
+          BACKEND_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE }} --region=${{ env.REGION }} --format="value(status.url)")
+          echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "Backend URL: $BACKEND_URL"
+
+      # フロントエンドビルド・デプロイ
+      - name: Build and deploy frontend
+        run: |
+          cd frontend
+          
+          # 依存関係インストール
+          npm ci
+          
+          # 本番環境変数設定
+          echo "VITE_API_BASE_URL=${{ steps.backend-url.outputs.url }}/api/v1" > .env.production
+          echo "VITE_ENVIRONMENT=production" >> .env.production
+          echo "VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}" >> .env.production
+          
+          # ビルド実行
+          npm run build
+          
+          # Cloud Storageバケットの作成（存在しない場合）
+          gsutil mb -p ${{ env.PROJECT_ID }} -c STANDARD -l ${{ env.REGION }} gs://${{ env.FRONTEND_BUCKET }} || echo "Bucket already exists"
+          
+          # バケットを公開設定
+          gsutil iam ch allUsers:objectViewer gs://${{ env.FRONTEND_BUCKET }}
+          
+          # 静的ウェブサイトの設定
+          gsutil web set -m index.html -e 404.html gs://${{ env.FRONTEND_BUCKET }}
+          
+          # ファイルをアップロード
+          gsutil -m rsync -r -d dist gs://${{ env.FRONTEND_BUCKET }}
+          
+          # キャッシュ設定
+          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" gs://${{ env.FRONTEND_BUCKET }}/assets/**
+          gsutil -m setmeta -h "Cache-Control:public, max-age=0" gs://${{ env.FRONTEND_BUCKET }}/index.html
+          
+          # CORSポリシー設定
+          echo '[
+            {
+              "origin": ["*"],
+              "method": ["GET", "HEAD"],
+              "responseHeader": ["*"],
+              "maxAgeSeconds": 3600
+            }
+          ]' > cors.json
+          gsutil cors set cors.json gs://${{ env.FRONTEND_BUCKET }}
+
+      # デプロイ後のヘルスチェック
+      - name: Health check
+        run: |
+          echo "Waiting for service to be ready..."
+          sleep 30
+          
+          # バックエンドヘルスチェック
+          curl -f "${{ steps.backend-url.outputs.url }}/api/v1/health" || exit 1
+          echo "✅ Backend health check passed"
+          
+          # フロントエンドURL表示
+          echo "🌐 Frontend URL: https://storage.googleapis.com/${{ env.FRONTEND_BUCKET }}/index.html"
+          echo "📱 Alternative URL: https://storage.cloud.google.com/${{ env.FRONTEND_BUCKET }}/index.html"
+
+      # デプロイ結果表示
+      - name: Display deployment info
+        run: |
+          echo "🚀 Deployment successful!"
+          echo "=================="
+          echo "Backend API: ${{ steps.backend-url.outputs.url }}/api/v1"
+          echo "Frontend URL: https://storage.googleapis.com/${{ env.FRONTEND_BUCKET }}/index.html"
+          echo "=================="
+          echo ""
+          echo "Note: If you get access denied error, please check:"
+          echo "1. Bucket public access settings in GCP Console"
+          echo "2. Use alternative URL: https://storage.cloud.google.com/${{ env.FRONTEND_BUCKET }}/index.html"
+          echo "3. Consider setting up a custom domain with Cloud CDN"

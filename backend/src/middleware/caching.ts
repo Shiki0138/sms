@@ -302,5 +302,20 @@ function calculateHitRate(stats: string): string {
   return `${hitRate.toFixed(2)}%`;
 }
 
+/**
+ * Cache health check function
+ */
+export const cacheHealthCheck = async (): Promise<{ status: string; latency: number }> => {
+  const start = Date.now();
+  try {
+    await redis.ping();
+    const latency = Date.now() - start;
+    return { status: 'healthy', latency };
+  } catch (error) {
+    logger.error('Cache health check failed:', error);
+    return { status: 'unhealthy', latency: -1 };
+  }
+};
+
 export { redis };
 export default SalonCacheStrategies;

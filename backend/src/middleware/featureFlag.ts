@@ -158,23 +158,10 @@ export async function disableFeatureForTenant(
 export async function getAllFeatureFlags(tenantId?: string) {
   try {
     const flags = await prisma.featureFlag.findMany({
-      include: {
-        tenantFlags: tenantId ? {
-          where: { tenantId }
-        } : false
-      },
       orderBy: { category: 'asc' }
     });
 
-    return flags.map(flag => ({
-      ...flag,
-      isEnabledForTenant: tenantId && flag.tenantFlags && flag.tenantFlags.length > 0 
-        ? flag.tenantFlags[0].isEnabled 
-        : flag.isEnabled,
-      tenantConfig: tenantId && flag.tenantFlags && flag.tenantFlags.length > 0 
-        ? flag.tenantFlags[0].config 
-        : null
-    }));
+    return flags;
 
   } catch (error) {
     console.error('Error getting feature flags:', error);
@@ -186,24 +173,10 @@ export async function getAllFeatureFlags(tenantId?: string) {
 export async function getFeatureFlagConfig(flagKey: string, tenantId?: string) {
   try {
     const featureFlag = await prisma.featureFlag.findUnique({
-      where: { key: flagKey },
-      include: tenantId ? {
-        tenantFlags: {
-          where: { tenantId },
-          take: 1
-        }
-      } : undefined
+      where: { key: flagKey }
     });
 
     if (!featureFlag) return null;
-
-    // テナント固有の設定があれば優先
-    if (tenantId && featureFlag.tenantFlags && featureFlag.tenantFlags.length > 0) {
-      const tenantConfig = featureFlag.tenantFlags[0].config;
-      if (tenantConfig) {
-        return JSON.parse(tenantConfig);
-      }
-    }
 
     // デフォルト設定を返す
     return featureFlag.config ? JSON.parse(featureFlag.config) : null;

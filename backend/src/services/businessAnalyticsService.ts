@@ -155,7 +155,7 @@ export class BusinessAnalyticsService {
 
     const customerIdsFromTwoMonthsAgo = customersFromTwoMonthsAgo
       .map(r => r.customerId)
-      .filter(id => id);
+      .filter((id): id is string => id !== null);
 
     if (customerIdsFromTwoMonthsAgo.length === 0) return 0;
 
