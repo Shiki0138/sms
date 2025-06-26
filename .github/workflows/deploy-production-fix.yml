@@ -118,6 +118,7 @@ jobs:
             --timeout=300 \
             --concurrency=100 \
             --allow-unauthenticated \
+            --service-account=salon-run-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
             --set-env-vars=NODE_ENV=production \
             --set-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:${{ env.DB_INSTANCE }} \
             --set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,JWT_REFRESH_SECRET=jwt-refresh-secret:latest,OPENAI_API_KEY=openai-api-key:latest,LINE_CHANNEL_ACCESS_TOKEN=line-channel-access-token:latest,LINE_CHANNEL_SECRET=line-channel-secret:latest,INSTAGRAM_ACCESS_TOKEN=instagram-access-token:latest
