@@ -881,22 +881,36 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-        <div className="px-4 sm:px-6 py-4">
+      <header className="bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg sticky top-0 z-40">
+        <div className="px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                className="md:hidden p-2 rounded-lg text-white hover:bg-white hover:bg-opacity-20 transition-colors"
               >
-                {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-              <h1 className="text-sm sm:text-lg font-bold text-gray-900 truncate">🏪 美容室統合管理システム</h1>
+              
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                {/* Logo */}
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-xl flex items-center justify-center shadow-lg">
+                  <Scissors className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                
+                {/* Title */}
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-xs sm:text-lg font-bold text-white truncate leading-tight">美容室統合管理システム</h1>
+                  <p className="text-xs text-blue-100 hidden sm:block opacity-90">統合管理プラットフォーム</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="hidden sm:inline">デモモード</span>
+            
+            <div className="flex items-center space-x-1 sm:space-x-3 flex-shrink-0">
+              <div className="flex items-center space-x-1 sm:space-x-2 bg-green-500 text-white px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm shadow-lg">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div>
+                <span className="hidden sm:inline font-medium">デモモード</span>
+                <span className="sm:hidden">●</span>
               </div>
             </div>
           </div>
@@ -915,7 +929,7 @@ function App() {
         {/* Sidebar */}
         <nav className={`
           fixed md:static inset-y-0 left-0 z-40
-          w-64 bg-white shadow-sm transform transition-transform duration-300 ease-in-out
+          w-64 bg-gray-50 shadow-xl transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 md:h-screen md:sticky md:top-16
         `}>

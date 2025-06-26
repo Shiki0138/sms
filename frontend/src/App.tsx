@@ -1341,62 +1341,76 @@ function App() {
       <TestModeIndicator />
       
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-        <div className="px-4 sm:px-6 py-4">
+      <header className="bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg sticky top-0 z-40">
+        <div className="px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            {/* Left Section - Menu & Logo */}
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+                className="md:hidden p-2 rounded-lg text-white hover:bg-white hover:bg-opacity-20 transition-colors"
               >
-                {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
+              
               <button 
                 onClick={() => setActiveView('dashboard')}
-                className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors group"
+                className="flex items-center space-x-2 sm:space-x-3 hover:bg-white hover:bg-opacity-10 rounded-lg p-2 transition-colors group flex-1 min-w-0"
                 title="ダッシュボードに戻る"
               >
-                <div className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center group-hover:bg-blue-700 transition-colors">
-                  <Scissors className="w-6 h-6" />
+                {/* Logo */}
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-xl flex items-center justify-center group-hover:bg-opacity-30 transition-all shadow-lg">
+                  <Scissors className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
+                
+                {/* Title Section */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                    <h1 className="text-sm sm:text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors truncate">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+                    <h1 className="text-xs sm:text-lg font-bold text-white group-hover:text-blue-100 transition-colors truncate leading-tight">
                       美容室統合管理システム
                     </h1>
-                    <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded self-start">
-                      テストモード
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="bg-orange-400 text-white text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md shadow-sm">
+                        テスト
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-600 hidden sm:block group-hover:text-blue-600 transition-colors">統合管理プラットフォーム（デモ環境）</p>
+                  <p className="text-xs text-blue-100 hidden sm:block group-hover:text-white transition-colors opacity-90">統合管理プラットフォーム</p>
                 </div>
               </button>
             </div>
-            <div className="flex items-center space-x-4">
-              {/* プランバッジ */}
-              <PlanBadge 
-                variant="compact" 
-                onUpgradeClick={() => setActiveView('upgrade')}
-              />
-              
+
+            {/* Right Section - Actions */}
+            <div className="flex items-center space-x-1 sm:space-x-3 flex-shrink-0">
+              {/* Unread Notifications */}
               {unreadCount > 0 && (
-                <div className="flex items-center space-x-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm border border-red-200">
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="font-medium">{unreadCount}件の未読</span>
+                <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium min-w-[20px] text-center shadow-lg">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </div>
               )}
-              {/* テスト環境リンク */}
+              
+              {/* Plan Badge - Hidden on small screens */}
+              <div className="hidden sm:block">
+                <PlanBadge 
+                  variant="compact" 
+                  onUpgradeClick={() => setActiveView('upgrade')}
+                />
+              </div>
+              
+              {/* Test Environment Button - Hidden on small screens */}
               <button
                 onClick={() => setActiveView('test-environment')}
-                className="hidden sm:flex items-center space-x-2 text-yellow-600 hover:text-yellow-800 px-3 py-2 rounded-lg text-sm hover:bg-yellow-100 transition-colors border border-yellow-200"
+                className="hidden lg:flex items-center space-x-2 text-blue-100 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-white hover:bg-opacity-10 transition-colors"
               >
                 <TestTube className="w-4 h-4" />
                 <span>テスト環境</span>
               </button>
               
-              <div className="flex items-center space-x-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm border border-green-200">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              {/* Status Indicator */}
+              <div className="flex items-center space-x-1 sm:space-x-2 bg-green-500 text-white px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm shadow-lg">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div>
                 <span className="hidden sm:inline font-medium">オンライン</span>
+                <span className="sm:hidden">●</span>
               </div>
             </div>
           </div>
@@ -1415,7 +1429,7 @@ function App() {
         {/* Sidebar */}
         <nav className={`
           fixed md:static inset-y-0 left-0 z-40
-          w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out
+          w-64 bg-gray-50 shadow-xl border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 h-full md:h-screen md:sticky md:top-16
         `}>
