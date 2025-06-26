@@ -78,7 +78,7 @@ function App() {
             <h3 className="font-medium mb-3">📋 顧客データ取得結果:</h3>
             <div className="text-sm bg-white border rounded p-3 overflow-auto max-h-64">
               <div className="mb-2 font-medium text-green-600">
-                ✅ データベース接続成功 - {data?.customers?.length || 0}件の顧客データを取得
+                ✅ データベース接続成功 - {(data as any)?.customers?.length || 0}件の顧客データを取得
               </div>
               <pre className="whitespace-pre-wrap">
 {JSON.stringify(data, null, 2)}

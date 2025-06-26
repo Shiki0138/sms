@@ -23,13 +23,13 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ currentPage }) => {
     if (demoStartDate) {
       const startDate = new Date(demoStartDate)
       const currentDate = new Date()
-      const diffTime = config.demoExpiryDays * 24 * 60 * 60 * 1000 - (currentDate.getTime() - startDate.getTime())
+      const diffTime = (config.demoExpiryDays || 30) * 24 * 60 * 60 * 1000 - (currentDate.getTime() - startDate.getTime())
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       setDaysRemaining(Math.max(0, diffDays))
     } else {
       // 初回アクセス時は開始日を設定
       localStorage.setItem('demo_start_date', new Date().toISOString())
-      setDaysRemaining(config.demoExpiryDays)
+      setDaysRemaining(config.demoExpiryDays || 30)
     }
   }, [config.demoExpiryDays])
 
@@ -113,7 +113,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ currentPage }) => {
                 <p>• 決済・課金機能は無効化されています</p>
                 <p>• プッシュ通知は制限されています</p>
                 <p>• CSVインポート・エクスポート機能は利用可能です</p>
-                <p>• 登録データは{config.demoExpiryDays}日後に自動削除されます</p>
+                <p>• 登録データは{config.demoExpiryDays || 30}日後に自動削除されます</p>
               </div>
             </details>
           </div>

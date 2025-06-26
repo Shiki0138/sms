@@ -8,6 +8,22 @@ export const usePaymentRestriction = () => {
      * 決済処理の試行
      */
     const attemptPayment = useCallback(async (paymentData) => {
+        // デモモードチェック
+        if (config.isDemoMode) {
+            setIsWarningOpen(true);
+            if (config.debugMode) {
+                console.warn('🎭 Payment processing blocked in demo mode', {
+                    environment: 'demo',
+                    amount: paymentData.amount,
+                    currency: paymentData.currency
+                });
+            }
+            return {
+                success: false,
+                error: '🎭 デモモードでは決済機能は無効化されています',
+                restrictedByEnvironment: true
+            };
+        }
         // 環境チェック
         if (!isFeatureEnabled('enablePayments')) {
             setIsWarningOpen(true);

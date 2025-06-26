@@ -1,9 +1,19 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { Sparkles, TrendingUp, Users, ArrowRight, X, Clock, BarChart3 } from 'lucide-react';
 import { PLAN_NAMES, PLAN_PRICING } from '../../types/subscription';
 const UpgradePrompt = ({ trigger, feature, onClose, onUpgrade, className = '' }) => {
     const { currentPlan, subscriptionInfo } = useSubscription();
+    const navigate = useNavigate();
+    const handleUpgrade = () => {
+        if (onUpgrade) {
+            onUpgrade();
+        }
+        else {
+            navigate('/settings/upgrade');
+        }
+    };
     const getPromptContent = () => {
         switch (trigger) {
             case 'feature_locked':
@@ -63,6 +73,6 @@ const UpgradePrompt = ({ trigger, feature, onClose, onUpgrade, className = '' })
     const benefits = getBenefits();
     return (_jsxs("div", { className: `rounded-lg border-2 ${content.color} p-6 ${className}`, children: [_jsxs("div", { className: "flex items-start justify-between mb-4", children: [_jsxs("div", { className: "flex items-center space-x-3", children: [content.icon, _jsxs("div", { children: [_jsx("h3", { className: "font-semibold text-gray-900 text-lg", children: content.title }), _jsx("p", { className: "text-sm text-gray-600 mt-1", children: content.description })] })] }), onClose && (_jsx("button", { onClick: onClose, className: "text-gray-400 hover:text-gray-600 transition-colors", children: _jsx(X, { className: "w-5 h-5" }) }))] }), _jsxs("div", { className: "bg-white rounded-lg p-4 mb-4", children: [_jsxs("div", { className: "flex items-center justify-between mb-3", children: [_jsxs("div", { children: [_jsxs("h4", { className: "font-medium text-gray-900", children: ["\u63A8\u5968: ", PLAN_NAMES[recommendedPlan]] }), _jsx("p", { className: "text-sm text-gray-600", children: recommendedPlan === 'standard' ? '成長ビジネスに最適' : 'エンタープライズ向け最高機能' })] }), _jsxs("div", { className: "text-right", children: [_jsxs("div", { className: "text-2xl font-bold text-gray-900", children: ["\u00A5", PLAN_PRICING[recommendedPlan].monthly.toLocaleString()] }), _jsx("div", { className: "text-sm text-gray-600", children: "/ \u6708" })] })] }), _jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2 mb-4", children: benefits.map((benefit, index) => (_jsxs("div", { className: "flex items-center space-x-2 text-sm text-gray-700", children: [_jsx("span", { className: "text-green-600", children: benefit.icon }), _jsx("span", { children: benefit.text })] }, index))) })] }), _jsx("div", { className: "bg-green-50 rounded-lg p-3 mb-4", children: _jsxs("p", { className: "text-sm text-green-800", children: [_jsx("strong", { children: "\u6295\u8CC7\u5BFE\u52B9\u679C:" }), recommendedPlan === 'standard'
                             ? ' 月額費用の5倍以上の価値を提供（効率化により月15万円相当の価値創出）'
-                            : ' 月額費用の10倍以上の価値を提供（効率化により月50万円以上の価値創出）'] }) }), _jsxs("div", { className: "flex space-x-3", children: [_jsxs("button", { onClick: onUpgrade, className: "flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2", children: [_jsx("span", { children: "\u4ECA\u3059\u3050\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9" }), _jsx(ArrowRight, { className: "w-4 h-4" })] }), trigger !== 'usage_limit' && (_jsx("button", { onClick: onClose, className: "px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors", children: "\u5F8C\u3067" }))] })] }));
+                            : ' 月額費用の10倍以上の価値を提供（効率化により月50万円以上の価値創出）'] }) }), _jsxs("div", { className: "flex space-x-3", children: [_jsxs("button", { onClick: handleUpgrade, className: "flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2", children: [_jsx("span", { children: "\u4ECA\u3059\u3050\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9" }), _jsx(ArrowRight, { className: "w-4 h-4" })] }), trigger !== 'usage_limit' && (_jsx("button", { onClick: onClose, className: "px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors", children: "\u5F8C\u3067" }))] })] }));
 };
 export default UpgradePrompt;

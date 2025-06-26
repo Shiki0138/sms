@@ -8,7 +8,7 @@ export const PLAN_CONFIGS = {
             maxAIRepliesPerMonth: 0, // AI機能なし
             maxDataExport: 3, // 基本エクスポートのみ
             analyticsRetentionDays: 30,
-            supportLevel: 'email'
+            supportLevel: 'email_chat'
         },
         features: {
             // 基本機能のみ
@@ -25,9 +25,9 @@ export const PLAN_CONFIGS = {
             revenueAnalytics: false,
             performanceAnalytics: false,
             advancedReporting: false,
-            // 外部連携なし
-            lineIntegration: false,
-            instagramIntegration: false,
+            // 外部連携可能
+            lineIntegration: true, // LINE連携可能
+            instagramIntegration: true, // Instagram連携可能
             // エクスポート機能制限
             csvExport: true, // 基本CSVエクスポートのみ
             pdfExport: false,
@@ -78,7 +78,7 @@ export const PLAN_CONFIGS = {
             notificationSettings: true,
             // カスタマイズ制限
             customReports: false, // カスタムレポートはプレミアムのみ
-            apiAccess: false // API アクセスはプレミアムのみ
+            apiAccess: false // API アクセスは全プランで不可
         }
     },
     premium_ai: {
@@ -88,7 +88,7 @@ export const PLAN_CONFIGS = {
             maxAIRepliesPerMonth: -1, // 無制限
             maxDataExport: -1, // 無制限
             analyticsRetentionDays: 365,
-            supportLevel: 'phone_24h'
+            supportLevel: 'line_chat_24h'
         },
         features: {
             // 全機能フルアクセス
@@ -118,7 +118,7 @@ export const PLAN_CONFIGS = {
             notificationSettings: true,
             // カスタマイズフル
             customReports: true, // カスタムレポート機能
-            apiAccess: true // フルAPI アクセス
+            apiAccess: false // API アクセスは全プランで不可
         }
     }
 };
@@ -131,19 +131,19 @@ export const PLAN_NAMES = {
 // プラン料金情報（バックエンドと統一）
 export const PLAN_PRICING = {
     light: {
-        setup: 128000,
+        setup: 49800,
         monthly: 9800,
         originalPrice: 29800, // 元の定価
         annual: 327800 // 1ヶ月分割引
     },
     standard: {
-        setup: 128000,
+        setup: 79800,
         monthly: 29800,
         originalPrice: 49800, // 元の定価
         annual: 547800 // 1ヶ月分割引
     },
     premium_ai: {
-        setup: 198000,
+        setup: 148000,
         monthly: 79800,
         originalPrice: 99800, // 元の定価
         annual: 877800 // 1ヶ月分割引

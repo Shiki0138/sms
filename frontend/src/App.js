@@ -27,12 +27,13 @@ import FeatureRequestForm from './components/FeatureRequestForm';
 import AIShiftManagement from './components/AIShiftManagement';
 import FilteredCustomerView from './components/FilteredCustomerView';
 import TestModeIndicator from './components/TestMode/TestModeIndicator';
-import { MessageSquare, Calendar, Users, BarChart3, Settings, Instagram, MessageCircle, Clock, CheckCircle, AlertCircle, Phone, Mail, Send, Menu, X, ExternalLink, Save, User, UserCheck, Calendar as CalendarIcon, FileText, ChevronLeft, ChevronRight, Scissors, Palette, Star, Sparkles, Bot, Loader2, Shield, Lightbulb, Crown, TestTube } from 'lucide-react';
+import ChatWidget from './components/AIChat/ChatWidget';
+import { MessageSquare, Calendar, Users, BarChart3, Settings, Instagram, MessageCircle, Clock, CheckCircle, AlertCircle, Phone, Mail, Send, Menu, X, ExternalLink, Save, User, UserCheck, Calendar as CalendarIcon, FileText, ChevronLeft, ChevronRight, Scissors, Star, Sparkles, Bot, Loader2, Shield, Lightbulb, Crown, TestTube } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { format, isToday, isTomorrow, getDay, getWeekOfMonth } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { dummyCustomers, serviceHistory, pastReservations, futureReservations, messageThreads } from './data/dummyData';
+import { dummyCustomers, serviceHistory, pastReservations, futureReservations, messageThreads, } from './data/dummyData';
 // ダミーデータをグローバルに登録（分析画面で使用）
 if (typeof window !== 'undefined') {
     window.dummyCustomers = dummyCustomers;
@@ -50,7 +51,7 @@ function App() {
         if (config.isDevelopment && config.showProductionWarnings) {
             console.warn('🚧 Development Environment - Some features are restricted');
         }
-    }, []);
+    }, [config.isDevelopment, config.showProductionWarnings]);
     const [activeTab, setActiveTab] = useState('messages');
     const [activeView, setActiveView] = useState('main');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -60,15 +61,11 @@ function App() {
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [isGeneratingAIReply, setIsGeneratingAIReply] = useState(null);
     const [customerNotes, setCustomerNotes] = useState('');
-    const [showCustomerMessages, setShowCustomerMessages] = useState(false);
-    const [showCustomerReservations, setShowCustomerReservations] = useState(false);
     // Filtered customer view states
     const [showFilteredCustomerView, setShowFilteredCustomerView] = useState(false);
     const [filteredCustomerViewType, setFilteredCustomerViewType] = useState('messages');
     const [filteredCustomerId, setFilteredCustomerId] = useState('');
     const [filteredCustomerName, setFilteredCustomerName] = useState('');
-    // Feature requests state for admin notifications
-    const [featureRequests, setFeatureRequests] = useState([]);
     const [unreadFeatureRequests, setUnreadFeatureRequests] = useState(0);
     // New customer registration modal state
     const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
@@ -85,8 +82,8 @@ function App() {
     // Bulk Message Sender state
     const [showBulkMessageSender, setShowBulkMessageSender] = useState(false);
     // Service History Modal state
-    const [showServiceHistoryModal, setShowServiceHistoryModal] = useState(false);
     const [selectedServiceHistory, setSelectedServiceHistory] = useState(null);
+    const [showServiceHistoryModal, setShowServiceHistoryModal] = useState(false);
     // New reservation modal state
     const [showNewReservationModal, setShowNewReservationModal] = useState(false);
     const [selectedReservationDate, setSelectedReservationDate] = useState();
@@ -144,13 +141,6 @@ function App() {
             return axios.get(`${API_BASE_URL}/reservations`).then(res => res.data);
         }
     });
-    // Staff list (demo data)
-    const staffList = [
-        { id: 'staff1', name: '田中 美咲' },
-        { id: 'staff2', name: '佐藤 麗子' },
-        { id: 'staff3', name: '山田 花音' },
-        { id: 'staff4', name: '鈴木 あゆみ' }
-    ];
     // Calculate unread count
     const unreadCount = threads?.threads.reduce((sum, t) => sum + t.unreadCount, 0) || 0;
     // Handle reply submission
@@ -181,32 +171,6 @@ function App() {
         alert('テストモードではメール送信は制限されています。\nメールアドレス: ' + email);
     };
     // Handle LINE click (テストモードでは無効)
-    const handleLineClick = () => {
-        alert('テストモードではLINEアプリの起動は制限されています。');
-    };
-    // Get menu icon based on menu content
-    const getMenuIcon = (menuContent) => {
-        const menu = menuContent.toLowerCase();
-        if (menu.includes('カット'))
-            return _jsx(Scissors, { className: "w-3 h-3 text-blue-500" });
-        if (menu.includes('カラー'))
-            return _jsx(Palette, { className: "w-3 h-3 text-purple-500" });
-        if (menu.includes('パーマ'))
-            return _jsx(Sparkles, { className: "w-3 h-3 text-pink-500" });
-        return _jsx(Star, { className: "w-3 h-3 text-yellow-500" });
-    };
-    // Generate time slots for business hours
-    const generateTimeSlots = () => {
-        const slots = [];
-        const { openHour, closeHour, timeSlotMinutes } = businessSettings;
-        for (let hour = openHour; hour < closeHour; hour++) {
-            for (let minute = 0; minute < 60; minute += timeSlotMinutes) {
-                const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                slots.push(time);
-            }
-        }
-        return slots;
-    };
     // Check if a date is a closed day
     const isClosedDay = (date) => {
         const dayOfWeek = getDay(date);
@@ -251,42 +215,6 @@ function App() {
             return '特別休業日';
         }
         return null;
-    };
-    // Get reservations for a specific date and time slot
-    const getReservationsForSlot = (date, timeSlot) => {
-        return liveReservations.filter(r => {
-            const reservationDate = new Date(r.startTime);
-            const reservationTime = format(reservationDate, 'HH:mm');
-            const reservationDateStr = format(reservationDate, 'yyyy-MM-dd');
-            const targetDateStr = format(date, 'yyyy-MM-dd');
-            return reservationDateStr === targetDateStr && reservationTime === timeSlot;
-        }) || [];
-    };
-    // Get dates for current view
-    const getViewDates = () => {
-        const dates = [];
-        const baseDate = new Date(calendarDate);
-        if (calendarView === 'day') {
-            dates.push(baseDate);
-        }
-        else if (calendarView === 'threeDay') {
-            for (let i = 0; i < 3; i++) {
-                const date = new Date(baseDate);
-                date.setDate(date.getDate() + i);
-                dates.push(date);
-            }
-        }
-        else if (calendarView === 'week') {
-            // Start from Monday
-            const startOfWeek = new Date(baseDate);
-            startOfWeek.setDate(baseDate.getDate() - baseDate.getDay() + 1);
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(startOfWeek);
-                date.setDate(startOfWeek.getDate() + i);
-                dates.push(date);
-            }
-        }
-        return dates;
     };
     // Handle stylist notes update
     const handleUpdateStylistNotes = (reservationId, notes) => {
@@ -421,8 +349,8 @@ function App() {
     };
     // Handle new feature request submission
     const handleNewFeatureRequest = (request) => {
-        setFeatureRequests(prev => [request, ...prev]);
-        setUnreadFeatureRequests(prev => prev + 1);
+        // フィードバック送信の処理はDemoFeedbackFormで行われる
+        setUnreadFeatureRequests((prev) => prev + 1);
     };
     // Handle new customer registration
     const handleNewCustomerRegistration = () => {
@@ -636,74 +564,69 @@ function App() {
                                             .slice(0, 3)
                                             .map((reservation) => (_jsxs("button", { onClick: () => setActiveTab('reservations'), className: "w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left", children: [_jsx(CheckCircle, { className: "w-4 h-4 text-green-500 flex-shrink-0" }), _jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("p", { className: "text-sm font-medium text-gray-900 truncate", children: reservation.customerName }), _jsx("p", { className: "text-xs text-gray-500 truncate", children: reservation.menuContent })] }), _jsx("div", { className: "text-xs text-gray-400 flex-shrink-0", children: format(new Date(reservation.startTime), 'HH:mm') })] }, reservation.id))), liveReservations.filter(r => isToday(new Date(r.startTime))).length === 0 && (_jsx("div", { className: "text-center py-4 text-gray-500 text-sm", children: "\u4ECA\u65E5\u306E\u4E88\u7D04\u306F\u3042\u308A\u307E\u305B\u3093" }))] })] })] })] }));
     };
-    return (_jsxs("div", { className: "min-h-screen bg-gray-50", children: [_jsx(TestModeIndicator, { isTestMode: true, accountInfo: {
-                    username: 'owner001',
-                    name: '田中 一郎',
-                    salonName: 'Hair Studio TOKYO',
-                    salonType: 'ヘアサロン'
-                } }), _jsx("header", { className: "bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40", children: _jsx("div", { className: "px-4 sm:px-6 py-4", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { className: "flex items-center space-x-3", children: [_jsx("button", { onClick: () => setIsSidebarOpen(!isSidebarOpen), className: "md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors", children: isSidebarOpen ? _jsx(X, { className: "w-6 h-6" }) : _jsx(Menu, { className: "w-6 h-6" }) }), _jsxs("div", { className: "flex items-center space-x-3", children: [_jsx("div", { className: "w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center", children: _jsx(Scissors, { className: "w-6 h-6" }) }), _jsxs("div", { children: [_jsxs("h1", { className: "text-lg sm:text-xl font-bold text-gray-900", children: ["\u7F8E\u5BB9\u5BA4\u7D71\u5408\u7BA1\u7406\u30B7\u30B9\u30C6\u30E0", _jsx("span", { className: "ml-2 bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded", children: "\u30C6\u30B9\u30C8\u30E2\u30FC\u30C9" })] }), _jsx("p", { className: "text-xs text-gray-600 hidden sm:block", children: "\u7D71\u5408\u7BA1\u7406\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\uFF08\u30C7\u30E2\u74B0\u5883\uFF09" })] })] })] }), _jsxs("div", { className: "flex items-center space-x-4", children: [_jsx(PlanBadge, { variant: "compact", onUpgradeClick: () => setActiveView('upgrade') }), unreadCount > 0 && (_jsxs("div", { className: "flex items-center space-x-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm border border-red-200", children: [_jsx(AlertCircle, { className: "w-4 h-4" }), _jsxs("span", { className: "font-medium", children: [unreadCount, "\u4EF6\u306E\u672A\u8AAD"] })] })), _jsxs("button", { onClick: () => setActiveView('test-environment'), className: "hidden sm:flex items-center space-x-2 text-yellow-600 hover:text-yellow-800 px-3 py-2 rounded-lg text-sm hover:bg-yellow-100 transition-colors border border-yellow-200", children: [_jsx(TestTube, { className: "w-4 h-4" }), _jsx("span", { children: "\u30C6\u30B9\u30C8\u74B0\u5883" })] }), _jsxs("div", { className: "flex items-center space-x-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm border border-green-200", children: [_jsx("div", { className: "w-2 h-2 bg-green-500 rounded-full" }), _jsx("span", { className: "hidden sm:inline font-medium", children: "\u30AA\u30F3\u30E9\u30A4\u30F3" })] })] })] }) }) }), _jsxs("div", { className: "flex relative", children: [isSidebarOpen && (_jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden", onClick: () => setIsSidebarOpen(false) })), _jsxs("nav", { className: `
+    return (_jsxs("div", { className: "min-h-screen bg-gray-50", children: [_jsx(TestModeIndicator, {}), _jsx("header", { className: "bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40", children: _jsx("div", { className: "px-4 sm:px-6 py-4", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { className: "flex items-center space-x-3", children: [_jsx("button", { onClick: () => setIsSidebarOpen(!isSidebarOpen), className: "md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors", children: isSidebarOpen ? _jsx(X, { className: "w-6 h-6" }) : _jsx(Menu, { className: "w-6 h-6" }) }), _jsxs("button", { onClick: () => setActiveView('dashboard'), className: "flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors group", title: "\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306B\u623B\u308B", children: [_jsx("div", { className: "w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center group-hover:bg-blue-700 transition-colors", children: _jsx(Scissors, { className: "w-6 h-6" }) }), _jsxs("div", { children: [_jsxs("h1", { className: "text-lg sm:text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors", children: ["\u7F8E\u5BB9\u5BA4\u7D71\u5408\u7BA1\u7406\u30B7\u30B9\u30C6\u30E0", _jsx("span", { className: "ml-2 bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded", children: "\u30C6\u30B9\u30C8\u30E2\u30FC\u30C9" })] }), _jsx("p", { className: "text-xs text-gray-600 hidden sm:block group-hover:text-blue-600 transition-colors", children: "\u7D71\u5408\u7BA1\u7406\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\uFF08\u30C7\u30E2\u74B0\u5883\uFF09" })] })] })] }), _jsxs("div", { className: "flex items-center space-x-4", children: [_jsx(PlanBadge, { variant: "compact", onUpgradeClick: () => setActiveView('upgrade') }), unreadCount > 0 && (_jsxs("div", { className: "flex items-center space-x-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm border border-red-200", children: [_jsx(AlertCircle, { className: "w-4 h-4" }), _jsxs("span", { className: "font-medium", children: [unreadCount, "\u4EF6\u306E\u672A\u8AAD"] })] })), _jsxs("button", { onClick: () => setActiveView('test-environment'), className: "hidden sm:flex items-center space-x-2 text-yellow-600 hover:text-yellow-800 px-3 py-2 rounded-lg text-sm hover:bg-yellow-100 transition-colors border border-yellow-200", children: [_jsx(TestTube, { className: "w-4 h-4" }), _jsx("span", { children: "\u30C6\u30B9\u30C8\u74B0\u5883" })] }), _jsxs("div", { className: "flex items-center space-x-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm border border-green-200", children: [_jsx("div", { className: "w-2 h-2 bg-green-500 rounded-full" }), _jsx("span", { className: "hidden sm:inline font-medium", children: "\u30AA\u30F3\u30E9\u30A4\u30F3" })] })] })] }) }) }), _jsxs("div", { className: "flex relative", children: [isSidebarOpen && (_jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden", onClick: () => setIsSidebarOpen(false) })), _jsx("nav", { className: `
           fixed md:static inset-y-0 left-0 z-40
           w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0 h-full md:h-screen md:sticky md:top-16 flex flex-col
-        `, children: [_jsxs("div", { className: "flex-1 overflow-y-auto p-4 md:p-6 pt-20 md:pt-6", children: [_jsxs("div", { className: "space-y-2", children: [_jsxs("button", { onClick: () => {
-                                                    setActiveTab('dashboard');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'dashboard'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(BarChart3, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('messages');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'messages'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(MessageSquare, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u30E1\u30C3\u30BB\u30FC\u30B8" }), unreadCount > 0 && (_jsx("span", { className: "ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium", children: unreadCount }))] }), _jsxs("button", { onClick: () => {
-                                                    setShowBulkMessageSender(true);
-                                                    setIsSidebarOpen(false);
-                                                }, className: "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-50 ml-6", children: [_jsx(Send, { className: "w-4 h-4 flex-shrink-0" }), _jsx("span", { className: "font-medium text-sm", children: "\u30E1\u30C3\u30BB\u30FC\u30B8\u4E00\u6589\u9001\u4FE1" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('reservations');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'reservations'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Calendar, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u4E88\u7D04\u7BA1\u7406" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('customers');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'customers'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Users, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u9867\u5BA2\u7BA1\u7406" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('analytics');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'analytics'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(BarChart3, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u5206\u6790" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('premium-marketing');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'premium-marketing'
-                                                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Star, { className: "w-5 h-5 flex-shrink-0 text-yellow-500" }), _jsx("span", { className: "font-medium", children: "\u7D4C\u55B6\u6226\u7565 (Premium)" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('menu-management');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'menu-management'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Scissors, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u30E1\u30CB\u30E5\u30FC\u7BA1\u7406" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('ai-shift-management');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'ai-shift-management'
-                                                    ? 'bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-200'
-                                                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50'}`, children: [_jsx(Bot, { className: "w-5 h-5 flex-shrink-0 text-purple-600" }), _jsx("span", { className: "font-medium", children: "AI\u30B7\u30D5\u30C8\u6700\u9069\u5316" }), _jsx("span", { className: "ml-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-0.5 rounded-full", children: "\u9769\u65B0" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('feature-request');
-                                                    setIsSidebarOpen(false);
-                                                    setUnreadFeatureRequests(0); // Clear notification count when visiting page
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'feature-request'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Lightbulb, { className: "w-5 h-5 flex-shrink-0 text-yellow-500" }), _jsx("span", { className: "font-medium", children: "\u6A5F\u80FD\u6539\u5584\u8981\u671B" }), unreadFeatureRequests > 0 && (_jsx("span", { className: "ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center", children: unreadFeatureRequests }))] }), _jsxs("button", { onClick: () => {
-                                                    setActiveView('upgrade');
-                                                    setIsSidebarOpen(false);
-                                                }, className: "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700", children: [_jsx(Sparkles, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u30D7\u30E9\u30F3\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9" })] }), _jsxs("button", { onClick: () => {
-                                                    setActiveTab('settings');
-                                                    setIsSidebarOpen(false);
-                                                }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'settings'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Settings, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u8A2D\u5B9A" })] })] }), _jsx("div", { className: "mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200", children: _jsx("div", { className: "text-center", children: _jsxs("p", { className: "text-xs text-gray-600 font-medium", children: ["\u672C\u65E5\u306E\u4E88\u7D04\u6570", _jsx("br", {}), reservations?.reservations.filter(r => isToday(new Date(r.startTime))).length || 0, "\u4EF6"] }) }) })] }), _jsx("div", { className: "p-4 md:p-6 pt-0 border-t border-gray-200 bg-white", children: _jsx(UserProfile, {}) })] }), _jsx("main", { className: "flex-1 p-4 sm:p-6 max-w-full", children: _jsxs("div", { className: "max-w-7xl mx-auto", children: [activeView === 'upgrade' && (_jsxs("div", { children: [_jsx("div", { className: "mb-4", children: _jsxs("button", { onClick: () => setActiveView('main'), className: "flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors", children: [_jsx(ChevronLeft, { className: "w-4 h-4" }), _jsx("span", { children: "\u623B\u308B" })] }) }), _jsx(UpgradePlan, {})] })), activeView === 'test-environment' && (_jsxs("div", { children: [_jsx("div", { className: "mb-4", children: _jsxs("button", { onClick: () => setActiveView('main'), className: "flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors", children: [_jsx(ChevronLeft, { className: "w-4 h-4" }), _jsx("span", { children: "\u30E1\u30A4\u30F3\u306B\u623B\u308B" })] }) }), _jsxs("div", { className: "bg-white rounded-lg shadow p-6", children: [_jsx("h2", { className: "text-xl font-bold text-gray-900 mb-4", children: "\u30C6\u30B9\u30C8\u74B0\u5883\u8A2D\u5B9A" }), _jsx("p", { className: "text-gray-600", children: "\u30C6\u30B9\u30C8\u74B0\u5883\u306E\u8A2D\u5B9A\u6A5F\u80FD\u306F\u958B\u767A\u4E2D\u3067\u3059\u3002" })] })] })), activeView === 'main' && showFilteredCustomerView && (_jsx(FilteredCustomerView, { viewType: filteredCustomerViewType, customerId: filteredCustomerId, customerName: filteredCustomerName, allMessages: messageThreads || [], allReservations: [...(pastReservations || []), ...(futureReservations || []), ...(liveReservations || [])], onBack: handleBackFromFilteredView })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'dashboard' && _jsx(Dashboard, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'messages' && _jsx(MessagesList, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'customers' && _jsx(CustomersList, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'reservations' && _jsx(ReservationsList, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'analytics' && _jsx(CustomerAnalyticsDashboard, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && _jsx(PremiumMarketingDashboard, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'ai-shift-management' && _jsx(AIShiftManagement, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && _jsx(FeatureRequestForm, { onNewRequest: handleNewFeatureRequest }), activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u5916\u90E8API\u9023\u643A\u8A2D\u5B9A" }), _jsx(ExternalAPISettings, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'notification-settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u901A\u77E5\u8A2D\u5B9A" }), _jsx(NotificationSettings, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'backup-settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u30C7\u30FC\u30BF\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u8A2D\u5B9A" }), _jsx(DataBackupSettings, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'openai-settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "OpenAI\u8A2D\u5B9A" }), _jsx(OpenAISettings, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'menu-management' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u30E1\u30CB\u30E5\u30FC\u7BA1\u7406" }), _jsx(MenuManagement, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u8A2D\u5B9A" }), _jsxs("div", { className: "card", children: [_jsxs("h3", { className: "text-lg font-medium text-gray-900 mb-4 flex items-center", children: [_jsx(Crown, { className: "w-5 h-5 mr-2 text-purple-600" }), "\u30D7\u30E9\u30F3\u7BA1\u7406"] }), _jsx(PlanBadge, { variant: "full", onUpgradeClick: () => setActiveView('upgrade') })] }), _jsx("div", { className: "card", children: _jsx(AdvancedHolidaySettings, {}) }), _jsx("div", { className: "card", children: _jsx(ReminderSettings, {}) }), _jsxs("div", { className: "card", children: [_jsx("h3", { className: "text-lg font-medium text-gray-900 mb-4", children: "\u57FA\u672C\u55B6\u696D\u6642\u9593\u8A2D\u5B9A" }), _jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 mb-2", children: "\u958B\u5E97\u6642\u9593" }), _jsx("select", { value: businessSettings.openHour, onChange: (e) => setBusinessSettings(prev => ({ ...prev, openHour: parseInt(e.target.value) })), className: "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", children: Array.from({ length: 24 }, (_, i) => (_jsxs("option", { value: i, children: [i, ":00"] }, i))) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 mb-2", children: "\u9589\u5E97\u6642\u9593" }), _jsx("select", { value: businessSettings.closeHour, onChange: (e) => setBusinessSettings(prev => ({ ...prev, closeHour: parseInt(e.target.value) })), className: "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", children: Array.from({ length: 24 }, (_, i) => (_jsxs("option", { value: i, children: [i, ":00"] }, i))) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 mb-2", children: "\u4E88\u7D04\u9593\u9694" }), _jsxs("select", { value: businessSettings.timeSlotMinutes, onChange: (e) => setBusinessSettings(prev => ({ ...prev, timeSlotMinutes: parseInt(e.target.value) })), className: "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", children: [_jsx("option", { value: 15, children: "15\u5206" }), _jsx("option", { value: 30, children: "30\u5206" }), _jsx("option", { value: 60, children: "60\u5206" })] })] })] }), _jsx("div", { className: "pt-4 border-t border-gray-200", children: _jsxs("button", { className: "btn btn-primary", children: [_jsx(Save, { className: "w-4 h-4 mr-2" }), "\u55B6\u696D\u6642\u9593\u8A2D\u5B9A\u3092\u4FDD\u5B58"] }) })] })] }), _jsxs("div", { className: "card", children: [_jsx("h3", { className: "text-lg font-medium text-gray-900 mb-4", children: "\u30B7\u30B9\u30C6\u30E0\u8A2D\u5B9A" }), _jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-sm font-medium text-gray-900", children: "\u901A\u77E5\u8A2D\u5B9A" }), _jsx("p", { className: "text-xs text-gray-500", children: "\u65B0\u3057\u3044\u30E1\u30C3\u30BB\u30FC\u30B8\u3084\u4E88\u7D04\u306E\u901A\u77E5\u3092\u7BA1\u7406\u3057\u307E\u3059" })] }), _jsx("button", { onClick: () => setActiveTab('notification-settings'), className: "btn btn-secondary btn-sm", children: "\u8A2D\u5B9A" })] }), _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-sm font-medium text-gray-900", children: "\u30C7\u30FC\u30BF\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7" }), _jsx("p", { className: "text-xs text-gray-500", children: "\u5B9A\u671F\u7684\u306A\u30C7\u30FC\u30BF\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u8A2D\u5B9A\u3057\u307E\u3059" })] }), _jsx("button", { onClick: () => setActiveTab('backup-settings'), className: "btn btn-secondary btn-sm", children: "\u8A2D\u5B9A" })] }), _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-sm font-medium text-gray-900", children: "\u5916\u90E8API\u9023\u643A\u8A2D\u5B9A" }), _jsx("p", { className: "text-xs text-gray-500", children: "LINE\u30FBInstagram API\u306E\u8A2D\u5B9A\u3092\u7BA1\u7406\u3057\u307E\u3059" })] }), _jsx("button", { onClick: () => setActiveTab('api-settings'), className: "btn btn-secondary btn-sm", children: "\u8A2D\u5B9A" })] })] })] }), _jsx(ProtectedRoute, { requiredResource: "*", requiredAction: "admin", requireAuth: false, children: _jsxs("div", { className: "card", children: [_jsxs("h3", { className: "text-lg font-medium text-gray-900 mb-4 flex items-center", children: [_jsx(Shield, { className: "w-5 h-5 mr-2 text-red-600" }), "\u7BA1\u7406\u8005\u9650\u5B9A\u8A2D\u5B9A"] }), _jsx("div", { className: "space-y-4", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-sm font-medium text-gray-900", children: "OpenAI\u8A2D\u5B9A" }), _jsx("p", { className: "text-xs text-gray-500", children: "AI\u8FD4\u4FE1\u6A5F\u80FD\u306E\u305F\u3081\u306EOpenAI API\u8A2D\u5B9A" })] }), _jsx("button", { onClick: () => setActiveTab('openai-settings'), className: "btn btn-secondary btn-sm", children: "\u8A2D\u5B9A" })] }) })] }) })] }))] }) })] }), showCustomerModal && selectedCustomer && (_jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4", children: _jsx("div", { className: "bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col", children: _jsx("div", { className: "flex-1 overflow-y-auto", children: _jsxs("div", { className: "p-6", children: [_jsxs("div", { className: "flex items-center justify-between mb-6", children: [_jsxs("h2", { className: "text-xl font-bold text-gray-900 flex items-center", children: [_jsx(User, { className: "w-6 h-6 mr-2" }), "\u9867\u5BA2\u30AB\u30EB\u30C6 - ", selectedCustomer.customerNumber, " ", selectedCustomer.name] }), _jsx("button", { onClick: () => {
+          md:translate-x-0 h-full md:h-screen md:sticky md:top-16
+        `, children: _jsxs("div", { className: "h-full overflow-y-auto p-4 md:p-6 pt-20 md:pt-6", children: [_jsxs("div", { className: "space-y-2", children: [_jsxs("button", { onClick: () => {
+                                                setActiveTab('dashboard');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'dashboard'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(BarChart3, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('messages');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'messages'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(MessageSquare, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u30E1\u30C3\u30BB\u30FC\u30B8" }), unreadCount > 0 && (_jsx("span", { className: "ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium", children: unreadCount }))] }), _jsxs("button", { onClick: () => {
+                                                setShowBulkMessageSender(true);
+                                                setIsSidebarOpen(false);
+                                            }, className: "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-50 ml-6", children: [_jsx(Send, { className: "w-4 h-4 flex-shrink-0" }), _jsx("span", { className: "font-medium text-sm", children: "\u30E1\u30C3\u30BB\u30FC\u30B8\u4E00\u6589\u9001\u4FE1" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('reservations');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'reservations'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Calendar, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u4E88\u7D04\u7BA1\u7406" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('customers');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'customers'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Users, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u9867\u5BA2\u7BA1\u7406" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('analytics');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'analytics'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(BarChart3, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u5206\u6790" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('premium-marketing');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'premium-marketing'
+                                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Star, { className: "w-5 h-5 flex-shrink-0 text-yellow-500" }), _jsx("span", { className: "font-medium", children: "\u7D4C\u55B6\u6226\u7565 (Premium)" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('menu-management');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'menu-management'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Scissors, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u30E1\u30CB\u30E5\u30FC\u7BA1\u7406" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('ai-shift-management');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'ai-shift-management'
+                                                ? 'bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-200'
+                                                : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50'}`, children: [_jsx(Bot, { className: "w-5 h-5 flex-shrink-0 text-purple-600" }), _jsx("span", { className: "font-medium", children: "AI\u30B7\u30D5\u30C8\u6700\u9069\u5316" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('feature-request');
+                                                setIsSidebarOpen(false);
+                                                setUnreadFeatureRequests(0); // Clear notification count when visiting page
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'feature-request'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Lightbulb, { className: "w-5 h-5 flex-shrink-0 text-yellow-500" }), _jsx("span", { className: "font-medium", children: "\u6A5F\u80FD\u6539\u5584\u8981\u671B" }), unreadFeatureRequests > 0 && (_jsx("span", { className: "ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center", children: unreadFeatureRequests }))] }), _jsxs("button", { onClick: () => {
+                                                setActiveView('upgrade');
+                                                setIsSidebarOpen(false);
+                                            }, className: "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700", children: [_jsx(Sparkles, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u30D7\u30E9\u30F3\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9" })] }), _jsxs("button", { onClick: () => {
+                                                setActiveTab('settings');
+                                                setIsSidebarOpen(false);
+                                            }, className: `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'settings'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'text-gray-700 hover:bg-gray-50'}`, children: [_jsx(Settings, { className: "w-5 h-5 flex-shrink-0" }), _jsx("span", { className: "font-medium", children: "\u8A2D\u5B9A" })] })] }), _jsx("div", { className: "mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200", children: _jsx("div", { className: "text-center", children: _jsxs("p", { className: "text-xs text-gray-600 font-medium", children: ["\u672C\u65E5\u306E\u4E88\u7D04\u6570", _jsx("br", {}), reservations?.reservations.filter(r => isToday(new Date(r.startTime))).length || 0, "\u4EF6"] }) }) }), _jsx("div", { className: "mt-8 p-4 bg-white border border-gray-200 rounded-lg", children: _jsx(UserProfile, {}) })] }) }), _jsx("main", { className: "flex-1 p-4 sm:p-6 max-w-full", children: _jsxs("div", { className: "max-w-7xl mx-auto", children: [activeView === 'upgrade' && (_jsxs("div", { children: [_jsx("div", { className: "mb-4", children: _jsxs("button", { onClick: () => setActiveView('main'), className: "flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors", children: [_jsx(ChevronLeft, { className: "w-4 h-4" }), _jsx("span", { children: "\u623B\u308B" })] }) }), _jsx(UpgradePlan, {})] })), activeView === 'test-environment' && (_jsxs("div", { children: [_jsx("div", { className: "mb-4", children: _jsxs("button", { onClick: () => setActiveView('main'), className: "flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors", children: [_jsx(ChevronLeft, { className: "w-4 h-4" }), _jsx("span", { children: "\u30E1\u30A4\u30F3\u306B\u623B\u308B" })] }) }), _jsxs("div", { className: "bg-white rounded-lg shadow p-6", children: [_jsx("h2", { className: "text-xl font-bold text-gray-900 mb-4", children: "\u30C6\u30B9\u30C8\u74B0\u5883\u8A2D\u5B9A" }), _jsx("p", { className: "text-gray-600", children: "\u30C6\u30B9\u30C8\u74B0\u5883\u306E\u8A2D\u5B9A\u6A5F\u80FD\u306F\u958B\u767A\u4E2D\u3067\u3059\u3002" })] })] })), activeView === 'main' && showFilteredCustomerView && (_jsx(FilteredCustomerView, { viewType: filteredCustomerViewType, customerId: filteredCustomerId, customerName: filteredCustomerName, allMessages: messageThreads || [], allReservations: [...(pastReservations || []), ...(futureReservations || []), ...(liveReservations || [])], onBack: handleBackFromFilteredView })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'dashboard' && _jsx(Dashboard, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'messages' && _jsx(MessagesList, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'customers' && _jsx(CustomersList, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'reservations' && _jsx(ReservationsList, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'analytics' && _jsx(CustomerAnalyticsDashboard, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && _jsx(PremiumMarketingDashboard, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'ai-shift-management' && _jsx(AIShiftManagement, {}), activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && _jsx(FeatureRequestForm, { onNewRequest: handleNewFeatureRequest }), activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u5916\u90E8API\u9023\u643A\u8A2D\u5B9A" }), _jsx(ExternalAPISettings, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'notification-settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u901A\u77E5\u8A2D\u5B9A" }), _jsx(NotificationSettings, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'backup-settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u30C7\u30FC\u30BF\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u8A2D\u5B9A" }), _jsx(DataBackupSettings, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'openai-settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "OpenAI\u8A2D\u5B9A" }), _jsx(OpenAISettings, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'menu-management' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u30E1\u30CB\u30E5\u30FC\u7BA1\u7406" }), _jsx(MenuManagement, {})] })), activeView === 'main' && !showFilteredCustomerView && activeTab === 'settings' && (_jsxs("div", { className: "space-y-6", children: [_jsx("h2", { className: "text-xl md:text-2xl font-bold text-gray-900", children: "\u8A2D\u5B9A" }), _jsxs("div", { className: "card", children: [_jsxs("h3", { className: "text-lg font-medium text-gray-900 mb-4 flex items-center", children: [_jsx(Crown, { className: "w-5 h-5 mr-2 text-purple-600" }), "\u30D7\u30E9\u30F3\u7BA1\u7406"] }), _jsx(PlanBadge, { variant: "full", onUpgradeClick: () => setActiveView('upgrade') })] }), _jsx("div", { className: "card", children: _jsx(AdvancedHolidaySettings, {}) }), _jsx("div", { className: "card", children: _jsx(ReminderSettings, {}) }), _jsxs("div", { className: "card", children: [_jsx("h3", { className: "text-lg font-medium text-gray-900 mb-4", children: "\u57FA\u672C\u55B6\u696D\u6642\u9593\u8A2D\u5B9A" }), _jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 mb-2", children: "\u958B\u5E97\u6642\u9593" }), _jsx("select", { value: businessSettings.openHour, onChange: (e) => setBusinessSettings(prev => ({ ...prev, openHour: parseInt(e.target.value) })), className: "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", children: Array.from({ length: 24 }, (_, i) => (_jsxs("option", { value: i, children: [i, ":00"] }, i))) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 mb-2", children: "\u9589\u5E97\u6642\u9593" }), _jsx("select", { value: businessSettings.closeHour, onChange: (e) => setBusinessSettings(prev => ({ ...prev, closeHour: parseInt(e.target.value) })), className: "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", children: Array.from({ length: 24 }, (_, i) => (_jsxs("option", { value: i, children: [i, ":00"] }, i))) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 mb-2", children: "\u4E88\u7D04\u9593\u9694" }), _jsxs("select", { value: businessSettings.timeSlotMinutes, onChange: (e) => setBusinessSettings(prev => ({ ...prev, timeSlotMinutes: parseInt(e.target.value) })), className: "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", children: [_jsx("option", { value: 15, children: "15\u5206" }), _jsx("option", { value: 30, children: "30\u5206" }), _jsx("option", { value: 60, children: "60\u5206" })] })] })] }), _jsx("div", { className: "pt-4 border-t border-gray-200", children: _jsxs("button", { className: "btn btn-primary", children: [_jsx(Save, { className: "w-4 h-4 mr-2" }), "\u55B6\u696D\u6642\u9593\u8A2D\u5B9A\u3092\u4FDD\u5B58"] }) })] })] }), _jsxs("div", { className: "card", children: [_jsx("h3", { className: "text-lg font-medium text-gray-900 mb-4", children: "\u30B7\u30B9\u30C6\u30E0\u8A2D\u5B9A" }), _jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-sm font-medium text-gray-900", children: "\u901A\u77E5\u8A2D\u5B9A" }), _jsx("p", { className: "text-xs text-gray-500", children: "\u65B0\u3057\u3044\u30E1\u30C3\u30BB\u30FC\u30B8\u3084\u4E88\u7D04\u306E\u901A\u77E5\u3092\u7BA1\u7406\u3057\u307E\u3059" })] }), _jsx("button", { onClick: () => setActiveTab('notification-settings'), className: "btn btn-secondary btn-sm", children: "\u8A2D\u5B9A" })] }), _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-sm font-medium text-gray-900", children: "\u30C7\u30FC\u30BF\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7" }), _jsx("p", { className: "text-xs text-gray-500", children: "\u5B9A\u671F\u7684\u306A\u30C7\u30FC\u30BF\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u8A2D\u5B9A\u3057\u307E\u3059" })] }), _jsx("button", { onClick: () => setActiveTab('backup-settings'), className: "btn btn-secondary btn-sm", children: "\u8A2D\u5B9A" })] }), _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-sm font-medium text-gray-900", children: "\u5916\u90E8API\u9023\u643A\u8A2D\u5B9A" }), _jsx("p", { className: "text-xs text-gray-500", children: "LINE\u30FBInstagram API\u306E\u8A2D\u5B9A\u3092\u7BA1\u7406\u3057\u307E\u3059" })] }), _jsx("button", { onClick: () => setActiveTab('api-settings'), className: "btn btn-secondary btn-sm", children: "\u8A2D\u5B9A" })] })] })] }), _jsx(ProtectedRoute, { requiredResource: "*", requiredAction: "admin", requireAuth: false, children: _jsxs("div", { className: "card", children: [_jsxs("h3", { className: "text-lg font-medium text-gray-900 mb-4 flex items-center", children: [_jsx(Shield, { className: "w-5 h-5 mr-2 text-red-600" }), "\u7BA1\u7406\u8005\u9650\u5B9A\u8A2D\u5B9A"] }), _jsx("div", { className: "space-y-4", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-sm font-medium text-gray-900", children: "OpenAI\u8A2D\u5B9A" }), _jsx("p", { className: "text-xs text-gray-500", children: "AI\u8FD4\u4FE1\u6A5F\u80FD\u306E\u305F\u3081\u306EOpenAI API\u8A2D\u5B9A" })] }), _jsx("button", { onClick: () => setActiveTab('openai-settings'), className: "btn btn-secondary btn-sm", children: "\u8A2D\u5B9A" })] }) })] }) })] }))] }) })] }), showCustomerModal && selectedCustomer && (_jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4", children: _jsx("div", { className: "bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col", children: _jsx("div", { className: "flex-1 overflow-y-auto", children: _jsxs("div", { className: "p-6", children: [_jsxs("div", { className: "flex items-center justify-between mb-6", children: [_jsxs("h2", { className: "text-xl font-bold text-gray-900 flex items-center", children: [_jsx(User, { className: "w-6 h-6 mr-2" }), "\u9867\u5BA2\u30AB\u30EB\u30C6 - ", selectedCustomer.customerNumber, " ", selectedCustomer.name] }), _jsx("button", { onClick: () => {
                                                 setShowCustomerModal(false);
                                                 setSelectedCustomer(null);
                                                 setCustomerNotes('');
@@ -718,7 +641,7 @@ function App() {
                 }, selectedDate: selectedReservationDate, selectedTime: selectedReservationTime, customers: customers?.customers || [], onSave: handleSaveNewReservation }), _jsx(ServiceHistoryModal, { reservation: selectedServiceHistory, onClose: () => {
                     setShowServiceHistoryModal(false);
                     setSelectedServiceHistory(null);
-                }, onUpdateStylistNotes: handleUpdateStylistNotes })] }));
+                }, onUpdateStylistNotes: handleUpdateStylistNotes }), _jsx(ChatWidget, {})] }));
 }
 // 認証で保護されたメインアプリケーション
 const AuthenticatedApp = () => {

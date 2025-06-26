@@ -1338,15 +1338,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* テストモード表示 */}
-      <TestModeIndicator 
-        isTestMode={true}
-        accountInfo={{
-          username: 'owner001',
-          name: '田中 一郎',
-          salonName: 'Hair Studio TOKYO',
-          salonType: 'ヘアサロン'
-        }}
-      />
+      <TestModeIndicator />
       
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">

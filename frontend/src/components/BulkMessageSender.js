@@ -1,5 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Send, Users, Filter, MessageCircle, Instagram, Mail, X, CheckCircle, AlertCircle, Eye, MessageSquare } from 'lucide-react';
 import { format, differenceInMonths, differenceInDays } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -230,8 +231,12 @@ const BulkMessageSenderCore = ({ customers, onSend, onClose, isOpen }) => {
 // プラン制限を適用したBulkMessageSender
 const BulkMessageSender = (props) => {
     const { subscriptionInfo } = useSubscription();
+    const navigate = useNavigate();
     if (!props.isOpen)
         return null;
-    return (_jsx(FeatureGate, { feature: "aiReplyGeneration", fallback: _jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4", children: _jsxs("div", { className: "bg-white rounded-lg max-w-md w-full p-6", children: [_jsxs("div", { className: "flex items-center justify-between mb-4", children: [_jsx("h3", { className: "text-lg font-semibold", children: "\u6A5F\u80FD\u5236\u9650" }), _jsx("button", { onClick: props.onClose, className: "text-gray-400 hover:text-gray-600", children: _jsx(X, { className: "w-6 h-6" }) })] }), _jsx(LimitWarning, { limitType: "maxAIRepliesPerMonth", currentValue: subscriptionInfo?.currentUsage.aiRepliesThisMonth || 0, className: "mb-4" }), _jsx("p", { className: "text-gray-600 text-sm mb-4", children: "\u4E00\u62EC\u30E1\u30C3\u30BB\u30FC\u30B8\u9001\u4FE1\u6A5F\u80FD\u306F\u3001\u30B9\u30BF\u30F3\u30C0\u30FC\u30C9\u30D7\u30E9\u30F3\u4EE5\u4E0A\u3067\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u3059\u3002" }), _jsxs("div", { className: "flex space-x-3", children: [_jsx("button", { onClick: props.onClose, className: "flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200", children: "\u9589\u3058\u308B" }), _jsx("button", { className: "flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700", children: "\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9" })] })] }) }), children: _jsx(BulkMessageSenderCore, { ...props }) }));
+    return (_jsx(FeatureGate, { feature: "aiReplyGeneration", fallback: _jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4", children: _jsxs("div", { className: "bg-white rounded-lg max-w-md w-full p-6", children: [_jsxs("div", { className: "flex items-center justify-between mb-4", children: [_jsx("h3", { className: "text-lg font-semibold", children: "\u6A5F\u80FD\u5236\u9650" }), _jsx("button", { onClick: props.onClose, className: "text-gray-400 hover:text-gray-600", children: _jsx(X, { className: "w-6 h-6" }) })] }), _jsx(LimitWarning, { limitType: "maxAIRepliesPerMonth", currentValue: subscriptionInfo?.currentUsage.aiRepliesThisMonth || 0, className: "mb-4" }), _jsx("p", { className: "text-gray-600 text-sm mb-4", children: "\u4E00\u62EC\u30E1\u30C3\u30BB\u30FC\u30B8\u9001\u4FE1\u6A5F\u80FD\u306F\u3001\u30B9\u30BF\u30F3\u30C0\u30FC\u30C9\u30D7\u30E9\u30F3\u4EE5\u4E0A\u3067\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u3059\u3002" }), _jsxs("div", { className: "flex space-x-3", children: [_jsx("button", { onClick: props.onClose, className: "flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200", children: "\u9589\u3058\u308B" }), _jsx("button", { onClick: () => {
+                                    props.onClose();
+                                    navigate('/settings/upgrade');
+                                }, className: "flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700", children: "\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9" })] })] }) }), children: _jsx(BulkMessageSenderCore, { ...props }) }));
 };
 export default BulkMessageSender;

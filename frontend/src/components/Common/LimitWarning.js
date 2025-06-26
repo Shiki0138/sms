@@ -1,8 +1,10 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { AlertTriangle, TrendingUp, Users, MessageSquare, Download } from 'lucide-react';
 const LimitWarning = ({ limitType, currentValue, warningThreshold = 0.8, className = '' }) => {
     const { limits, getRemainingLimit, isWithinLimit } = useSubscription();
+    const navigate = useNavigate();
     const limit = limits[limitType];
     const remaining = getRemainingLimit(limitType, currentValue);
     const withinLimit = isWithinLimit(limitType, currentValue);
@@ -80,6 +82,6 @@ const LimitWarning = ({ limitType, currentValue, warningThreshold = 0.8, classNa
     const colors = getColor();
     return (_jsx("div", { className: `${colors.bg} ${colors.border} border rounded-lg p-3 ${className}`, children: _jsxs("div", { className: "flex items-start space-x-3", children: [_jsx("div", { className: `${colors.icon} mt-0.5`, children: getIcon() }), _jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("div", { className: `font-medium ${colors.text} text-sm`, children: getTitle() }), _jsx("div", { className: `${colors.text} text-xs mt-1`, children: getMessage() }), _jsxs("div", { className: "mt-2", children: [_jsxs("div", { className: "flex justify-between text-xs text-gray-600 mb-1", children: [_jsx("span", { children: currentValue }), _jsx("span", { children: limit === -1 ? '無制限' : limit })] }), limit !== -1 && (_jsx("div", { className: "w-full bg-gray-200 rounded-full h-2", children: _jsx("div", { className: `h-2 rounded-full ${!withinLimit ? 'bg-red-500' : 'bg-yellow-500'}`, style: {
                                             width: `${Math.min(100, (currentValue / limit) * 100)}%`
-                                        } }) }))] }), !withinLimit && (_jsx("div", { className: "mt-3", children: _jsx("button", { className: "text-xs bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors", children: "\u30D7\u30E9\u30F3\u3092\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9" }) }))] })] }) }));
+                                        } }) }))] }), !withinLimit && (_jsx("div", { className: "mt-3", children: _jsx("button", { onClick: () => navigate('/settings/upgrade'), className: "text-xs bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors", children: "\u30D7\u30E9\u30F3\u3092\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9" }) }))] })] }) }));
 };
 export default LimitWarning;

@@ -57,7 +57,7 @@ const FeatureRequestForm: React.FC<FeatureRequestFormProps> = ({ onNewRequest })
                   <div className="text-amber-700 text-sm space-y-1">
                     <p>• 実際のデータを登録してお試しいただけます</p>
                     <p>• LINE・決済機能など一部機能は制限されています</p>
-                    <p>• データは{config.demoExpiryDays}日後に自動削除されます</p>
+                    <p>• データは{config.demoExpiryDays || 30}日後に自動削除されます</p>
                     <p>• お問い合わせは専用フォームからお願いいたします</p>
                   </div>
                 </div>

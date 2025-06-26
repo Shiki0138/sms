@@ -7,6 +7,8 @@ export interface EnvironmentConfig {
   isDevelopment: boolean
   isProduction: boolean
   isTestingPhase: boolean
+  isDemoMode?: boolean
+  demoExpiryDays?: number
   enableLineMessaging: boolean
   enableInstagramDM: boolean
   enableSMSSending: boolean
@@ -37,6 +39,8 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     isDevelopment,
     isProduction,
     isTestingPhase,
+    isDemoMode: import.meta.env.VITE_IS_DEMO_MODE === 'true',
+    demoExpiryDays: import.meta.env.VITE_DEMO_EXPIRY_DAYS ? parseInt(import.meta.env.VITE_DEMO_EXPIRY_DAYS) : undefined,
     enableLineMessaging: import.meta.env.VITE_ENABLE_LINE_MESSAGING === 'true',
     enableInstagramDM: import.meta.env.VITE_ENABLE_INSTAGRAM_DM === 'true',
     enableSMSSending: import.meta.env.VITE_ENABLE_SMS_SENDING === 'true',
