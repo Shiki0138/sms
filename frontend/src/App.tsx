@@ -1359,13 +1359,15 @@ function App() {
                 <div className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center group-hover:bg-blue-700 transition-colors">
                   <Scissors className="w-6 h-6" />
                 </div>
-                <div>
-                  <h1 className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
-                    美容室統合管理システム
-                    <span className="ml-2 bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <h1 className="text-sm sm:text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors truncate">
+                      美容室統合管理システム
+                    </h1>
+                    <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded self-start">
                       テストモード
                     </span>
-                  </h1>
+                  </div>
                   <p className="text-xs text-gray-600 hidden sm:block group-hover:text-blue-600 transition-colors">統合管理プラットフォーム（デモ環境）</p>
                 </div>
               </button>

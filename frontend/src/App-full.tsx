@@ -891,7 +891,7 @@ function App() {
               >
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">🏪 美容室統合管理システム</h1>
+              <h1 className="text-sm sm:text-lg font-bold text-gray-900 truncate">🏪 美容室統合管理システム</h1>
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <div className="flex items-center space-x-1">

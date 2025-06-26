@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Eye, EyeOff, LogIn, User, Lock, AlertCircle, Shield } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { TEST_LOGIN_CREDENTIALS } from '../../types/auth'
+import { getEnvironmentConfig } from '../../utils/environment'
 
 interface LoginFormProps {
   onLoginSuccess?: () => void
@@ -9,6 +10,7 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   const { login, isLoading } = useAuth()
+  const config = getEnvironmentConfig()
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -39,6 +41,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
     }
   }
 
+  const handleDemoLogin = async (username: string, password: string) => {
+    setError(null)
+    setFormData({ username, password })
+    
+    const success = await login({ username, password })
+    if (success) {
+      onLoginSuccess?.()
+    } else {
+      setError('デモログインに失敗しました。')
+    }
+  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -48,7 +62,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
           <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
             <Shield className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-3xl font-bold text-gray-900">
             美容室管理システム
           </h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -150,6 +164,72 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
           <p>このシステムは認証が必要です</p>
           <p className="mt-1">適切な権限を持つアカウントでログインしてください</p>
         </div>
+
+        {/* デモアカウント（テストモードでは非表示） */}
+        {!config.isTestingPhase && (
+          <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 text-center">デモアカウント</h3>
+            <div className="space-y-4">
+              {/* 管理者 */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">管理者</h4>
+                <button
+                  onClick={() => handleDemoLogin(TEST_LOGIN_CREDENTIALS.admin.username, TEST_LOGIN_CREDENTIALS.admin.password)}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-between p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">システム管理者</div>
+                    <div className="text-xs text-gray-500">{TEST_LOGIN_CREDENTIALS.admin.username}</div>
+                  </div>
+                  <LogIn className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+
+              {/* デモユーザー */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">デモユーザー</h4>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleDemoLogin(TEST_LOGIN_CREDENTIALS.demo.username, TEST_LOGIN_CREDENTIALS.demo.password)}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-between p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">サロンデモ</div>
+                      <div className="text-xs text-gray-500">{TEST_LOGIN_CREDENTIALS.demo.username}</div>
+                    </div>
+                    <LogIn className="w-4 h-4 text-gray-400" />
+                  </button>
+                  
+                  <button
+                    onClick={() => handleDemoLogin(TEST_LOGIN_CREDENTIALS.staff1.username, TEST_LOGIN_CREDENTIALS.staff1.password)}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-between p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">田中 美咲</div>
+                      <div className="text-xs text-gray-500">{TEST_LOGIN_CREDENTIALS.staff1.username}</div>
+                    </div>
+                    <LogIn className="w-4 h-4 text-gray-400" />
+                  </button>
+                  
+                  <button
+                    onClick={() => handleDemoLogin(TEST_LOGIN_CREDENTIALS.staff2.username, TEST_LOGIN_CREDENTIALS.staff2.password)}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-between p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">佐藤 千夏</div>
+                      <div className="text-xs text-gray-500">{TEST_LOGIN_CREDENTIALS.staff2.username}</div>
+                    </div>
+                    <LogIn className="w-4 h-4 text-gray-400" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
