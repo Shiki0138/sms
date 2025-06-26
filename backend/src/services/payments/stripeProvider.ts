@@ -713,9 +713,9 @@ export class StripePaymentProvider implements IPaymentProvider {
   async refundPayment(paymentId: string, amount?: number, reason?: string): Promise<PaymentResult> {
     try {
       const refund = await this.stripe.refunds.create({
-        payment_intent: paymentId,
+        charge: paymentId,
         amount: amount ? Math.round(amount * 100) : undefined, // 部分返金対応
-        reason: 'requested_by_customer',
+        reason: 'requested_by_customer' as const,
         metadata: {
           refundReason: reason || 'Customer requested refund'
         }
@@ -730,7 +730,6 @@ export class StripePaymentProvider implements IPaymentProvider {
       return {
         success: true,
         paymentId: refund.id,
-        amount: refund.amount / 100,
         message: '返金処理が完了しました'
       };
     } catch (error: any) {
