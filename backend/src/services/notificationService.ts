@@ -234,7 +234,14 @@ export class NotificationService {
       
       const notificationData: NotificationData = {
         id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        ...validatedData,
+        type: validatedData.type,
+        title: validatedData.title,
+        message: validatedData.message,
+        tenantId: validatedData.tenantId,
+        priority: validatedData.priority,
+        staffId: validatedData.staffId,
+        customerId: validatedData.customerId,
+        metadata: validatedData.metadata,
         timestamp: new Date().toISOString(),
         isRead: false,
       };

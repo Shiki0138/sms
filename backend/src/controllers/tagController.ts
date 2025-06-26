@@ -105,9 +105,10 @@ export const createTag = asyncHandler(async (req: AuthenticatedRequest, res: Res
 
   const tag = await prisma.tag.create({
     data: {
-      ...data,
-      tenantId,
+      name: data.name,
+      type: data.type,
       color: data.color || '#3B82F6', // Default blue color
+      tenantId,
     },
   });
 

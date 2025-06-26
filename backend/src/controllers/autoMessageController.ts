@@ -86,7 +86,10 @@ export const upsertTemplate = asyncHandler(async (req: Request, res: Response) =
       updatedAt: new Date()
     },
     create: {
-      ...data,
+      type: data.type,
+      title: data.title,
+      content: data.content,
+      isActive: data.isActive ?? true,
       tenantId
     }
   });

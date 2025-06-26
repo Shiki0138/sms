@@ -56,7 +56,8 @@ export class MenuService {
     
     return await prisma.menuCategory.create({
       data: {
-        ...validatedData,
+        name: validatedData.name,
+        displayOrder: validatedData.displayOrder,
         tenantId,
       },
     });
@@ -117,7 +118,15 @@ export class MenuService {
 
     return await prisma.menu.create({
       data: {
-        ...validatedData,
+        name: validatedData.name,
+        description: validatedData.description,
+        price: validatedData.price,
+        duration: validatedData.duration,
+        categoryId: validatedData.categoryId,
+        displayOrder: validatedData.displayOrder,
+        seasonality: validatedData.seasonality,
+        ageGroup: validatedData.ageGroup,
+        genderTarget: validatedData.genderTarget,
         tenantId,
       },
       include: {

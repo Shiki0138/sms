@@ -322,7 +322,9 @@ export const createThread = asyncHandler(async (req: AuthenticatedRequest, res: 
 
   const thread = await prisma.messageThread.create({
     data: {
-      ...data,
+      channel: data.channel,
+      channelThreadId: data.channelThreadId,
+      customerId: data.customerId,
       tenantId,
       status: 'OPEN',
     },
@@ -806,7 +808,14 @@ export const createBroadcastCampaign = asyncHandler(async (req: AuthenticatedReq
       data.segmentCriteria,
       data.channels,
       data.scheduledAt,
-      data.abTest
+      data.abTest ? {
+        enabled: data.abTest.enabled,
+        variants: data.abTest.variants.map(v => ({
+          name: v.name,
+          content: v.content,
+          percentage: v.percentage
+        }))
+      } : undefined
     );
 
     // Log audit event

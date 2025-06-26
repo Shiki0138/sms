@@ -37,8 +37,14 @@ export class NotificationController {
       const notificationService = getNotificationService();
       
       await notificationService.sendNotification({
-        ...validatedData,
+        type: validatedData.type,
+        title: validatedData.title,
+        message: validatedData.message,
+        priority: validatedData.priority,
         tenantId,
+        staffId: validatedData.staffId,
+        customerId: validatedData.customerId,
+        metadata: validatedData.metadata,
       });
       
       res.status(201).json({

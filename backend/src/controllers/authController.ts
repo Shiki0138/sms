@@ -534,8 +534,9 @@ export class AuthController {
       const setup = await TwoFactorService.setup2FA(staff.email);
 
       // セットアップ情報を一時的に保存（実際の本番環境では Redis 等を使用）
-      req.session = req.session || {};
-      req.session.temp2FASecret = setup.secret;
+      if (req.session) {
+        req.session.temp2FASecret = setup.secret;
+      }
 
       res.json({
         success: true,

@@ -31,7 +31,17 @@ router.post('/submit',
     try {
       const validatedData = contactFormSchema.parse(req.body);
       
-      const result = await ContactFormService.handleInquiry(validatedData);
+      const result = await ContactFormService.handleInquiry({
+        name: validatedData.name,
+        email: validatedData.email,
+        company: validatedData.company,
+        category: validatedData.category,
+        subject: validatedData.subject,
+        message: validatedData.message,
+        urgency: validatedData.urgency,
+        tenantId: validatedData.tenantId,
+        userId: validatedData.userId
+      });
       
       logger.info('Contact form submitted:', {
         inquiryId: result.inquiryId,

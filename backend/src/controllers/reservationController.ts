@@ -301,7 +301,18 @@ export const createReservation = asyncHandler(async (req: AuthenticatedRequest, 
 
   const reservation = await prisma.reservation.create({
     data: {
-      ...data,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      menuContent: data.menuContent,
+      customerName: data.customerName,
+      customerId: data.customerId,
+      customerPhone: data.customerPhone,
+      customerEmail: data.customerEmail,
+      staffId: data.staffId,
+      source: data.source,
+      sourceId: data.sourceId,
+      status: data.status || 'CONFIRMED',
+      notes: data.notes,
       tenantId,
     },
     include: {

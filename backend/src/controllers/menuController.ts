@@ -340,7 +340,13 @@ export class MenuController {
       const tenantId = req.headers['x-tenant-id'] as string || 'default-tenant';
       const validatedData = RecordMenuHistorySchema.parse(req.body);
       
-      const history = await menuService.recordMenuHistory(tenantId, validatedData);
+      const history = await menuService.recordMenuHistory(tenantId, {
+        customerId: validatedData.customerId,
+        menuId: validatedData.menuId,
+        visitDate: validatedData.visitDate,
+        satisfaction: validatedData.satisfaction,
+        notes: validatedData.notes,
+      });
       
       res.status(201).json({
         success: true,
