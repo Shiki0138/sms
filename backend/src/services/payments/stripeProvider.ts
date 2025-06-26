@@ -721,7 +721,7 @@ export class StripePaymentProvider implements IPaymentProvider {
         }
       });
 
-      logger.info('Stripe refund created:', {
+      logger.info('Stripe refund created successfully:', {
         refundId: refund.id,
         paymentId,
         amount: refund.amount / 100
