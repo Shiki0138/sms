@@ -15,11 +15,11 @@ on:
         - staging
 
 env:
-  PROJECT_ID: salon-system-1750113683
+  PROJECT_ID: salon-management-prod
   REGION: asia-northeast1
   BACKEND_SERVICE: salon-backend
   DB_INSTANCE: salon-db-production
-  FRONTEND_BUCKET: salon-system-1750113683-salon-frontend
+  FRONTEND_BUCKET: salon-management-prod-salon-frontend
 
 jobs:
   # 🧪 テスト実行

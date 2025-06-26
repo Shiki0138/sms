@@ -11,7 +11,7 @@ on:
     types: [closed]
 
 env:
-  PROJECT_ID: salon-system-1750113683
+  PROJECT_ID: salon-management-prod
   REGION: asia-northeast1
   SERVICE_NAME: salon-backend
 
