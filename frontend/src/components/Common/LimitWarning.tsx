@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { PlanLimits } from '../../types/subscription'
 import { AlertTriangle, TrendingUp, Users, MessageSquare, Download } from 'lucide-react'
@@ -17,6 +18,7 @@ const LimitWarning: React.FC<LimitWarningProps> = ({
   className = ''
 }) => {
   const { limits, getRemainingLimit, isWithinLimit } = useSubscription()
+  const navigate = useNavigate()
 
   const limit = limits[limitType]
   const remaining = getRemainingLimit(limitType, currentValue)
@@ -142,7 +144,10 @@ const LimitWarning: React.FC<LimitWarningProps> = ({
           
           {!withinLimit && (
             <div className="mt-3">
-              <button className="text-xs bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors">
+              <button 
+                onClick={() => navigate('/settings/upgrade')}
+                className="text-xs bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors"
+              >
                 プランをアップグレード
               </button>
             </div>

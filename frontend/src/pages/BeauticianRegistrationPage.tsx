@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sparkles, Users, MapPin, Clock, Star } from 'lucide-react'
+import { Sparkles, Users, MapPin, Star } from 'lucide-react'
 import BeauticianRegistration from '../components/SupportBeautician/BeauticianRegistration'
 
 const BeauticianRegistrationPage: React.FC = () => {

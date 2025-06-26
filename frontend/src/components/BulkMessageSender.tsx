@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { 
   Send, 
   Users, 
@@ -703,6 +704,7 @@ const BulkMessageSenderCore: React.FC<BulkMessageSenderProps> = ({
 // プラン制限を適用したBulkMessageSender
 const BulkMessageSender: React.FC<BulkMessageSenderProps> = (props) => {
   const { subscriptionInfo } = useSubscription()
+  const navigate = useNavigate()
   
   if (!props.isOpen) return null
   
@@ -737,7 +739,13 @@ const BulkMessageSender: React.FC<BulkMessageSenderProps> = (props) => {
               >
                 閉じる
               </button>
-              <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <button 
+                onClick={() => {
+                  props.onClose()
+                  navigate('/settings/upgrade')
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
                 アップグレード
               </button>
             </div>

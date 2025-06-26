@@ -1,7 +1,7 @@
 {
-  "name": "salon-management-frontend",
+  "name": "sms-frontend",
   "version": "1.0.0",
-  "description": "美容室向けSaaS統合管理システム - フロントエンド",
+  "description": "SMS Frontend - 美容室統合管理システム フロントエンド",
   "type": "module",
   "scripts": {
     "dev": "vite",

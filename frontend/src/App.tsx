@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
-import LimitWarning from './components/Common/LimitWarning'
 import PlanBadge from './components/Common/PlanBadge'
 import PlanLimitNotifications from './components/Common/PlanLimitNotifications'
-import { useSubscription } from './contexts/SubscriptionContext'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
 import UserProfile from './components/Auth/UserProfile'
 import CustomerAnalyticsDashboard from './components/Analytics/CustomerAnalyticsDashboard'
 import PremiumMarketingDashboard from './components/Analytics/PremiumMarketingDashboard'
-import AnalyticsExport from './components/Analytics/AnalyticsExport'
 import { getEnvironmentConfig, logEnvironmentInfo } from './utils/environment'
 import AdvancedHolidaySettings from './components/Settings/AdvancedHolidaySettings'
 import ExternalAPISettings from './components/Settings/ExternalAPISettings'
@@ -48,19 +45,13 @@ import {
   X,
   ExternalLink,
   Save,
-  Eye,
-  EyeOff,
-  RefreshCw,
-  Link,
   User,
   UserCheck,
-  MapPin,
   Calendar as CalendarIcon,
   FileText,
   ChevronLeft,
   ChevronRight,
   Scissors,
-  Palette,
   Star,
   Sparkles,
   Bot,
@@ -80,7 +71,6 @@ import {
   pastReservations,
   futureReservations, 
   messageThreads,
-  calculateCustomerStats 
 } from './data/dummyData'
 
 // ダミーデータをグローバルに登録（分析画面で使用）
@@ -175,10 +165,10 @@ function App() {
     if (config.isDevelopment && config.showProductionWarnings) {
       console.warn('🚧 Development Environment - Some features are restricted')
     }
-  }, [])
+  }, [config.isDevelopment, config.showProductionWarnings])
 
   const [activeTab, setActiveTab] = useState('messages')
-  const [activeView, setActiveView] = useState<'main' | 'upgrade' | 'test-environment'>('main')
+  const [activeView, setActiveView] = useState<'main' | 'upgrade' | 'test-environment' | 'dashboard'>('main')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [replyMessage, setReplyMessage] = useState('')
   const [replyingToThread, setReplyingToThread] = useState<string | null>(null)
@@ -186,8 +176,6 @@ function App() {
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [isGeneratingAIReply, setIsGeneratingAIReply] = useState<string | null>(null)
   const [customerNotes, setCustomerNotes] = useState('')
-  const [showCustomerMessages, setShowCustomerMessages] = useState(false)
-  const [showCustomerReservations, setShowCustomerReservations] = useState(false)
   
   // Filtered customer view states
   const [showFilteredCustomerView, setShowFilteredCustomerView] = useState(false)
@@ -195,8 +183,6 @@ function App() {
   const [filteredCustomerId, setFilteredCustomerId] = useState<string>('')
   const [filteredCustomerName, setFilteredCustomerName] = useState<string>('')
   
-  // Feature requests state for admin notifications
-  const [featureRequests, setFeatureRequests] = useState<any[]>([])
   const [unreadFeatureRequests, setUnreadFeatureRequests] = useState(0)
   
   // New customer registration modal state
@@ -217,8 +203,8 @@ function App() {
   const [showBulkMessageSender, setShowBulkMessageSender] = useState(false)
   
   // Service History Modal state
-  const [showServiceHistoryModal, setShowServiceHistoryModal] = useState(false)
   const [selectedServiceHistory, setSelectedServiceHistory] = useState<Reservation | null>(null)
+  const [showServiceHistoryModal, setShowServiceHistoryModal] = useState(false)
   
   // New reservation modal state
   const [showNewReservationModal, setShowNewReservationModal] = useState(false)
@@ -288,13 +274,6 @@ function App() {
     }
   })
 
-  // Staff list (demo data)
-  const staffList = [
-    { id: 'staff1', name: '田中 美咲' },
-    { id: 'staff2', name: '佐藤 麗子' },
-    { id: 'staff3', name: '山田 花音' },
-    { id: 'staff4', name: '鈴木 あゆみ' }
-  ]
 
   // Calculate unread count
   const unreadCount = threads?.threads.reduce((sum, t) => sum + t.unreadCount, 0) || 0
@@ -330,32 +309,7 @@ function App() {
   }
 
   // Handle LINE click (テストモードでは無効)
-  const handleLineClick = () => {
-    alert('テストモードではLINEアプリの起動は制限されています。')
-  }
   
-  // Get menu icon based on menu content
-  const getMenuIcon = (menuContent: string) => {
-    const menu = menuContent.toLowerCase()
-    if (menu.includes('カット')) return <Scissors className="w-3 h-3 text-blue-500" />
-    if (menu.includes('カラー')) return <Palette className="w-3 h-3 text-purple-500" />
-    if (menu.includes('パーマ')) return <Sparkles className="w-3 h-3 text-pink-500" />
-    return <Star className="w-3 h-3 text-yellow-500" />
-  }
-  
-  // Generate time slots for business hours
-  const generateTimeSlots = () => {
-    const slots = []
-    const { openHour, closeHour, timeSlotMinutes } = businessSettings
-    
-    for (let hour = openHour; hour < closeHour; hour++) {
-      for (let minute = 0; minute < 60; minute += timeSlotMinutes) {
-        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-        slots.push(time)
-      }
-    }
-    return slots
-  }
   
   // Check if a date is a closed day
   const isClosedDay = (date: Date) => {
@@ -411,45 +365,7 @@ function App() {
     return null
   }
   
-  // Get reservations for a specific date and time slot
-  const getReservationsForSlot = (date: Date, timeSlot: string) => {
-    return liveReservations.filter(r => {
-      const reservationDate = new Date(r.startTime)
-      const reservationTime = format(reservationDate, 'HH:mm')
-      const reservationDateStr = format(reservationDate, 'yyyy-MM-dd')
-      const targetDateStr = format(date, 'yyyy-MM-dd')
-      
-      return reservationDateStr === targetDateStr && reservationTime === timeSlot
-    }) || []
-  }
   
-  // Get dates for current view
-  const getViewDates = () => {
-    const dates = []
-    const baseDate = new Date(calendarDate)
-    
-    if (calendarView === 'day') {
-      dates.push(baseDate)
-    } else if (calendarView === 'threeDay') {
-      for (let i = 0; i < 3; i++) {
-        const date = new Date(baseDate)
-        date.setDate(date.getDate() + i)
-        dates.push(date)
-      }
-    } else if (calendarView === 'week') {
-      // Start from Monday
-      const startOfWeek = new Date(baseDate)
-      startOfWeek.setDate(baseDate.getDate() - baseDate.getDay() + 1)
-      
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(startOfWeek)
-        date.setDate(startOfWeek.getDate() + i)
-        dates.push(date)
-      }
-    }
-    
-    return dates
-  }
   
   // Handle stylist notes update
   const handleUpdateStylistNotes = (reservationId: string, notes: string) => {
@@ -600,8 +516,8 @@ function App() {
 
   // Handle new feature request submission
   const handleNewFeatureRequest = (request: any) => {
-    setFeatureRequests(prev => [request, ...prev])
-    setUnreadFeatureRequests(prev => prev + 1)
+    // フィードバック送信の処理はDemoFeedbackFormで行われる
+    setUnreadFeatureRequests((prev: number) => prev + 1)
   }
 
   // Handle new customer registration
@@ -1443,20 +1359,24 @@ function App() {
               >
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center">
+              <button 
+                onClick={() => setActiveView('dashboard')}
+                className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors group"
+                title="ダッシュボードに戻る"
+              >
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center group-hover:bg-blue-700 transition-colors">
                   <Scissors className="w-6 h-6" />
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-bold text-gray-900">
+                  <h1 className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
                     美容室統合管理システム
                     <span className="ml-2 bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded">
                       テストモード
                     </span>
                   </h1>
-                  <p className="text-xs text-gray-600 hidden sm:block">統合管理プラットフォーム（デモ環境）</p>
+                  <p className="text-xs text-gray-600 hidden sm:block group-hover:text-blue-600 transition-colors">統合管理プラットフォーム（デモ環境）</p>
                 </div>
-              </div>
+              </button>
             </div>
             <div className="flex items-center space-x-4">
               {/* プランバッジ */}
@@ -1503,9 +1423,9 @@ function App() {
           fixed md:static inset-y-0 left-0 z-40
           w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0 h-full md:h-screen md:sticky md:top-16 flex flex-col
+          md:translate-x-0 h-full md:h-screen md:sticky md:top-16
         `}>
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-20 md:pt-6">
+          <div className="h-full overflow-y-auto p-4 md:p-6 pt-20 md:pt-6">
             <div className="space-y-2">
               <button
                 onClick={() => {
@@ -1700,11 +1620,11 @@ function App() {
                 </p>
               </div>
             </div>
-          </div>
-          
-          {/* ユーザープロファイル - サイドバー下部に固定 */}
-          <div className="p-4 md:p-6 pt-0 border-t border-gray-200 bg-white">
-            <UserProfile />
+            
+            {/* ユーザープロファイル - スクロール可能エリア内に移動 */}
+            <div className="mt-8 p-4 bg-white border border-gray-200 rounded-lg">
+              <UserProfile />
+            </div>
           </div>
         </nav>
 

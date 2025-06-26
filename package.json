@@ -1,7 +1,7 @@
 {
-  "name": "salon-management-system",
+  "name": "sms",
   "version": "1.0.0",
-  "description": "美容室統合管理システム - 包括的テストスイート付き",
+  "description": "SMS (Salon Management System) - 美容室統合管理システム",
   "main": "index.js",
   "scripts": {
     "test": "jest --coverage",

@@ -161,6 +161,10 @@ app.use(`${apiPrefix}/ai-support`, aiSupportRoutes);
 import testEnvironmentRoutes from './routes/testEnvironment';
 app.use(`${apiPrefix}/test`, testEnvironmentRoutes);
 
+// デモモード専用ルート
+import demoRoutes from './routes/demo';
+app.use(`${apiPrefix}/demo`, demoRoutes);
+
 // 🧠 美容室スタッフが感動するAI分析システム (一時的に無効化)
 // app.use(`${apiPrefix}/emotional-analytics`, emotionalAnalyticsRouter);
 // 🪄 美容室スタッフが『まるで魔法！』と驚く外部API統合システム (一時的に無効化)

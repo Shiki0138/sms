@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { PlanFeatures } from '../../types/subscription'
 import { Lock, Crown, Zap } from 'lucide-react'
@@ -17,6 +18,7 @@ const FeatureGate: React.FC<FeatureGateProps> = ({
   showUpgradePrompt = true
 }) => {
   const { hasFeature, currentPlan } = useSubscription()
+  const navigate = useNavigate()
 
   if (hasFeature(feature)) {
     return <>{children}</>
@@ -150,11 +152,17 @@ const FeatureGate: React.FC<FeatureGateProps> = ({
       </div>
       
       <div className="space-y-2">
-        <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+        <button 
+          onClick={() => navigate('/settings/upgrade')}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        >
           プランをアップグレード
         </button>
         
-        <button className="w-full text-blue-600 hover:text-blue-700 text-sm">
+        <button 
+          onClick={() => navigate('/settings/upgrade')}
+          className="w-full text-blue-600 hover:text-blue-700 text-sm"
+        >
           詳細を確認する
         </button>
       </div>

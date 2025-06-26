@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { 
   Sparkles, 
@@ -27,6 +28,15 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   className = ''
 }) => {
   const { currentPlan, subscriptionInfo } = useSubscription()
+  const navigate = useNavigate()
+
+  const handleUpgrade = () => {
+    if (onUpgrade) {
+      onUpgrade()
+    } else {
+      navigate('/settings/upgrade')
+    }
+  }
 
   const getPromptContent = () => {
     switch (trigger) {
@@ -161,7 +171,7 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({
       {/* アクションボタン */}
       <div className="flex space-x-3">
         <button
-          onClick={onUpgrade}
+          onClick={handleUpgrade}
           className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
         >
           <span>今すぐアップグレード</span>

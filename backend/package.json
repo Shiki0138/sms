@@ -1,7 +1,7 @@
 {
-  "name": "salon-management-backend",
+  "name": "sms-backend",
   "version": "1.0.0",
-  "description": "美容室向けSaaS統合管理システム - バックエンドAPI",
+  "description": "SMS Backend - 美容室統合管理システム バックエンドAPI",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",

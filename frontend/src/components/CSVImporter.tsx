@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
-import { Upload, FileText, Download, CheckCircle, AlertCircle, Users, X } from 'lucide-react'
+import { Upload, FileText, Download, CheckCircle, AlertCircle, Users, X, Shield } from 'lucide-react'
+import { getEnvironmentConfig, getRestrictionMessage } from '../utils/environment'
 
 interface CSVImporterProps {
   onImport: (customers: any[]) => void
@@ -33,6 +34,7 @@ const CSVImporter: React.FC<CSVImporterProps> = ({ onImport, onClose, isOpen, ex
   const [isProcessing, setIsProcessing] = useState(false)
   const [step, setStep] = useState<'upload' | 'preview' | 'complete'>('upload')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const config = getEnvironmentConfig()
 
   // ホットペッパービューティーのCSVフォーマット例
   const hotpepperColumns = [
@@ -301,6 +303,20 @@ HP002,佐藤 太郎,サトウ タロウ,080-9876-5432,taro@example.com,1990/07/2
 
             {step === 'upload' && (
               <div className="space-y-6">
+                {/* テスト期間表示 */}
+                {config.isTestingPhase && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-blue-700 font-medium mb-2">
+                      <Shield className="w-5 h-5" />
+                      🧪 テスト期間中 - CSV取り込み機能
+                    </div>
+                    <p className="text-blue-600 text-sm">
+                      CSV取り込み機能は制限なくご利用いただけます。
+                      実際の顧客データを取り込んでシステムをお試しください。
+                    </p>
+                  </div>
+                )}
+
                 {/* Instructions */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h3 className="font-medium text-blue-900 mb-3">📋 インポート手順</h3>

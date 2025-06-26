@@ -26,8 +26,7 @@ import {
   Palette,
   Star,
   Sparkles,
-  Link,
-  RefreshCw
+  RotateCcw
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -1067,7 +1066,7 @@ function App() {
                         disabled={!calendarSettings.googleClientId || !calendarSettings.googleClientSecret}
                         className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Link className="w-4 h-4 mr-2" />
+                        <ExternalLink className="w-4 h-4 mr-2" />
                         {googleCalendarConnected ? '再接続' : 'Google Calendarに接続'}
                       </button>
                       
@@ -1081,7 +1080,7 @@ function App() {
                       )}
                       
                       <button className="btn btn-secondary">
-                        <RefreshCw className="w-4 h-4 mr-2" />
+                        <RotateCcw className="w-4 h-4 mr-2" />
                         手動同期
                       </button>
                     </div>

@@ -24,6 +24,21 @@ export class StripePaymentProvider implements IPaymentProvider {
 
   async createPayment(request: PaymentRequest): Promise<PaymentResult> {
     try {
+      // デモモードチェック
+      if (process.env.DEMO_MODE === 'true') {
+        logger.warn('Payment blocked in demo mode', {
+          amount: request.amount,
+          customerId: request.customerId
+        })
+        
+        return {
+          success: false,
+          error: '🎭 デモモードでは決済機能は無効化されています',
+          paymentId: undefined,
+          transactionId: undefined
+        }
+      }
+
       // 入力値検証
       this.validatePaymentRequest(request);
       
