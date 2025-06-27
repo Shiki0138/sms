@@ -1,3 +1,23 @@
+// Prismaのモック
+jest.mock('@prisma/client', () => ({
+  PrismaClient: jest.fn(() => ({
+    featureFlag: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    tenant: {
+      create: jest.fn(),
+      createMany: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    $disconnect: jest.fn()
+  }))
+}));
+
 import { PrismaClient } from '@prisma/client';
 import { FeatureFlagService } from '../src/services/featureFlagService';
 

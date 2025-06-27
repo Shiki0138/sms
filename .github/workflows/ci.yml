@@ -37,6 +37,11 @@ jobs:
           npm ci
           cd frontend && npm ci
           cd ../backend && npm ci
+          
+      # Prismaクライアント生成
+      - name: Generate Prisma Client
+        run: |
+          npx prisma generate
 
       # TypeScript型チェック
       - name: TypeScript type check (Frontend)
@@ -100,6 +105,12 @@ jobs:
         run: |
           cd ${{ matrix.workspace }}
           npm ci
+
+      # Prismaクライアント生成（バックエンドのみ）
+      - name: Generate Prisma Client
+        if: matrix.workspace == 'backend'
+        run: |
+          npx prisma generate
 
       - name: Run tests with coverage
         run: |

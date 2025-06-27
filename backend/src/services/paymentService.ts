@@ -14,7 +14,14 @@ import { PayjpPaymentProvider } from './payments/payjpProvider';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
 
-const prisma = new PrismaClient();
+let prisma: PrismaClient;
+
+// テスト環境では外部から注入可能にする
+if (process.env.NODE_ENV === 'test' && (global as any).prisma) {
+  prisma = (global as any).prisma;
+} else {
+  prisma = new PrismaClient();
+}
 
 // 決済プロバイダーインターface
 export interface IPaymentProvider {
@@ -29,8 +36,10 @@ export interface IPaymentProvider {
 
 export class PaymentService {
   private providers: Map<PaymentProvider, IPaymentProvider> = new Map();
+  private prisma: PrismaClient;
 
-  constructor() {
+  constructor(prismaClient?: PrismaClient) {
+    this.prisma = prismaClient || prisma;
     this.initializeProviders();
   }
 
@@ -57,7 +66,7 @@ export class PaymentService {
    * テナントの決済プロバイダーを取得
    */
   async getTenantPaymentProvider(tenantId: string): Promise<PaymentProvider> {
-    const tenant = await prisma.tenant.findUnique({
+    const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       include: {
         settings: {
@@ -89,7 +98,7 @@ export class PaymentService {
       
       if (result.success && result.paymentId) {
         // データベースに支払い記録を保存
-        await prisma.payment.create({
+        await this.prisma.payment.create({
           data: {
             tenantId,
             provider: providerType,
@@ -132,14 +141,14 @@ export class PaymentService {
       
       if (result.success) {
         // テナントのプランを更新
-        await prisma.tenant.update({
+        await this.prisma.tenant.update({
           where: { id: tenantId },
           data: { plan: request.planId }
         });
 
         // サブスクリプション記録を保存
         if (result.paymentId) {
-          await prisma.subscription.create({
+          await this.prisma.subscription.create({
             data: {
               tenantId,
               planType: request.planId,
@@ -170,7 +179,7 @@ export class PaymentService {
    */
   async cancelSubscription(tenantId: string): Promise<boolean> {
     try {
-      const subscription = await prisma.subscription.findFirst({
+      const subscription = await this.prisma.subscription.findFirst({
         where: { 
           tenantId,
           status: 'active'
@@ -189,7 +198,7 @@ export class PaymentService {
       const success = await provider.cancelSubscription(subscription.providerSubscriptionId);
       
       if (success) {
-        await prisma.subscription.update({
+        await this.prisma.subscription.update({
           where: { id: subscription.id },
           data: { 
             status: 'canceled',
@@ -210,7 +219,7 @@ export class PaymentService {
    */
   async changePlan(tenantId: string, newPlanId: string): Promise<boolean> {
     try {
-      const subscription = await prisma.subscription.findFirst({
+      const subscription = await this.prisma.subscription.findFirst({
         where: { 
           tenantId,
           status: 'active'
@@ -297,7 +306,7 @@ export class PaymentService {
    */
   async getInvoices(tenantId: string): Promise<Invoice[]> {
     try {
-      return await prisma.invoice.findMany({
+      return await this.prisma.invoice.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' }
       });
