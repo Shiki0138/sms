@@ -1,0 +1,429 @@
+// Prisma schema — full validated version
+// ======================================
+// GENERATOR & DATASOURCE
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ======================================
+// ENUMS
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+// ======================================
+// ──────────── 既存のコアモデル ────────────
+// Tenant / TenantSetting / Staff / Customer / Tag / CustomerTag
+// MessageThread / ThreadTag / Message / Reservation  …（もともと OK）
+// ※ ここはあなたのファイルと同じなので省略
+// ======================================
+
+
+
+// ======================================
+// ─────────── ここから不足モデル ───────────
+// すべて tenantId（マルチテナント）付きで定義
+// ======================================
+
+// ---------- 基礎ログ／監査 ----------
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  staffId   String?
+  action    String            // LOGIN, UPDATE_MENU, …
+  details   Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, action])
+  @@map("audit_logs")
+}
+
+// ---------- テンプレート ----------
+model Template {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  subject   String?
+  body      String
+  category  String?   // EMAIL / SMS など
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator Staff?  @relation(fields: [], references: [])
+
+  @@unique([tenantId, name])
+  @@map("templates")
+}
+
+// ---------- 自動メッセージ ----------
+model AutoMessageTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  trigger     String      // AFTER_RESERVATION, BIRTHDAY など
+  content     String
+  scheduleCRON String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  autoMessageLogs AutoMessageLog[]
+
+  @@unique([tenantId, name])
+  @@map("auto_message_templates")
+}
+
+model AutoMessageLog {
+  id           String   @id @default(cuid())
+  tenantId     String
+  templateId   String
+  customerId   String?
+  reservationId String?
+  status       String   @default("SENT") // SENT / FAILED
+  errorMessage String?
+  sentAt       DateTime @default(now())
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template    AutoMessageTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  customer    Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  reservation Reservation?        @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@map("auto_message_logs")
+}
+
+// ---------- メニュー ----------
+model MenuCategory {
+  id        String  @id @default(cuid())
+  tenantId  String
+  name      String
+  order     Int       @default(0)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  menus  Menu[]
+
+  @@unique([tenantId, name])
+  @@map("menu_categories")
+}
+
+model Menu {
+  id            String   @id @default(cuid())
+  tenantId      String
+  categoryId    String?
+  name          String
+  description   String?
+  price         Decimal   @default(0)
+  durationMin   Int?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category  MenuCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  history   MenuHistory[]
+  reservations Reservation[]
+
+  @@index([tenantId, isActive])
+  @@unique([tenantId, name])
+  @@map("menus")
+}
+
+model MenuHistory {
+  id        String   @id @default(cuid())
+  menuId    String
+  version   Int
+  changes   Json
+  createdAt DateTime @default(now())
+
+  menu Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@unique([menuId, version])
+  @@map("menu_history")
+}
+
+model MenuRecommendation {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  menuId     String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, customerId])
+  @@map("menu_recommendations")
+}
+
+// ---------- 通知 ----------
+model Notification {
+  id         String   @id @default(cuid())
+  tenantId   String
+  staffId    String?
+  customerId String?
+  title      String
+  message    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff    Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, read])
+  @@map("notifications")
+}
+
+// ---------- アナリティクス ----------
+model AnalyticsMetric {
+  id        String   @id @default(cuid())
+  tenantId  String
+  date      DateTime
+  metric    String     // DAILY_REVENUE, NEW_CUSTOMERS …
+  value     Float
+  createdAt DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date, metric])
+  @@map("analytics_metrics")
+}
+
+model PredictionData {
+  id        String   @id @default(cuid())
+  tenantId  String
+  target    String    // REVENUE, VISITS …
+  date      DateTime
+  predicted Float
+  actual    Float?
+  createdAt DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, target, date])
+  @@map("prediction_data")
+}
+
+model CustomerBehavior {
+  id          String   @id @default(cuid())
+  tenantId    String
+  customerId  String
+  behavior    String    // LATE_CANCEL, HIGH_SPENDER …
+  score       Int
+  timestamp   DateTime  @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, customerId])
+  @@map("customer_behaviors")
+}
+
+// ---------- セキュリティ ----------
+model LoginHistory {
+  id        String   @id @default(cuid())
+  tenantId  String
+  staffId   String
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, staffId])
+  @@map("login_history")
+}
+
+model SecurityEvent {
+  id          String   @id @default(cuid())
+  tenantId    String
+  staffId     String?
+  type        String     // BRUTE_FORCE, SUSPICIOUS_LOGIN …
+  description String?
+  createdAt   DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, type])
+  @@map("security_events")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  staffId   String   @unique
+  token     String   @unique
+  expiresAt DateTime
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ---------- 好み・マーケティング ----------
+model CustomerPreference {
+  id         String  @id @default(cuid())
+  customerId String
+  key        String
+  value      String
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, key])
+  @@map("customer_preferences")
+}
+
+model MarketingCampaign {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  channel   String     // SMS / EMAIL / INSTAGRAM …
+  startDate DateTime
+  endDate   DateTime?
+  budget    Decimal?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@map("marketing_campaigns")
+}
+
+// ---------- スタッフ評価 ----------
+model StaffPerformance {
+  id        String   @id @default(cuid())
+  tenantId  String
+  staffId   String
+  metric    String    // AVG_REVENUE, CSAT …
+  value     Float
+  period    String    // 2024-Q1 など
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, staffId, metric, period])
+  @@map("staff_performance")
+}
+
+// ---------- 支払い ----------
+model Payment {
+  id            String        @id @default(cuid())
+  tenantId      String
+  customerId    String
+  reservationId String?
+  provider      String         // stripe, square…
+  amount        Decimal
+  status        PaymentStatus  @default(PENDING)
+  errorCode     String?
+  createdAt     DateTime       @default(now())
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@map("payments")
+}
+
+model Subscription {
+  id          String        @id @default(cuid())
+  tenantId    String
+  customerId  String
+  plan        String
+  status      PaymentStatus @default(PENDING)
+  startedAt   DateTime
+  endedAt     DateTime?
+  providerId  String?
+  createdAt   DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@index([tenantId, status])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id             String   @id @default(cuid())
+  tenantId       String
+  subscriptionId String?
+  invoiceNumber  String   @unique
+  amount         Decimal
+  issuedAt       DateTime
+  dueDate        DateTime?
+  paidAt         DateTime?
+  status         String   @default("OPEN")
+  pdfUrl         String?
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@map("invoices")
+}
+
+// ---------- フィードバック ----------
+model Feedback {
+  id            String   @id @default(cuid())
+  tenantId      String
+  customerId    String?
+  reservationId String?
+  rating        Int?
+  comment       String?
+  status        String   @default("OPEN")
+  createdAt     DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@map("feedback")
+}
+
+model QuickRating {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String?
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("quick_ratings")
+}
+
+// ---------- フィーチャーフラグ ----------
+model TenantFeatureFlag {
+  id        String  @id @default(cuid())
+  tenantId  String
+  key       String
+  enabled   Boolean @default(false)
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@map("tenant_feature_flags")
+}
