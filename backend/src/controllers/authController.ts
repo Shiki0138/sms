@@ -368,7 +368,7 @@ export class AuthController {
         userId: staff.id,
         tenantId: staff.tenantId,
         email: staff.email,
-        name: staff.name,
+        name: staff.name || staff.email,
         role: staff.role as 'ADMIN' | 'MANAGER' | 'STAFF',
       });
 

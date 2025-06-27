@@ -7,9 +7,12 @@ import { createError } from '../middleware/errorHandler';
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
+    staffId: string;
+    userId: string;
     email: string;
     name: string;
     tenantId: string;
+    role: 'ADMIN' | 'MANAGER' | 'STAFF';
   };
 }
 

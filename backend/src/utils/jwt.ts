@@ -71,15 +71,17 @@ export class JWTService {
    * トークンペア生成
    */
   static async generateTokenPair(
-    staff: { id: string; tenantId: string; email: string; role: 'ADMIN' | 'MANAGER' | 'STAFF' },
+    staff: { id: string; tenantId: string; email: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; name?: string },
     ipAddress?: string,
     userAgent?: string
   ): Promise<TokenPair> {
     const accessToken = this.generateAccessToken({
+      id: staff.id,
       staffId: staff.id,
       userId: staff.id,
       tenantId: staff.tenantId,
       email: staff.email,
+      name: staff.name || staff.email,
       role: staff.role,
     });
 

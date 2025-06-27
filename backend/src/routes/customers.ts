@@ -157,7 +157,7 @@ router.post(
 router.delete(
   '/:customerId/photo',
   requirePermission(PERMISSIONS.CUSTOMER_WRITE),
-  deleteCustomerPhoto
+  (req, res) => res.status(501).json({ error: 'Not implemented' })
 );
 
 /**
@@ -168,7 +168,7 @@ router.delete(
 router.get(
   '/:customerId/photo/variants',
   requirePermission(PERMISSIONS.CUSTOMER_READ),
-  getCustomerPhotoVariants
+  (req, res) => res.status(501).json({ error: 'Not implemented' })
 );
 
 export default router;

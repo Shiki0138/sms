@@ -30,7 +30,7 @@ export const saveAutoSaveData = asyncHandler(async (req: Request, res: Response)
     userId,
     dataType: validatedData.dataType,
     entityId: validatedData.entityId,
-    data: validatedData.data,
+    data: validatedData.data || {},
     timestamp: validatedData.timestamp,
   };
 
