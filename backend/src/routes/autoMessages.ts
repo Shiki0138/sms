@@ -12,12 +12,12 @@ import {
   getDefaultTemplates
 } from '../controllers/autoMessageController';
 // Simple demo - no authentication required for now
-// import { authenticateToken } from '../middleware/auth';
+// import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
 // Apply authentication to all routes (disabled for demo)
-// router.use(authenticateToken);
+// router.use(authenticate);
 
 // Template management
 router.get('/templates', getTemplates);

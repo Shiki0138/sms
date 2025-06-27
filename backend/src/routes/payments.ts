@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { paymentService } from '../services/paymentService';
 import { paymentController } from '../controllers/paymentController';
 import { logger } from '../utils/logger';
@@ -8,7 +8,7 @@ import { PaymentProvider } from '../types/payment';
 const router = express.Router();
 
 // サブスクリプション作成
-router.post('/subscriptions', authenticateToken, async (req, res) => {
+router.post('/subscriptions', authenticate, async (req, res) => {
   try {
     const { planId, paymentMethodId, trialPeriodDays } = req.body;
     const tenantId = req.user!.tenantId;
@@ -48,7 +48,7 @@ router.post('/subscriptions', authenticateToken, async (req, res) => {
 });
 
 // プラン変更
-router.patch('/subscriptions/plan', authenticateToken, async (req, res) => {
+router.patch('/subscriptions/plan', authenticate, async (req, res) => {
   try {
     const { newPlanId } = req.body;
     const tenantId = req.user!.tenantId;
@@ -73,7 +73,7 @@ router.patch('/subscriptions/plan', authenticateToken, async (req, res) => {
 });
 
 // サブスクリプションキャンセル
-router.delete('/subscriptions', authenticateToken, async (req, res) => {
+router.delete('/subscriptions', authenticate, async (req, res) => {
   try {
     const tenantId = req.user!.tenantId;
     
@@ -91,7 +91,7 @@ router.delete('/subscriptions', authenticateToken, async (req, res) => {
 });
 
 // 支払い方法一覧取得
-router.get('/payment-methods', authenticateToken, async (req, res) => {
+router.get('/payment-methods', authenticate, async (req, res) => {
   try {
     const tenantId = req.user!.tenantId;
     
@@ -105,7 +105,7 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
 });
 
 // 請求書一覧取得
-router.get('/invoices', authenticateToken, async (req, res) => {
+router.get('/invoices', authenticate, async (req, res) => {
   try {
     const tenantId = req.user!.tenantId;
     
@@ -119,32 +119,32 @@ router.get('/invoices', authenticateToken, async (req, res) => {
 });
 
 // 新規決済処理（予約時決済、単発支払いなど）
-router.post('/payments', authenticateToken, paymentController.createPayment.bind(paymentController));
+router.post('/payments', authenticate, paymentController.createPayment.bind(paymentController));
 
 // 返金処理
-router.post('/payments/:paymentId/refund', authenticateToken, paymentController.refundPayment.bind(paymentController));
+router.post('/payments/:paymentId/refund', authenticate, paymentController.refundPayment.bind(paymentController));
 
 // 支払い状態確認
-router.get('/payments/:paymentId', authenticateToken, paymentController.checkPaymentStatus.bind(paymentController));
+router.get('/payments/:paymentId', authenticate, paymentController.checkPaymentStatus.bind(paymentController));
 
 // 現在のサブスクリプション情報取得
-router.get('/subscription', authenticateToken, paymentController.getCurrentSubscription.bind(paymentController));
+router.get('/subscription', authenticate, paymentController.getCurrentSubscription.bind(paymentController));
 
 // 支払い履歴取得
-router.get('/history', authenticateToken, paymentController.getPaymentHistory.bind(paymentController));
+router.get('/history', authenticate, paymentController.getPaymentHistory.bind(paymentController));
 
 // 使用量情報取得
-router.get('/usage', authenticateToken, paymentController.getUsageInfo.bind(paymentController));
+router.get('/usage', authenticate, paymentController.getUsageInfo.bind(paymentController));
 
 // 利用可能な機能取得
-router.get('/features', authenticateToken, paymentController.getAvailableFeatures.bind(paymentController));
+router.get('/features', authenticate, paymentController.getAvailableFeatures.bind(paymentController));
 
 // 決済プロバイダー設定
-router.get('/provider', authenticateToken, paymentController.getProviderSettings.bind(paymentController));
-router.put('/provider', authenticateToken, paymentController.updateProviderSettings.bind(paymentController));
+router.get('/provider', authenticate, paymentController.getProviderSettings.bind(paymentController));
+router.put('/provider', authenticate, paymentController.updateProviderSettings.bind(paymentController));
 
 // 予約時特化支払いエンドポイント
-router.post('/reservations/:reservationId/payment', authenticateToken, async (req, res) => {
+router.post('/reservations/:reservationId/payment', authenticate, async (req, res) => {
   try {
     const { amount, paymentMethodId, paymentType = 'full' } = req.body;
     const { reservationId } = req.params;
@@ -195,7 +195,7 @@ router.post('/reservations/:reservationId/payment', authenticateToken, async (re
 });
 
 // 予約キャンセル時返金処理
-router.post('/reservations/:reservationId/cancel', authenticateToken, async (req, res) => {
+router.post('/reservations/:reservationId/cancel', authenticate, async (req, res) => {
   try {
     const { reservationId } = req.params;
     const { reason = 'お客様都合によるキャンセル' } = req.body;
@@ -292,7 +292,7 @@ router.post('/webhooks/:provider', async (req, res) => {
 });
 
 // 決済システム統計情報
-router.get('/analytics', authenticateToken, async (req, res) => {
+router.get('/analytics', authenticate, async (req, res) => {
   try {
     const tenantId = req.user!.tenantId;
     const { startDate, endDate } = req.query;

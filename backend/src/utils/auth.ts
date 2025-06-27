@@ -160,10 +160,15 @@ export const PERMISSIONS = {
   
   // Analytics
   ANALYTICS_READ: 'analytics:read',
+  ANALYTICS: 'analytics:full',
   
   // System settings
   SETTINGS_READ: 'settings:read',
   SETTINGS_WRITE: 'settings:write',
+  
+  // Admin permissions
+  ADMIN: 'admin:full',
+  SUPER_ADMIN: 'superadmin:full',
 } as const;
 
 /**

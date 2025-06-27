@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { PLAN_NAMES, PLAN_PRICING, SubscriptionPlan, PLAN_CONFIGS } from '../../types/subscription'
 import PaymentForm from '../Payment/PaymentForm'
+import FeatureComparison from './FeatureComparison'
 import { 
   Shield, 
   Zap, 
@@ -396,6 +397,11 @@ const UpgradePlan: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* 機能詳細比較表 */}
+      <div className="mt-8">
+        <FeatureComparison currentPlan={currentPlan} />
+      </div>
     </div>
   )
 }

@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 // 型定義は types/auth.ts で統一管理
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -37,6 +37,8 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         isActive: true, 
         tenantId: true,
         role: true,
+        name: true,
+        email: true,
       },
     });
 
@@ -49,129 +51,94 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     }
 
     // リクエストにユーザー情報を追加
-    req.user = payload;
-    req.tenantId = payload.tenantId;
-    next();
+    req.user = {
+      id: staff.id,
+      staffId: staff.id,
+      userId: staff.id,
+      email: staff.email,
+      name: staff.name,
+      tenantId: staff.tenantId,
+      role: staff.role as 'ADMIN' | 'MANAGER' | 'STAFF',
+    };
+    req.tenantId = staff.tenantId;
 
+    next();
   } catch (error) {
-    logger.error('Auth middleware error:', error);
-    res.status(500).json({ 
+    logger.error('認証エラー', error);
+    res.status(401).json({ 
       success: false,
-      error: '認証処理中にエラーが発生しました' 
+      error: '認証に失敗しました' 
     });
   }
 };
 
-/**
- * 役割ベースの認可ミドルウェア
- */
-export const requireRole = (...allowedRoles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const user = req.user;
-    
-    if (!user) {
-      res.status(401).json({ 
-        success: false,
-        error: '認証が必要です' 
-      });
-      return;
-    }
+// エイリアス（互換性のため）
+export const authMiddleware = authenticate;
+export const authenticateToken = authenticate;
 
-    if (!allowedRoles.includes(user.role)) {
-      res.status(403).json({ 
-        success: false,
-        error: 'この操作を実行する権限がありません',
-        required: allowedRoles,
-        current: user.role,
-      });
-      return;
-    }
+// 権限チェックミドルウェア
+export const requirePermission = (permission: string) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user) {
+        res.status(401).json({ 
+          success: false,
+          error: '認証が必要です' 
+        });
+        return;
+      }
 
-    next();
+      // TODO: 実際の権限チェックロジックを実装
+      // 現在は role ベースの簡易チェックのみ
+      const hasPermission = req.user.role === 'ADMIN' || 
+                          (req.user.role === 'MANAGER' && !permission.includes('ADMIN'));
+
+      if (!hasPermission) {
+        res.status(403).json({ 
+          success: false,
+          error: '権限が不足しています' 
+        });
+        return;
+      }
+
+      next();
+    } catch (error) {
+      logger.error('権限チェックエラー', error);
+      res.status(500).json({ 
+        success: false,
+        error: '権限チェックに失敗しました' 
+      });
+    }
   };
 };
 
-/**
- * テナント分離ミドルウェア
- */
-export const requireTenant = (req: Request, res: Response, next: NextFunction): void => {
-  const user = req.user;
-  const headerTenantId = req.headers['x-tenant-id'] as string;
-  
-  if (!user) {
-    res.status(401).json({ 
-      success: false,
-      error: '認証が必要です' 
-    });
-    return;
-  }
-
-  // ヘッダーのテナントIDとユーザーのテナントIDが一致するかチェック
-  if (headerTenantId && headerTenantId !== user.tenantId) {
-    res.status(403).json({ 
-      success: false,
-      error: 'テナントアクセスが拒否されました' 
-    });
-    return;
-  }
-
-  next();
-};
-
-/**
- * 管理者のみアクセス可能
- */
-export const requireAdmin = requireRole('ADMIN');
-
-/**
- * 管理者・マネージャーアクセス可能
- */
-export const requireManager = requireRole('ADMIN', 'MANAGER');
-
-/**
- * 全スタッフアクセス可能
- */
-export const requireStaff = requireRole('ADMIN', 'MANAGER', 'STAFF');
-
-/**
- * オプション認証（認証されていなくてもOK、されていれば情報を追加）
- */
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (token) {
-      const payload = JWTService.verifyAccessToken(token);
-      if (payload) {
-        // スタッフの状態確認
-        const staff = await prisma.staff.findUnique({
-          where: { id: payload.staffId },
-          select: { id: true, isActive: true },
+// ロールベースのアクセス制御
+export const requireRole = (roles: Array<'ADMIN' | 'MANAGER' | 'STAFF'>) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user) {
+        res.status(401).json({ 
+          success: false,
+          error: '認証が必要です' 
         });
-
-        if (staff && staff.isActive) {
-          req.user = payload;
-          req.tenantId = payload.tenantId;
-        }
+        return;
       }
+
+      if (!roles.includes(req.user.role)) {
+        res.status(403).json({ 
+          success: false,
+          error: `このアクションには ${roles.join(' または ')} 権限が必要です` 
+        });
+        return;
+      }
+
+      next();
+    } catch (error) {
+      logger.error('ロールチェックエラー', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'ロールチェックに失敗しました' 
+      });
     }
-
-    next();
-  } catch (error) {
-    // エラーが発生してもオプション認証なので続行
-    logger.warn('Optional auth error:', error);
-    next();
-  }
+  };
 };
-
-// 後方互換性のためのエイリアス
-export const authenticate = authMiddleware;
-export const authorize = requireRole;
-export const ensureTenantAccess = requireTenant;
-export const adminOnly = requireAdmin;
-export const managerOrAdmin = requireManager;
-export const staffOrHigher = requireStaff;
-
-// 新しいエクスポート
-export const auth = authMiddleware;
-export const requirePermission = requireRole;

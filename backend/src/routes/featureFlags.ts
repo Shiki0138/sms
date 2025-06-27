@@ -1,11 +1,11 @@
 import express from 'express';
 import { featureFlagController } from '../controllers/featureFlagController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
 
 // 認証が必要なルート
-router.use(authenticateToken);
+router.use(authenticate);
 
 // テナント用エンドポイント
 router.get('/enabled', featureFlagController.getEnabledFeatures);
