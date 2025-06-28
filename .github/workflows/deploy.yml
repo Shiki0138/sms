@@ -169,7 +169,7 @@ jobs:
     - name: ⏸️ 手動承認待機
       uses: trstringer/manual-approval@v1
       with:
-        secret: ${{ github.TOKEN }}
+        secret: ${{ secrets.GITHUB_TOKEN }}
         approvers: salon-system-admins
         minimum-approvals: 2
         issue-title: "🌟 プロダクション環境デプロイ承認"
