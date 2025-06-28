@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false
+  },
+  "include": [
+    "src/server.ts",
+    "src/app.ts",
+    "src/types/**/*",
+    "src/utils/logger.ts",
+    "src/utils/auth.ts",
+    "src/utils/jwt.ts",
+    "src/middleware/auth.ts",
+    "src/middleware/errorHandler.ts",
+    "src/routes/auth.ts",
+    "src/controllers/authController.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}

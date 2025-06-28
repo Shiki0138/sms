@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
+    "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": false,
@@ -23,21 +24,39 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "forceConsistentCasingInFileNames": false,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "removeComments": true,
+    "downlevelIteration": true,
+    "noFallthroughCasesInSwitch": false,
+    "noImplicitUseStrict": false,
+    "preserveConstEnums": true
   },
   "include": [
-    "src/types/**/*",
-    "src/middleware/auth.ts",
-    "src/middleware/errorHandler.ts", 
-    "src/utils/auth.ts",
-    "src/utils/logger.ts",
-    "src/database.ts",
-    "src/minimal-server.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.ts",
-    "src/test/**/*"
-  ]
+    "**/*.spec.ts",
+    "src/test/**/*",
+    "src/__tests__/**/*",
+    "**/*.js"
+  ],
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  }
 }

@@ -9,7 +9,7 @@
     "dev-simple": "nodemon src/server-simple.ts",
     "dev-test": "nodemon src/server-test.ts",
     "dev-minimal": "nodemon src/minimal-server.ts",
-    "build": "tsc",
+    "build": "./build.sh",
     "start": "node dist/server.js",
     "test": "node --max-old-space-size=4096 node_modules/.bin/jest",
     "test:watch": "node --max-old-space-size=4096 node_modules/.bin/jest --watch",
