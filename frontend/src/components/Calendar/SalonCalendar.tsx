@@ -66,10 +66,11 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
           new Date(currentDate.getTime() + 24 * 60 * 60 * 1000),
           new Date(currentDate.getTime() + 2 * 24 * 60 * 60 * 1000)
         ];
-      case 'week':
+      case 'week': {
         const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // 月曜日開始
         const end = endOfWeek(currentDate, { weekStartsOn: 1 });
         return eachDayOfInterval({ start, end });
+      }
       default:
         return [currentDate];
     }

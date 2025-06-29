@@ -1,52 +1,31 @@
 module.exports = {
   root: true,
-  env: {
-    browser: true,
-    es2020: true,
-    node: true,
-  },
+  env: { browser: true, es2020: true },
   extends: [
     'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react-hooks/recommended',
   ],
+  ignorePatterns: ['dist', '.eslintrc.cjs', 'node_modules', 'coverage'],
   parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    ecmaFeatures: {
-      jsx: true,
-    },
-  },
-  plugins: [
-    '@typescript-eslint',
-  ],
+  plugins: ['@typescript-eslint', 'react-refresh'],
   rules: {
-    // TypeScript での any 使用を許可
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-unused-vars': 'off',
-    
-    // 未使用の変数を警告
-    'no-unused-vars': 'off',
-    
-    // console.log を許可
+    // エラーを警告に緩和して継続的な開発を可能にする
+    '@typescript-eslint/no-unused-vars': 'warn',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-inferrable-types': 'warn',
+    '@typescript-eslint/ban-ts-comment': 'warn',
+    '@typescript-eslint/no-non-null-assertion': 'warn',
+    'react-refresh/only-export-components': 'warn',
+    'prefer-const': 'warn',
+    'no-var': 'warn',
     'no-console': 'off',
     
-    // 空の関数を許可
-    'no-empty-function': 'off',
-    
-    // undefined変数の使用を警告
-    'no-undef': 'off', // TypeScriptが処理
-    
-    // 重複定義を許可 (TypeScriptで管理)
-    'no-redeclare': 'off',
-    
-    // case文での宣言を許可
-    'no-case-declarations': 'off',
+    // 許可するルール
+    '@typescript-eslint/no-empty-function': 'off',
+    '@typescript-eslint/no-empty-interface': 'off',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    'react-hooks/exhaustive-deps': 'warn',
   },
-  ignorePatterns: [
-    'dist/',
-    'node_modules/',
-    '*.js',
-    'vite.config.ts',
-    'src/@types/',
-  ],
-};
+}
