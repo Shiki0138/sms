@@ -1,11 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 import PaymentForm from '../components/Payment/PaymentForm';
 import { SubscriptionProvider } from '../contexts/SubscriptionContext';
 
 // useSubscriptionフックをモック
-const mockUpgradePlan = jest.fn();
+const mockUpgradePlan = vi.fn();
 const mockSubscriptionContext = {
   currentPlan: 'light' as const,
   upgradePlan: mockUpgradePlan,
@@ -19,23 +20,23 @@ const mockSubscriptionContext = {
   }
 };
 
-jest.mock('../contexts/SubscriptionContext', () => ({
-  ...jest.requireActual('../contexts/SubscriptionContext'),
+vi.mock('../contexts/SubscriptionContext', () => ({
+  ...vi.importActual('../contexts/SubscriptionContext'),
   useSubscription: () => mockSubscriptionContext
 }));
 
 // fetchをモック
-global.fetch = jest.fn();
+global.fetch = vi.fn() as any;
 
 describe('PaymentForm', () => {
   const mockProps = {
     selectedPlan: 'standard' as const,
-    onSuccess: jest.fn(),
-    onCancel: jest.fn()
+    onSuccess: vi.fn(),
+    onCancel: vi.fn()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockUpgradePlan.mockResolvedValue(true);
   });
 
@@ -148,7 +149,7 @@ describe('PaymentForm', () => {
 
   it('API決済モードでの処理（本番環境想定）', async () => {
     // fetchをモック
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as any).mockResolvedValue({
       json: () => Promise.resolve({
         success: true,
         subscriptionId: 'test-sub-id'

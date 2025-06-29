@@ -1,10 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 import PaymentMethodSettings from '../components/Settings/PaymentMethodSettings';
 
 // fetchをモック
-global.fetch = jest.fn();
+global.fetch = vi.fn() as any;
 
 describe('PaymentMethodSettings', () => {
   const mockPaymentMethods = [
@@ -43,10 +44,10 @@ describe('PaymentMethodSettings', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // fetchのデフォルトレスポンスを設定
-    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+    (global.fetch as any).mockImplementation((url: string) => {
       if (url.includes('payment-methods')) {
         return Promise.resolve({
           ok: true,
@@ -122,7 +123,7 @@ describe('PaymentMethodSettings', () => {
 
   it('決済方法がない場合の表示', async () => {
     // 空の決済方法配列を返すようにモック
-    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+    (global.fetch as any).mockImplementation((url: string) => {
       if (url.includes('payment-methods')) {
         return Promise.resolve({
           ok: true,
@@ -150,7 +151,7 @@ describe('PaymentMethodSettings', () => {
   });
 
   it('プロバイダー変更ができる', async () => {
-    (global.fetch as jest.Mock).mockImplementation((url: string, options: any) => {
+    (global.fetch as any).mockImplementation((url: string, options: any) => {
       if (url.includes('payment-methods')) {
         return Promise.resolve({
           ok: true,
@@ -254,7 +255,7 @@ describe('PaymentMethodSettings', () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     
     // API エラーをシミュレート
-    (global.fetch as jest.Mock).mockRejectedValue(new Error('API Error'));
+    (global.fetch as any).mockRejectedValue(new Error('API Error'));
     
     render(<PaymentMethodSettings />);
     
@@ -268,7 +269,7 @@ describe('PaymentMethodSettings', () => {
   it('プロバイダー変更エラー時のアラート', async () => {
     const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
     
-    (global.fetch as jest.Mock).mockImplementation((url: string, options: any) => {
+    (global.fetch as any).mockImplementation((url: string, options: any) => {
       if (url.includes('payment-methods')) {
         return Promise.resolve({
           ok: true,

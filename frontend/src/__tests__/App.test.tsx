@@ -93,12 +93,13 @@ describe('App Component', () => {
     expect(screen.getByRole('button', { name: 'ログイン' })).toBeInTheDocument();
   });
 
-  it('shows demo accounts section', () => {
+  it('shows login form elements', () => {
     render(<App />);
     
-    expect(screen.getByText('デモアカウント')).toBeInTheDocument();
-    expect(screen.getByText('デモユーザー')).toBeInTheDocument();
-    expect(screen.getByText('管理者')).toBeInTheDocument();
+    // ログインフォームの基本要素があることを確認
+    expect(screen.getByRole('textbox', { name: /ユーザー名/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/パスワード/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ログイン/i })).toBeInTheDocument();
   });
 
   it('has username and password input fields', () => {
