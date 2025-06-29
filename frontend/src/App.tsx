@@ -1434,13 +1434,13 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      <header className="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+                className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors touch-target"
               >
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -1478,7 +1478,7 @@ function App() {
         </div>
       </header>
 
-      <div className="flex relative">
+      <div className="flex relative pt-16">
         {/* Mobile Sidebar Overlay */}
         {isSidebarOpen && (
           <div 
@@ -1492,7 +1492,8 @@ function App() {
           fixed md:static inset-y-0 left-0 z-40
           w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0 md:h-screen md:sticky md:top-16
+          md:translate-x-0 md:h-[calc(100vh-4rem)] md:sticky md:top-16
+          overflow-y-auto
         `}>
           <div className="p-4 md:p-6 pt-20 md:pt-6">
             <div className="space-y-2">
@@ -1683,7 +1684,7 @@ function App() {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 max-w-full">
+        <main className="flex-1 p-4 sm:p-6 max-w-full overflow-x-hidden">
           <div className="max-w-7xl mx-auto">
             {/* アップグレード画面 */}
             {activeView === 'upgrade' && (

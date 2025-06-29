@@ -125,9 +125,6 @@ export default function Login({ onLogin }: LoginProps) {
                     required
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  デモ用コード: 123456
-                </p>
               </div>
             )}
 
@@ -140,15 +137,6 @@ export default function Login({ onLogin }: LoginProps) {
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 font-medium mb-2">デモ認証情報:</p>
-            <div className="space-y-1 text-xs text-gray-500">
-              <p>メール: admin@salon.com</p>
-              <p>パスワード: admin123</p>
-              <p>2FAコード: 123456</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

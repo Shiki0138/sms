@@ -141,6 +141,31 @@ npx prisma migrate reset
 npx prisma studio
 ```
 
+### tmuxセッション管理
+このプロジェクトには専用のtmuxセッション「sms」が設定されています。
+
+#### セッションの使用方法
+```bash
+# セッションに接続（自動復元）
+./tmux-restore.sh
+
+# セッションの手動保存
+./tmux-save.sh
+
+# 通常のtmuxコマンドでの接続
+tmux attach -t sms
+```
+
+#### 自動保存機能
+- 5分ごとに自動保存されます
+- 履歴は10,000行まで保持されます
+- セッション名「sms」として管理されます
+
+#### 設定ファイル
+- `.tmux.conf.local`: tmux設定ファイル
+- `.tmux-save.sh`: 手動保存スクリプト
+- `.tmux-restore.sh`: セッション復元スクリプト
+
 ## 📚 ドキュメント
 
 - [QUICK_START.md](./QUICK_START.md) - 詳細なセットアップガイド

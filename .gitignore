@@ -81,3 +81,4 @@ uploads/
 
 # Deployment configuration (contains sensitive data)
 GCP_DEPLOYMENT_CONFIG.md
+.vercel

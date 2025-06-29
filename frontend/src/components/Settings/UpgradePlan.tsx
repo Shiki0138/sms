@@ -241,11 +241,9 @@ const UpgradePlan: React.FC = () => {
                     ¥{PLAN_PRICING[plan].monthly.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600">/ 月</div>
-                  {!isCurrentPlan && !isDowngrade && (
-                    <div className="mt-2 text-sm text-green-600 font-medium">
-                      初期費用: ¥{PLAN_PRICING[plan].setup.toLocaleString()}
-                    </div>
-                  )}
+                  <div className="mt-2 text-sm text-gray-600">
+                    初期費用: ¥{PLAN_PRICING[plan].setup.toLocaleString()}
+                  </div>
                 </div>
 
                 {/* 機能リスト */}

@@ -2,18 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* モバイル向けUI改善をインポート */
+@import './styles/mobile-fixes.css';
+
 @layer base {
   * {
     @apply border-gray-200;
   }
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+  }
   body {
     @apply bg-gray-50 text-gray-900;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* モバイルでの最小フォントサイズ設定 */
+  @media (max-width: 768px) {
+    body {
+      @apply text-base;
+      font-size: 16px;
+    }
   }
 }
 
 @layer components {
+  /* モバイル向けユーティリティクラス */
+  .touch-target {
+    @apply relative;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 要素の重なり防止 */
+  .no-overlap {
+    @apply relative z-10;
+  }
+  
+  /* モバイル向けパディング */
+  .mobile-padding {
+    @apply px-4 py-2 md:px-6 md:py-3;
+  }
+  
+  /* 固定ヘッダー */
+  .fixed-header {
+    @apply fixed top-0 left-0 right-0 z-50 bg-white shadow-sm;
+  }
+  
+  /* モバイル向けテキストサイズ */
+  .mobile-text {
+    @apply text-base md:text-sm;
+  }
   .sidebar-item {
     @apply flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-900;
+    /* モバイルでのタッチターゲットサイズ確保 */
+    min-height: 44px;
   }
   
   .sidebar-item.active {
@@ -58,6 +102,18 @@
   
   .btn {
     @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+    /* モバイルでのタッチターゲットサイズ確保 */
+    min-height: 44px;
+    min-width: 44px;
+    /* タッチ操作時の視覚フィードバック */
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* モバイルでボタン間の間隔を確保 */
+  @media (max-width: 768px) {
+    .btn + .btn {
+      @apply ml-2;
+    }
   }
   
   .btn-primary {
@@ -70,6 +126,16 @@
   
   .btn-sm {
     @apply px-2.5 py-1.5 text-xs;
+    /* モバイルでも最小タッチターゲットサイズを維持 */
+    @media (max-width: 768px) {
+      min-height: 36px;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
   }
   
   .message-bubble {
@@ -82,5 +148,69 @@
   
   .message-bubble.staff {
     @apply bg-blue-500 text-white mr-auto;
+  }
+  
+  /* フォーム要素のモバイル最適化 */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="url"],
+  textarea,
+  select {
+    @apply w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+    min-height: 44px;
+    font-size: 16px; /* iOS zoom防止 */
+  }
+  
+  /* チェックボックスとラジオボタンのタッチターゲット */
+  input[type="checkbox"],
+  input[type="radio"] {
+    @apply w-5 h-5;
+    min-width: 20px;
+    min-height: 20px;
+  }
+  
+  /* チェックボックス・ラジオボタンのラベル */
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]) {
+    @apply flex items-center gap-3 cursor-pointer;
+    min-height: 44px;
+    padding: 8px;
+  }
+  
+  /* モバイル向けフォーカス状態の強調 */
+  @media (max-width: 768px) {
+    input:focus,
+    textarea:focus,
+    select:focus,
+    button:focus {
+      @apply ring-4;
+    }
+  }
+  
+  /* 横スクロール防止 */
+  .container {
+    @apply max-w-full overflow-hidden;
+  }
+  
+  /* モバイル向けスペーシング調整 */
+  @media (max-width: 768px) {
+    .card {
+      @apply p-4;
+    }
+    
+    /* タッチ操作しやすいリンク */
+    a {
+      @apply inline-block py-1;
+      min-height: 32px;
+    }
+    
+    /* モーダルやドロップダウンの背景 */
+    .overlay {
+      @apply fixed inset-0 bg-black bg-opacity-50 z-40;
+    }
   }
 }

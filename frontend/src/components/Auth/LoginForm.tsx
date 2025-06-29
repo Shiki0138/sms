@@ -145,68 +145,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
-          {/* デモ用クイックログイン */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-700">デモアカウント</span>
-              <button
-                type="button"
-                onClick={() => setShowCredentials(!showCredentials)}
-                className="text-xs text-blue-600 hover:text-blue-700"
-              >
-                {showCredentials ? '非表示' : '表示'}
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('demo')}
-                className="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                disabled={isLoading}
-              >
-                デモユーザー
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin')}
-                className="px-3 py-2 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                disabled={isLoading}
-              >
-                管理者
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('staff1')}
-                className="px-3 py-2 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
-                disabled={isLoading}
-              >
-                田中 美咲
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('staff2')}
-                className="px-3 py-2 text-xs bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
-                disabled={isLoading}
-              >
-                佐藤 千夏
-              </button>
-            </div>
-
-            {showCredentials && (
-              <div className="mt-4 text-xs text-gray-600 space-y-2">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="font-medium mb-2">ログイン情報:</p>
-                  <div className="space-y-1">
-                    <div>デモ: salon_demo_001 / Demo2024Salon!</div>
-                    <div>管理者: admin_system / AdminSalon2024!System</div>
-                    <div>スタッフ1: tanaka_misaki / Staff2024Tanaka!</div>
-                    <div>スタッフ2: sato_chinatsu / Staff2024Sato!</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* フッター */}
