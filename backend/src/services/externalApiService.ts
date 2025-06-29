@@ -1,4 +1,5 @@
 import axios from 'axios';
+import crypto from 'crypto';
 import { logger } from '../utils/logger';
 
 export interface ExternalMessage {
@@ -113,7 +114,7 @@ export class InstagramApiService {
    * Verify webhook signature
    */
   static verifyWebhookSignature(signature: string, body: string, appSecret: string): boolean {
-    const crypto = require('crypto');
+    // crypto is now imported at the top
     const expectedSignature = crypto
       .createHmac('sha256', appSecret)
       .update(body)
@@ -262,7 +263,7 @@ export class LineApiService {
    * Verify webhook signature
    */
   static verifyWebhookSignature(signature: string, body: string, channelSecret: string): boolean {
-    const crypto = require('crypto');
+    // crypto is now imported at the top
     const expectedSignature = crypto
       .createHmac('sha256', channelSecret)
       .update(body)

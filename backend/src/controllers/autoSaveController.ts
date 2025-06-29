@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createError, asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { AutoSaveService } from '../services/autoSaveService';
+import { prisma } from '../database';
 
 // Validation schemas
 const saveDataSchema = z.object({
@@ -201,7 +202,7 @@ export const restoreFromAutoSave = asyncHandler(async (req: Request, res: Respon
 
 // 復元処理のヘルパー関数
 async function restoreCustomerData(data: any, targetId: string, tenantId: string) {
-  const { prisma } = require('../database');
+  // prisma is now imported at the top
   
   return await prisma.customer.update({
     where: { id: targetId, tenantId },
@@ -218,7 +219,7 @@ async function restoreCustomerData(data: any, targetId: string, tenantId: string
 }
 
 async function restoreReservationData(data: any, targetId: string, tenantId: string) {
-  const { prisma } = require('../database');
+  // prisma is now imported at the top
   
   return await prisma.reservation.update({
     where: { id: targetId, tenantId },
@@ -233,7 +234,7 @@ async function restoreReservationData(data: any, targetId: string, tenantId: str
 }
 
 async function restoreMessageData(data: any, targetId: string, tenantId: string) {
-  const { prisma } = require('../database');
+  // prisma is now imported at the top
   
   return await prisma.message.update({
     where: { id: targetId, tenantId },
@@ -246,7 +247,7 @@ async function restoreMessageData(data: any, targetId: string, tenantId: string)
 }
 
 async function restoreMenuData(data: any, targetId: string, tenantId: string) {
-  const { prisma } = require('../database');
+  // prisma is now imported at the top
   
   return await prisma.menu.update({
     where: { id: targetId, tenantId },
@@ -261,7 +262,7 @@ async function restoreMenuData(data: any, targetId: string, tenantId: string) {
 }
 
 async function restoreSettingsData(data: any, targetId: string, tenantId: string) {
-  const { prisma } = require('../database');
+  // prisma is now imported at the top
   
   // テナント設定の更新
   return await prisma.tenant.update({
