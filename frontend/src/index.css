@@ -1,9 +1,9 @@
+/* モバイル向けUI改善をインポート */
+@import './styles/mobile-fixes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* モバイル向けUI改善をインポート */
-@import './styles/mobile-fixes.css';
 
 @layer base {
   * {

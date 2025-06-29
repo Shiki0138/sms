@@ -25,7 +25,7 @@ import BulkMessageSender from './components/BulkMessageSender';
 import ServiceHistoryModal from './components/ServiceHistoryModal';
 import FeatureRequestForm from './components/FeatureRequestForm';
 import FilteredCustomerView from './components/FilteredCustomerView';
-import TestModeIndicator from './components/TestMode/TestModeIndicator';
+// import TestModeIndicator from './components/TestMode/TestModeIndicator';
 import { MessageSquare, Calendar, Users, BarChart3, Settings, Instagram, MessageCircle, Clock, CheckCircle, AlertCircle, Phone, Mail, Send, Menu, X, ExternalLink, Save, User, UserCheck, Calendar as CalendarIcon, FileText, ChevronLeft, ChevronRight, Scissors, Palette, Star, Sparkles, Bot, Loader2, Shield, Lightbulb, Crown, TestTube } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
