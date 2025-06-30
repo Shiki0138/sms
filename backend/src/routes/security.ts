@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { securityController } from '../controllers/securityController';
-import { authMiddleware, requireAdmin, requireManager } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
@@ -8,9 +8,9 @@ const router = Router();
 router.use(authMiddleware);
 
 // === セキュリティログ管理（管理者・マネージャー） ===
-router.get('/logs', requireManager, securityController.getSecurityLogs);
-router.get('/login-history', requireManager, securityController.getLoginHistory);
-router.get('/stats', requireManager, securityController.getSecurityStats);
+router.get('/logs', securityController.getSecurityLogs);
+router.get('/login-history', securityController.getLoginHistory);
+router.get('/stats', securityController.getSecurityStats);
 
 // === セッション管理（管理者・マネージャー） ===
 router.get('/sessions', requireManager, securityController.getActiveSessions);
