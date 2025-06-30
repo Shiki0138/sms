@@ -53,8 +53,7 @@ export class EncryptionService {
       const key = this.getEncryptionKey();
       const iv = crypto.randomBytes(16);
       
-      const cipher = crypto.createCipher(algorithm, key);
-      cipher.setAAD(iv);
+      const cipher = crypto.createCipherGCM(algorithm, key, iv);
       
       let encrypted = cipher.update(text, 'utf8', 'hex');
       encrypted += cipher.final('hex');
@@ -82,8 +81,7 @@ export class EncryptionService {
       const iv = Buffer.from(ivHex, 'hex');
       const authTag = Buffer.from(authTagHex, 'hex');
       
-      const decipher = crypto.createDecipher(algorithm, key);
-      decipher.setAAD(iv);
+      const decipher = crypto.createDecipherGCM(algorithm, key, iv);
       decipher.setAuthTag(authTag);
       
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
@@ -203,7 +201,7 @@ export class JWTService {
       },
       this.getJWTSecret(),
       {
-        expiresIn: SECURITY_CONFIG.JWT_EXPIRY,
+        expiresIn: '1h',
         issuer: process.env.APP_NAME || 'salon-system',
         audience: 'salon-staff'
       }
@@ -220,7 +218,7 @@ export class JWTService {
       },
       this.getJWTSecret(),
       {
-        expiresIn: SECURITY_CONFIG.REFRESH_TOKEN_EXPIRY,
+        expiresIn: '7d',
         issuer: process.env.APP_NAME || 'salon-system',
         audience: 'salon-staff'
       }

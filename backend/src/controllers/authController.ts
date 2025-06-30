@@ -368,7 +368,7 @@ export class AuthController {
         userId: staff.id,
         tenantId: staff.tenantId,
         email: staff.email,
-        name: staff.name || staff.email,
+        name: staff.email,
         role: staff.role as 'ADMIN' | 'MANAGER' | 'STAFF',
       });
 
@@ -535,7 +535,13 @@ export class AuthController {
       const setup = await TwoFactorService.setup2FA(staff.email);
 
       // セットアップ情報を一時的に保存（実際の本番環境では Redis 等を使用）
-      req.session = req.session || {};
+      if (!req.session) {
+        res.status(500).json({
+          success: false,
+          error: 'セッションが初期化されていません'
+        });
+        return;
+      }
       req.session.temp2FASecret = setup.secret;
 
       res.json({
