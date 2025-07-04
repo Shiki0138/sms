@@ -63,8 +63,7 @@ import {
   Bot,
   Loader2,
   Shield,
-  Lightbulb,
-  Crown
+  Lightbulb
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -629,7 +628,7 @@ function App() {
     }
 
     // デモ用：実際の実装では、サーバーに保存する
-    const nextCustomerNumber = `C${String((customers?.customers?.length || 0) + 1).padStart(3, '0')}`
+    const nextCustomerNumber = `C${String(customers?.customers.length + 1 || 1).padStart(3, '0')}`
     
     console.log('新規顧客登録:', {
       customerNumber: nextCustomerNumber,
@@ -1434,13 +1433,13 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors touch-target"
+                className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
               >
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -1478,7 +1477,7 @@ function App() {
         </div>
       </header>
 
-      <div className="flex relative pt-16">
+      <div className="flex relative">
         {/* Mobile Sidebar Overlay */}
         {isSidebarOpen && (
           <div 
@@ -1492,8 +1491,7 @@ function App() {
           fixed md:static inset-y-0 left-0 z-40
           w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0 md:h-[calc(100vh-4rem)] md:sticky md:top-16
-          overflow-y-auto
+          md:translate-x-0 md:h-screen md:sticky md:top-16
         `}>
           <div className="p-4 md:p-6 pt-20 md:pt-6">
             <div className="space-y-2">
@@ -1684,7 +1682,7 @@ function App() {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 max-w-full overflow-x-hidden">
+        <main className="flex-1 p-4 sm:p-6 max-w-full">
           <div className="max-w-7xl mx-auto">
             {/* アップグレード画面 */}
             {activeView === 'upgrade' && (
@@ -1718,15 +1716,6 @@ function App() {
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'reservations' && <ReservationsList />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'analytics' && <CustomerAnalyticsDashboard />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && <PremiumMarketingDashboard />}
-            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'business-strategy' && (
-              <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center">
-                  <Star className="w-6 h-6 mr-2 text-yellow-500" />
-                  経営戦略分析
-                </h2>
-                <PremiumMarketingDashboard />
-              </div>
-            )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && <FeatureRequestForm onNewRequest={handleNewFeatureRequest} />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (
               <div className="space-y-6">

@@ -87,6 +87,7 @@ export default function Login({ onLogin }: LoginProps) {
                       className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="admin@salon.com"
                       required
+                      data-testid="legacy-login-email-input"
                     />
                   </div>
                 </div>
@@ -104,6 +105,7 @@ export default function Login({ onLogin }: LoginProps) {
                       className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="••••••••"
                       required
+                      data-testid="legacy-login-password-input"
                     />
                   </div>
                 </div>
@@ -123,8 +125,12 @@ export default function Login({ onLogin }: LoginProps) {
                     placeholder="6桁の認証コード"
                     maxLength={6}
                     required
+                    data-testid="legacy-login-otp-input"
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  デモ用コード: 123456
+                </p>
               </div>
             )}
 
@@ -132,11 +138,21 @@ export default function Login({ onLogin }: LoginProps) {
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="legacy-login-submit-button"
             >
               {loading ? '認証中...' : showOTP ? '認証コードを確認' : 'ログイン'}
             </button>
           </form>
 
+          {/* Demo Credentials */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <p className="text-xs text-gray-600 font-medium mb-2">デモ認証情報:</p>
+            <div className="space-y-1 text-xs text-gray-500">
+              <p>メール: admin@salon.com</p>
+              <p>パスワード: admin123</p>
+              <p>2FAコード: 123456</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
