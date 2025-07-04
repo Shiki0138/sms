@@ -117,6 +117,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 初期化時にローカルストレージからトークンを確認
   useEffect(() => {
     const initAuth = () => {
+      // ローカル環境でログインが無効の場合は、自動的に認証済みとして扱う
+      const isLoginEnabled = import.meta.env.VITE_ENABLE_LOGIN === 'true'
+      
+      if (!isLoginEnabled) {
+        // ローカル環境用のダミーユーザー
+        const demoUser: User = {
+          id: 'demo-user',
+          username: 'demo',
+          email: 'demo@localhost',
+          role: 'admin',
+          isActive: true,
+          permissions: [
+            { resource: 'all', actions: ['read', 'write', 'delete', 'admin'] }
+          ],
+          profile: {
+            name: 'デモユーザー',
+            department: '管理部',
+            position: 'システム管理者'
+          },
+          createdAt: new Date().toISOString()
+        }
+        dispatch({
+          type: 'INIT_COMPLETE',
+          payload: { user: demoUser, token: 'demo-token' }
+        })
+        return
+      }
+
+      // 本番環境では通常の認証チェック
       const storedToken = localStorage.getItem('salon_auth_token')
       const storedUser = localStorage.getItem('salon_auth_user')
 
@@ -149,43 +178,68 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
     dispatch({ type: 'LOGIN_START' })
 
+    // ローカル環境でログインが無効の場合は、ログイン処理をスキップ
+    const isLoginEnabled = import.meta.env.VITE_ENABLE_LOGIN === 'true'
+    if (!isLoginEnabled) {
+      console.warn('ログイン機能は本番環境でのみ利用可能です')
+      dispatch({ type: 'LOGIN_FAILURE' })
+      return false
+    }
+
     try {
-      // デモ環境では事前定義されたユーザーをチェック
-      await new Promise(resolve => setTimeout(resolve, 800)) // ログイン処理をシミュレート
+      // バックエンドAPIに認証リクエスト送信
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://salon-backend-29707400517.asia-northeast1.run.app'
+      
+      const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: credentials.username, // usernameをemailとして使用
+          password: credentials.password
+        })
+      })
 
-      // テストユーザーの認証
-      const user = TEST_USERS.find(u => u.username === credentials.username)
-      if (!user) {
+      if (!response.ok) {
         dispatch({ type: 'LOGIN_FAILURE' })
         return false
       }
 
-      // パスワードチェック（デモ用）
-      const validCredentials = Object.values(TEST_LOGIN_CREDENTIALS).find(
-        cred => cred.username === credentials.username && cred.password === credentials.password
-      )
-
-      if (!validCredentials) {
+      const result = await response.json()
+      
+      if (!result.success) {
         dispatch({ type: 'LOGIN_FAILURE' })
         return false
       }
 
-      // JWTトークン生成
-      const token = generateDemoJWT(user)
+      // バックエンドのレスポンスからユーザー情報を変換
+      const backendUser = result.data.user
+      const user: User = {
+        id: backendUser.id.toString(),
+        username: backendUser.email,
+        email: backendUser.email,
+        role: backendUser.role.toLowerCase() as 'admin' | 'staff' | 'demo',
+        permissions: [
+          { resource: 'all', actions: ['read', 'write', 'delete', 'admin'] }
+        ],
+        profile: {
+          name: backendUser.name || backendUser.email.split('@')[0]
+        },
+        isActive: backendUser.isActive,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString()
+      }
+
+      const token = result.data.token
 
       // ローカルストレージに保存
       localStorage.setItem('salon_auth_token', token)
       localStorage.setItem('salon_auth_user', JSON.stringify(user))
 
-      // 最終ログイン時間を更新
-      const updatedUser = {
-        ...user,
-        lastLoginAt: new Date().toISOString()
-      }
-
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user: updatedUser, token }
+        payload: { user, token }
       })
 
       return true

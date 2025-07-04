@@ -49,12 +49,10 @@ export const getTemplateByType = asyncHandler(async (req: Request, res: Response
     throw createError('Invalid template type', 400);
   }
 
-  const template = await prisma.autoMessageTemplate.findUnique({
+  const template = await prisma.autoMessageTemplate.findFirst({
     where: {
-      tenantId_type: {
-        tenantId,
-        type
-      }
+      tenantId,
+      trigger: type
     }
   });
 
@@ -74,20 +72,21 @@ export const upsertTemplate = asyncHandler(async (req: Request, res: Response) =
 
   const template = await prisma.autoMessageTemplate.upsert({
     where: {
-      tenantId_type: {
+      tenantId_name: {
         tenantId,
-        type: data.type
+        name: data.type || 'default'
       }
     },
     update: {
-      title: data.title,
-      content: data.content,
-      isActive: data.isActive,
-      updatedAt: new Date()
+      content: data.content || '',
+      isActive: data.isActive ?? true,
     },
     create: {
-      ...data,
-      tenantId
+      tenantId,
+      name: data.type || 'default',
+      trigger: data.type || 'manual',
+      content: data.content || '',
+      isActive: data.isActive ?? true
     }
   });
 
@@ -128,12 +127,10 @@ export const deleteTemplate = asyncHandler(async (req: Request, res: Response) =
     throw createError('Invalid template type', 400);
   }
 
-  const template = await prisma.autoMessageTemplate.findUnique({
+  const template = await prisma.autoMessageTemplate.findFirst({
     where: {
-      tenantId_type: {
-        tenantId,
-        type
-      }
+      tenantId,
+      trigger: type
     }
   });
 

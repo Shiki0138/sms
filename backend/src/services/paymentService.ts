@@ -304,12 +304,24 @@ export class PaymentService {
   /**
    * 請求書を取得
    */
-  async getInvoices(tenantId: string): Promise<Invoice[]> {
+  async getInvoices(tenantId: string): Promise<any[]> {
     try {
-      return await this.prisma.invoice.findMany({
+      const invoices = await this.prisma.invoice.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' }
       });
+      
+      // Map Prisma Invoice to the expected Invoice interface
+      return invoices.map(invoice => ({
+        ...invoice,
+        provider: 'stripe' as PaymentProvider, // Default provider
+        providerInvoiceId: invoice.invoiceNumber,
+        currency: 'JPY',
+        periodStart: invoice.issuedAt,
+        periodEnd: invoice.dueDate || invoice.issuedAt,
+        invoiceUrl: invoice.pdfUrl,
+        invoicePdf: invoice.pdfUrl
+      }));
     } catch (error) {
       logger.error('Failed to retrieve invoices:', error);
       return [];

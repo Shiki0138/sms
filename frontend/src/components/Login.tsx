@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Lock, User, Smartphone, Shield } from 'lucide-react'
+import { Lock, User, Smartphone, Shield, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface LoginProps {
@@ -12,6 +12,9 @@ export default function Login({ onLogin }: LoginProps) {
   const [otpCode, setOtpCode] = useState('')
   const [showOTP, setShowOTP] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // 環境変数でログイン機能を制御
+  const isLoginEnabled = import.meta.env.VITE_ENABLE_LOGIN === 'true'
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,8 +73,26 @@ export default function Login({ onLogin }: LoginProps) {
             <p className="text-sm text-gray-600 mt-2">セキュアログイン</p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
+          {/* ログインが無効な場合のメッセージ */}
+          {!isLoginEnabled ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    本番環境でのみログイン可能
+                  </h3>
+                  <p className="mt-1 text-sm text-yellow-700">
+                    このシステムは本番環境でのみログイン機能を利用できます。
+                    開発環境では安全性のためログイン機能が無効化されています。
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Login Form */}
+              <form onSubmit={handleLogin} className="space-y-6">
             {!showOTP ? (
               <>
                 <div>
@@ -142,17 +163,19 @@ export default function Login({ onLogin }: LoginProps) {
             >
               {loading ? '認証中...' : showOTP ? '認証コードを確認' : 'ログイン'}
             </button>
-          </form>
+              </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 font-medium mb-2">デモ認証情報:</p>
-            <div className="space-y-1 text-xs text-gray-500">
-              <p>メール: admin@salon.com</p>
-              <p>パスワード: admin123</p>
-              <p>2FAコード: 123456</p>
-            </div>
-          </div>
+              {/* Demo Credentials */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-600 font-medium mb-2">デモ認証情報:</p>
+                <div className="space-y-1 text-xs text-gray-500">
+                  <p>メール: admin@salon.com</p>
+                  <p>パスワード: admin123</p>
+                  <p>2FAコード: 123456</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

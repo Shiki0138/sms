@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美容室統合管理システム</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 400px;
+            backdrop-filter: blur(20px);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo-icon {
+            width: 4rem;
+            height: 4rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .logo-subtitle {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.25);
+        }
+        
+        .test-accounts {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .test-accounts h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .test-account {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .test-account:hover {
+            background: #f3f4f6;
+            border-color: #6366f1;
+        }
+        
+        .test-account-info {
+            font-size: 0.875rem;
+        }
+        
+        .test-account-role {
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+        
+        .app-container {
+            min-height: 100vh;
+            background: #f8fafc;
+        }
+        
+        .app-header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .app-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .app-nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-item {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .nav-item.active {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .nav-item:hover:not(.active) {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+        }
+        
+        .api-status.online {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .api-status.offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .status-indicator.online {
+            background: #10b981;
+        }
+        
+        .status-indicator.offline {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        const API_BASE_URL = 'http://localhost:8080';
+        
+        const LoginForm = ({ onLogin }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(false);
+            
+            const handleTestAccount = (testEmail, testPassword) => {
+                setEmail(testEmail);
+                setPassword(testPassword);
+            };
+            
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password }),
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        localStorage.setItem('token', data.data.token);
+                        localStorage.setItem('user', JSON.stringify(data.data.user));
+                        onLogin(data.data.user);
+                    } else {
+                        alert('ログインに失敗しました');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    alert('サーバーに接続できません');
+                } finally {
+                    setLoading(false);
+                }
+            };
+            
+            return (
+                <div className="login-container">
+                    <div className="login-card">
+                        <div className="logo">
+                            <div className="logo-icon">✂️</div>
+                            <h1 className="logo-text">美容室管理システム</h1>
+                            <p className="logo-subtitle">システムにログインしてください</p>
+                        </div>
+                        
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label className="form-label">ユーザー名</label>
+                                <input
+                                    type="email"
+                                    className="form-input"
+                                    placeholder="ユーザー名を入力"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label className="form-label">パスワード</label>
+                                <input
+                                    type="password"
+                                    className="form-input"
+                                    placeholder="パスワードを入力"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            
+                            <button type="submit" className="btn btn-primary" disabled={loading}>
+                                {loading ? 'ログイン中...' : 'ログイン'}
+                            </button>
+                        </form>
+                        
+                        <div className="test-accounts">
+                            <h4>デモアカウント</h4>
+                            <div className="test-account" onClick={() => handleTestAccount('admin@salon.com', 'admin123')}>
+                                <div className="test-account-info">
+                                    <div>デモユーザー</div>
+                                    <div className="test-account-role">管理者</div>
+                                </div>
+                            </div>
+                            <div className="test-account" onClick={() => handleTestAccount('staff@salon.com', 'staff123')}>
+                                <div className="test-account-info">
+                                    <div>田中 美咲</div>
+                                    <div className="test-account-role">スタッフ</div>
+                                </div>
+                            </div>
+                            <div className="test-account" onClick={() => handleTestAccount('manager@salon.com', 'manager123')}>
+                                <div className="test-account-info">
+                                    <div>佐藤 千夏</div>
+                                    <div className="test-account-role">店長</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#6b7280', textAlign: 'center' }}>
+                            このシステムは認証が必要です<br />
+                            適切な権限を持つアカウントでログインしてください
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const Dashboard = ({ user, onLogout }) => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [apiStatus, setApiStatus] = useState('checking');
+            const [apiData, setApiData] = useState(null);
+            
+            useEffect(() => {
+                checkApiStatus();
+                if (activeTab === 'customers') {
+                    fetchCustomers();
+                } else if (activeTab === 'reservations') {
+                    fetchReservations();
+                }
+            }, [activeTab]);
+            
+            const checkApiStatus = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/health`);
+                    const data = await response.json();
+                    setApiStatus('online');
+                } catch (error) {
+                    setApiStatus('offline');
+                }
+            };
+            
+            const fetchCustomers = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/customers`);
+                    const data = await response.json();
+                    setApiData(data);
+                } catch (error) {
+                    console.error('Failed to fetch customers:', error);
+                }
+            };
+            
+            const fetchReservations = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/reservations`);
+                    const data = await response.json();
+                    setApiData(data);
+                } catch (error) {
+                    console.error('Failed to fetch reservations:', error);
+                }
+            };
+            
+            const handleBulkMessage = () => {
+                alert('メッセージ一斉送信機能を開始します！\\n\\n対象: 選択された顧客\\nチャネル: LINE, Instagram, メール\\n\\nデモモードでは実際の送信は行われません。');
+            };
+            
+            const renderContent = () => {
+                switch (activeTab) {
+                    case 'dashboard':
+                        return (
+                            <div>
+                                <div className="stats-grid">
+                                    <div className="stat-card">
+                                        <div className="stat-value">¥45,000</div>
+                                        <div className="stat-label">今日の売上</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-value">8名</div>
+                                        <div className="stat-label">今日の来店数</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-value">¥850,000</div>
+                                        <div className="stat-label">今月の売上</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-value">180名</div>
+                                        <div className="stat-label">今月の来店数</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="card">
+                                    <div className="card-header">
+                                        <h2 className="card-title">今日の予約</h2>
+                                        <button className="btn-secondary">新規予約</button>
+                                    </div>
+                                    <div>
+                                        <p>10:00 - 山田花子様 (カット & カラー)</p>
+                                        <p>14:00 - 田中美香様 (パーマ)</p>
+                                        <p>11:30 - 佐藤直美様 (トリートメント)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    case 'customers':
+                        return (
+                            <div className="card">
+                                <div className="card-header">
+                                    <h2 className="card-title">顧客管理</h2>
+                                    <button className="btn btn-primary" onClick={handleBulkMessage}>
+                                        📧 一斉送信
+                                    </button>
+                                </div>
+                                {apiData && apiData.data ? (
+                                    <div>
+                                        {apiData.data.map((customer, index) => (
+                                            <div key={index} style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                                <h3>{customer.name}</h3>
+                                                <p>📧 {customer.email}</p>
+                                                <p>📞 {customer.phone}</p>
+                                                <p>来店回数: {customer.totalVisits}回</p>
+                                                <p>最終来店: {customer.lastVisit}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p>顧客データを読み込み中...</p>
+                                )}
+                            </div>
+                        );
+                    case 'reservations':
+                        return (
+                            <div className="card">
+                                <div className="card-header">
+                                    <h2 className="card-title">予約管理</h2>
+                                    <button className="btn-secondary">新規予約</button>
+                                </div>
+                                {apiData && apiData.data ? (
+                                    <div>
+                                        {apiData.data.map((reservation, index) => (
+                                            <div key={index} style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                                <h3>{reservation.customerName}</h3>
+                                                <p>📅 {reservation.date} {reservation.time}</p>
+                                                <p>✂️ {reservation.service}</p>
+                                                <p>ステータス: {reservation.status}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p>予約データを読み込み中...</p>
+                                )}
+                            </div>
+                        );
+                    default:
+                        return <div className="card"><p>このページは開発中です</p></div>;
+                }
+            };
+            
+            return (
+                <div className="app-container">
+                    <div className="app-header">
+                        <div className="app-title">
+                            <span>✂️</span>
+                            <span>美容室統合管理システム</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div className={`api-status ${apiStatus}`}>
+                                <div className={`status-indicator ${apiStatus}`}></div>
+                                <span>API {apiStatus === 'online' ? 'オンライン' : 'オフライン'}</span>
+                            </div>
+                            <span>ようこそ、{user.name}さん</span>
+                            <button className="btn-secondary" onClick={onLogout}>ログアウト</button>
+                        </div>
+                    </div>
+                    
+                    <div className="app-nav">
+                        <div 
+                            className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('dashboard')}
+                        >
+                            📊 ダッシュボード
+                        </div>
+                        <div 
+                            className={`nav-item ${activeTab === 'customers' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('customers')}
+                        >
+                            👥 顧客管理
+                        </div>
+                        <div 
+                            className={`nav-item ${activeTab === 'reservations' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('reservations')}
+                        >
+                            📅 予約管理
+                        </div>
+                        <div 
+                            className={`nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('analytics')}
+                        >
+                            📈 分析
+                        </div>
+                        <div 
+                            className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('settings')}
+                        >
+                            ⚙️ 設定
+                        </div>
+                    </div>
+                    
+                    <div className="main-content">
+                        {renderContent()}
+                    </div>
+                </div>
+            );
+        };
+        
+        const App = () => {
+            const [user, setUser] = useState(null);
+            
+            useEffect(() => {
+                const token = localStorage.getItem('token');
+                const savedUser = localStorage.getItem('user');
+                if (token && savedUser) {
+                    setUser(JSON.parse(savedUser));
+                }
+            }, []);
+            
+            const handleLogin = (userData) => {
+                setUser(userData);
+            };
+            
+            const handleLogout = () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+            };
+            
+            return (
+                <div>
+                    {user ? (
+                        <Dashboard user={user} onLogout={handleLogout} />
+                    ) : (
+                        <LoginForm onLogin={handleLogin} />
+                    )}
+                </div>
+            );
+        };
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

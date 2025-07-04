@@ -1,0 +1,63 @@
+# Google Cloud 最適化構成（月額$20以内）
+
+# app.yaml - App Engine設定
+runtime: nodejs18
+env: standard
+
+# インスタンス制限（重要！）
+automatic_scaling:
+  min_instances: 0          # 使用時のみ起動
+  max_instances: 2          # 最大2インスタンス
+  target_cpu_utilization: 0.8
+  target_throughput_utilization: 0.8
+
+# Cloud Run設定（App Engineより安い）
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: salon-backend
+spec:
+  template:
+    metadata:
+      annotations:
+        # 自動スケーリング設定
+        autoscaling.knative.dev/minScale: "0"     # ゼロスケール対応
+        autoscaling.knative.dev/maxScale: "5"     # 最大5インスタンス
+        # CPU制限
+        run.googleapis.com/cpu-throttling: "true"  # アイドル時CPU削減
+    spec:
+      containerConcurrency: 100
+      containers:
+      - image: gcr.io/PROJECT_ID/salon-backend
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+
+# Cloud SQL設定（最小構成）
+---
+database:
+  tier: db-f1-micro          # 最小インスタンス（$10/月）
+  diskSize: 10              # 10GB
+  backupConfiguration:
+    enabled: true
+    startTime: "03:00"      # 夜間バックアップ
+  ipConfiguration:
+    ipv4Enabled: false      # Private IPのみ（NAT不要）
+    privateNetwork: projects/PROJECT_ID/global/networks/default
+
+# コスト最適化スクリプト
+---
+#!/bin/bash
+# 平日夜間・週末の自動停止
+gcloud scheduler jobs create pubsub stop-instances \
+  --schedule="0 22 * * 1-5" \
+  --topic=stop-instances \
+  --message-body='{"action":"stop"}'
+
+# 平日朝の自動起動
+gcloud scheduler jobs create pubsub start-instances \
+  --schedule="0 7 * * 1-5" \
+  --topic=start-instances \
+  --message-body='{"action":"start"}'
