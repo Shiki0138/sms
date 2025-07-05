@@ -1,0 +1,96 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "美容室管理システム監視",
+    "tags": ["salon", "monitoring"],
+    "timezone": "Asia/Tokyo",
+    "panels": [
+      {
+        "id": 1,
+        "title": "システム稼働状況",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"salon-app\"}",
+            "legendFormat": "サービス状態"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "values": [0, 0.5, 1],
+              "colors": ["red", "yellow", "green"]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "API応答時間",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "salon_response_time_seconds",
+            "legendFormat": "応答時間"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "min": 0
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "メモリ使用量",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "salon_memory_heap_used_bytes",
+            "legendFormat": "使用中"
+          },
+          {
+            "expr": "salon_memory_heap_total_bytes",
+            "legendFormat": "総量"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes",
+            "min": 0
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "システム稼働時間",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "salon_uptime_seconds",
+            "legendFormat": "稼働時間"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {"mode": "continuous-GrYlRd"}
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  }
+}

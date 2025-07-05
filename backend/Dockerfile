@@ -1,20 +1,37 @@
-FROM node:18-alpine
+# Backend Dockerfile
+FROM node:20-alpine
 
+# Set working directory
 WORKDIR /app
 
-# Copy package files
+# Install dependencies first (for better caching)
 COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci --only=production
 
-# Install production dependencies
-RUN npm ci --production || npm install express cors bcryptjs jsonwebtoken firebase-admin
+# Copy source code
+COPY . .
 
-# Copy server files
-COPY src/firestore-server.js ./src/
-COPY src/simple-server.js ./src/
-COPY src/test-server.js ./src/
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build TypeScript
+RUN npm run build
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
+# Change ownership of app directory
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
 # Expose port
-EXPOSE 8080
+EXPOSE 4002
 
-# Start server
-CMD ["node", "src/test-server.js"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:4002/health || exit 1
+
+# Start the application
+CMD ["npm", "start"]

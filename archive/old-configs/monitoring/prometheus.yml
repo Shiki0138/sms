@@ -1,0 +1,57 @@
+# 📊 美容室統合管理システム - Prometheus設定
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus自体の監視
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 美容室システム本体の監視
+  - job_name: 'salon-app'
+    static_configs:
+      - targets: ['salon-app:4002']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Node.js アプリケーションメトリクス
+  - job_name: 'salon-app-health'
+    static_configs:
+      - targets: ['salon-app:4002']
+    metrics_path: '/api/v1/system/health'
+    scrape_interval: 30s
+
+  # データベース監視
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['database:5432']
+
+  # Redis監視
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+
+  # Nginx監視
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['salon-app:80']
+    metrics_path: '/nginx_status'
+    scrape_interval: 15s
+
+  # システムリソース監視
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']

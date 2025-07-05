@@ -107,6 +107,7 @@ export default function Login({ onLogin }: LoginProps) {
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="admin@salon.com"
+                      autoComplete="email"
                       required
                       data-testid="legacy-login-email-input"
                     />
@@ -125,6 +126,7 @@ export default function Login({ onLogin }: LoginProps) {
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="••••••••"
+                      autoComplete="current-password"
                       required
                       data-testid="legacy-login-password-input"
                     />

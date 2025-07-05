@@ -562,8 +562,8 @@ export const uploadCustomerPhoto = asyncHandler(async (req: Request, res: Respon
 
   try {
     // 既存の写真を削除（もしあれば）
-    if ((customer as any).profilePhoto) {
-      await imageProcessingService.deleteImage((customer as any).profilePhoto);
+    if (customer.profilePhoto) {
+      await imageProcessingService.deleteImage(customer.profilePhoto);
     }
 
     // 圧縮統計を取得（開発/デバッグ用）
@@ -662,18 +662,18 @@ export const deleteCustomerPhoto = asyncHandler(async (req: Request, res: Respon
     throw createError('顧客が見つかりません', 404);
   }
 
-  if (!(customer as any).profilePhoto) {
+  if (!customer.profilePhoto) {
     throw createError('削除する写真がありません', 400);
   }
 
   try {
     // 画像を削除
-    const deleted = await imageProcessingService.deleteImage((customer as any).profilePhoto);
+    const deleted = await imageProcessingService.deleteImage(customer.profilePhoto);
     
     if (!deleted) {
       logger.warn('Failed to delete image from storage, but updating database', {
         customerId,
-        imageUrl: (customer as any).profilePhoto
+        imageUrl: customer.profilePhoto
       });
     }
 
@@ -739,7 +739,7 @@ export const getCustomerPhotoVariants = asyncHandler(async (req: Request, res: R
     throw createError('顧客が見つかりません', 404);
   }
 
-  if (!(customer as any).profilePhoto) {
+  if (!customer.profilePhoto) {
     return res.status(200).json({ 
       success: true,
       imageVariants: null,
@@ -748,7 +748,7 @@ export const getCustomerPhotoVariants = asyncHandler(async (req: Request, res: R
   }
 
   try {
-    const imageVariants = await imageProcessingService.getImageVariants((customer as any).profilePhoto);
+    const imageVariants = await imageProcessingService.getImageVariants(customer.profilePhoto);
     
     res.status(200).json({ 
       success: true,

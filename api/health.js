@@ -1,8 +1,8 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.status(200).json({
-    status: 'OK',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
-    version: 'v1',
-    message: '美容室管理システム API'
-  })
+    message: 'Salon Management System API is running',
+    version: '1.0.0'
+  });
 }
