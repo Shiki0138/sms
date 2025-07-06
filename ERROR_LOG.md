@@ -33,7 +33,17 @@ vercel.jsonのinstallCommandが適切でなく、frontendディレクトリで�
 ### 予防策
 - Vercelのビルド設定では、適切なディレクトリでnpm installを実行する
 - buildCommandではnpm runスクリプトを使用する
-- npxは不要（node_modulesにインストール済みのため）
+- npxは不要（node_modules にインストール済みのため）
+
+### 追記: vercel.json設定が反映されない問題
+- **症状**: vercel.jsonを修正してもVercelが古い設定を使用
+- **原因**: Vercelダッシュボードの設定が優先される
+- **解決策**: ダッシュボードで手動設定変更が必須
+  ```
+  Build Command: cd frontend && npm run build
+  Install Command: cd frontend && npm install
+  Output Directory: frontend/dist
+  ```
 
 ---
 
