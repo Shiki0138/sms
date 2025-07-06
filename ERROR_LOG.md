@@ -45,6 +45,14 @@ vercel.jsonのinstallCommandが適切でなく、frontendディレクトリで�
   Output Directory: frontend/dist
   ```
 
+### 追記2: Vercelキャッシュ問題
+- **症状**: ダッシュボード設定が正しくても古いコマンドが実行される
+- **原因**: Vercelのビルドキャッシュが古い設定を保持
+- **解決策**: 
+  1. Vercelプロジェクトを削除して再作成
+  2. または「Redeploy」時に「Use existing Build Cache」のチェックを外す
+  3. terserパッケージをdependenciesに追加（vite v3以降はオプショナル）
+
 ---
 
 ## エラー #001: CORS Policy Error - Google Cloud Storage
