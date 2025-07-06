@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -69,11 +69,7 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('3months')
 
-  useEffect(() => {
-    fetchAnalyticsData()
-  }, [timeRange])
-
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     setIsLoading(true)
     try {
       // 実際の顧客データと施術履歴データを使用した分析
@@ -89,9 +85,14 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [timeRange])
 
-  const generateRealAnalyticsData = (customers: any[], serviceHistory: any[]): AnalyticsData => {
+  useEffect(() => {
+    fetchAnalyticsData()
+  }, [fetchAnalyticsData])
+
+
+  const generateRealAnalyticsData = useCallback((customers: any[], serviceHistory: any[]): AnalyticsData => {
     // 顧客セグメント分析
     const vipCustomers = customers.filter(c => c.visitCount >= 15)
     const regularCustomers = customers.filter(c => c.visitCount >= 5 && c.visitCount < 15)
@@ -140,7 +141,7 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
       servicePopularity,
       monthlyTrends: monthlyData
     }
-  }
+  }, [])
 
   const generateMonthlyData = (serviceHistory: any[]) => {
     const months = []
@@ -281,8 +282,8 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
     )
   }
 
-  // グラフ設定
-  const segmentChartData = {
+  // グラフ設定（メモ化）
+  const segmentChartData = useMemo(() => ({
     labels: analyticsData.segments.map(s => s.name),
     datasets: [
       {
@@ -291,7 +292,7 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
         borderWidth: 0
       }
     ]
-  }
+  }), [analyticsData])
 
   const visitFrequencyData = {
     labels: analyticsData.visitFrequency.labels,

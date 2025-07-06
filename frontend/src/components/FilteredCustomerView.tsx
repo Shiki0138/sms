@@ -194,10 +194,10 @@ const FilteredCustomerView: React.FC<FilteredCustomerViewProps> = ({
   }
 
   const renderMessageItem = (message: MessageThread) => (
-    <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
+    <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
+      <div className="flex flex-col sm:flex-row items-start justify-between mb-3 gap-2">
         <div className="flex items-center space-x-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
             message.channel === 'INSTAGRAM' ? 'bg-pink-100' : 'bg-green-100'
           }`}>
             <MessageSquare className={`w-4 h-4 ${

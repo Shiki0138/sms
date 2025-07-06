@@ -120,30 +120,30 @@ const AIReplyGenerator: React.FC<AIReplyGeneratorProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="p-4 sm:p-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Bot className="w-6 h-6 text-blue-600" />
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">AI返信生成</h2>
-                <p className="text-sm text-gray-600">{customerData.name}様への返信を作成</p>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">AI返信生成</h2>
+                <p className="text-xs sm:text-sm text-gray-600">{customerData.name}様への返信を作成</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* 顧客情報 */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-medium text-gray-700 mb-2">顧客情報</h3>
             <div className="space-y-1 text-sm text-gray-600">
               <p><span className="font-medium">お名前:</span> {customerData.name}</p>
@@ -157,12 +157,12 @@ const AIReplyGenerator: React.FC<AIReplyGeneratorProps> = ({
           </div>
 
           {/* メッセージ履歴 */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <h3 className="text-sm font-medium text-gray-700 mb-2">最近のメッセージ</h3>
-            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-3">
+            <div className="max-h-24 sm:max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2 sm:p-3">
               {messageHistory.slice(-3).map((message, index) => (
                 <div key={index} className="mb-2 last:mb-0">
-                  <div className={`text-sm ${
+                  <div className={`text-xs sm:text-sm ${
                     message.senderType === 'CUSTOMER' ? 'text-blue-600' : 'text-gray-600'
                   }`}>
                     <span className="font-medium">
@@ -189,7 +189,7 @@ const AIReplyGenerator: React.FC<AIReplyGeneratorProps> = ({
                   <p className="text-gray-600">AIが最適な返信を生成します</p>
                   <button
                     onClick={generateAIReply}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors min-h-[44px] touch-manipulation"
                   >
                     返信を生成
                   </button>
@@ -225,10 +225,10 @@ const AIReplyGenerator: React.FC<AIReplyGeneratorProps> = ({
               )}
 
               {/* アクションボタン */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-4 border-t border-gray-200 gap-3 sm:gap-0">
                 <button
                   onClick={handleRegenerate}
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex items-center justify-center space-x-2 px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] touch-manipulation"
                 >
                   <RefreshCw className="w-4 h-4" />
                   <span>再生成</span>
@@ -237,17 +237,18 @@ const AIReplyGenerator: React.FC<AIReplyGeneratorProps> = ({
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    className="px-4 py-3 text-gray-600 hover:text-gray-800 transition-colors min-h-[44px] touch-manipulation"
                   >
                     キャンセル
                   </button>
                   <button
                     onClick={handleUseReply}
                     disabled={!editedReply.trim()}
-                    className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors min-h-[44px] touch-manipulation"
                   >
                     <Check className="w-4 h-4" />
-                    <span>この返信を使用</span>
+                    <span className="hidden sm:inline">この返信を使用</span>
+                    <span className="sm:hidden">使用</span>
                   </button>
                 </div>
               </div>

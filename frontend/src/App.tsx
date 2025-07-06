@@ -161,6 +161,7 @@ interface Reservation {
 function App() {
   // 環境設定の初期化
   const config = getEnvironmentConfig()
+  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
 
   useEffect(() => {
     // 環境情報をログ出力
@@ -2421,6 +2422,14 @@ function App() {
 
 // 認証で保護されたメインアプリケーション
 const AuthenticatedApp = () => {
+  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
+  
+  // ログイン機能が無効な場合は直接Appを返す
+  if (!enableLogin) {
+    return <App />
+  }
+  
+  // ログイン機能が有効な場合は認証でラップ
   return (
     <ProtectedRoute requireAuth={true}>
       <App />
@@ -2430,6 +2439,18 @@ const AuthenticatedApp = () => {
 
 // 認証プロバイダーでラップされたルートコンポーネント
 const RootApp = () => {
+  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
+  
+  // ログイン機能が無効な場合は直接Appを返す
+  if (!enableLogin) {
+    return (
+      <SubscriptionProvider>
+        <App />
+      </SubscriptionProvider>
+    )
+  }
+  
+  // ログイン機能が有効な場合は認証プロバイダーでラップ
   return (
     <AuthProvider>
       <SubscriptionProvider>

@@ -252,7 +252,7 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
           </div>
 
           {/* 時間スロット */}
-          <div className="max-h-[600px] overflow-y-auto">
+          <div className="max-h-[400px] sm:max-h-[600px] overflow-y-auto -webkit-overflow-scrolling-touch">
             <div className="relative">
               {/* 休日オーバーレイ（各日ごと） */}
               {dateRange.map((date, dateIndex) => {
@@ -261,8 +261,8 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
                 
                 if (!dateIsHoliday) return null;
                 
-                const columnWidth = `calc((100% - 56px) / ${dateRange.length})`;
-                const leftOffset = `calc(56px + ${columnWidth} * ${dateIndex})`;
+                const columnWidth = `calc((100% - 40px) / ${dateRange.length})`;
+                const leftOffset = `calc(40px + ${columnWidth} * ${dateIndex})`;
                 
                 return (
                   <div 
@@ -274,7 +274,7 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
                     }}
                   >
                     <div className="text-center">
-                      <div className="text-sm text-red-600 font-medium">
+                      <div className="text-xs sm:text-sm text-red-600 font-medium">
                         {holidayType?.includes('定休日') ? '定休日' : '休業日'}
                       </div>
                     </div>
@@ -287,14 +287,14 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
                 const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                 
                 return (
-                  <div key={timeStr} className="grid border-b border-gray-100 hover:bg-gray-50" style={{gridTemplateColumns: `56px repeat(${dateRange.length}, 1fr)`}}>
+                  <div key={timeStr} className="grid border-b border-gray-100 hover:bg-gray-50" style={{gridTemplateColumns: `40px repeat(${dateRange.length}, 1fr)`}}>
                     {/* 時間ラベル */}
-                    <div className="p-1 text-xs text-gray-500 border-r border-gray-200 bg-gray-50" style={{ height: '24px' }}>
+                    <div className="p-0.5 sm:p-1 text-xs text-gray-500 border-r border-gray-200 bg-gray-50" style={{ height: '24px' }}>
                       {minute === 0 && (
-                        <div className="font-medium">{hour.toString().padStart(2, '0')}:00</div>
+                        <div className="font-medium text-xs">{hour.toString().padStart(2, '0')}:00</div>
                       )}
                       {minute === 30 && (
-                        <div className="text-gray-400">:30</div>
+                        <div className="text-gray-400 text-xs">:30</div>
                       )}
                     </div>
                     

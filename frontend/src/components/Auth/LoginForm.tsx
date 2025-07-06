@@ -79,9 +79,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                   type="text"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
                   placeholder="ユーザー名を入力"
                   disabled={isLoading}
+                  autoComplete="username"
                 />
               </div>
             </div>
@@ -101,14 +102,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
                   placeholder="パスワードを入力"
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center min-w-[44px] min-h-[44px] touch-manipulation"
                   disabled={isLoading}
                 >
                   {showPassword ? (
@@ -132,7 +134,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[48px] touch-manipulation"
             >
               {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>

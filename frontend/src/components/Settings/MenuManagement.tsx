@@ -176,32 +176,33 @@ const MenuManagement: React.FC<MenuManagementProps> = ({ onMenusChange }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-medium text-gray-900">メニュー管理</h3>
           <p className="text-sm text-gray-600">サービスメニューの追加・編集・削除ができます</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="btn btn-primary flex items-center space-x-2"
+          className="btn btn-primary flex items-center justify-center space-x-2 w-full sm:w-auto min-h-[44px] touch-manipulation"
         >
           <Plus className="w-4 h-4" />
-          <span>新規メニュー追加</span>
+          <span className="hidden sm:inline">新規メニュー追加</span>
+          <span className="sm:hidden">追加</span>
         </button>
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Search */}
-          <div className="relative">
+          <div className="relative col-span-1 sm:col-span-2 lg:col-span-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="メニュー名で検索..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
             />
           </div>
 
@@ -209,7 +210,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({ onMenusChange }) => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
           >
             <option value="all">全カテゴリ</option>
             {MENU_CATEGORIES.map(category => (
@@ -220,12 +221,12 @@ const MenuManagement: React.FC<MenuManagementProps> = ({ onMenusChange }) => {
           </select>
 
           {/* Active Filter */}
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2 cursor-pointer min-h-[44px]">
             <input
               type="checkbox"
               checked={showActiveOnly}
               onChange={(e) => setShowActiveOnly(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
             />
             <span className="text-sm text-gray-700">有効なメニューのみ表示</span>
           </label>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Lock, User, Smartphone, Shield, AlertCircle } from 'lucide-react'
+import { Lock, User, Shield, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface LoginProps {
@@ -9,9 +9,8 @@ interface LoginProps {
 export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [otpCode, setOtpCode] = useState('')
-  const [showOTP, setShowOTP] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // 環境変数でログイン機能を制御
   const isLoginEnabled = import.meta.env.VITE_ENABLE_LOGIN === 'true'
@@ -21,40 +20,36 @@ export default function Login({ onLogin }: LoginProps) {
     setLoading(true)
 
     try {
-      // デモモード：固定認証情報
-      if (email === 'admin@salon.com' && password === 'admin123') {
-        // 2FAが有効な場合
-        if (!showOTP) {
-          setShowOTP(true)
-          toast.success('認証コードを入力してください')
-          setLoading(false)
-          return
-        }
+      // 本番環境のAPI認証
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://salon-management-system-one.vercel.app/api'
+      
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password
+        })
+      })
 
-        // OTP検証（デモ用：123456で固定）
-        if (otpCode === '123456') {
-          const demoToken = 'demo-jwt-token'
-          const demoStaff = {
-            id: '1',
-            name: '管理者',
-            email: 'admin@salon.com',
-            role: 'ADMIN',
-            tenantId: '1'
-          }
-          
-          localStorage.setItem('token', demoToken)
-          localStorage.setItem('staff', JSON.stringify(demoStaff))
-          
-          toast.success('ログインに成功しました')
-          onLogin(demoToken, demoStaff)
-        } else {
-          toast.error('認証コードが正しくありません')
-        }
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        const { token, user } = result
+        
+        localStorage.setItem('token', token)
+        localStorage.setItem('staff', JSON.stringify(user))
+        
+        toast.success('ログインに成功しました')
+        onLogin(token, user)
       } else {
-        toast.error('メールアドレスまたはパスワードが正しくありません')
+        toast.error(result.message || 'メールアドレスまたはパスワードが正しくありません')
       }
     } catch (error) {
-      toast.error('ログインに失敗しました')
+      console.error('Login error:', error)
+      toast.error('ログインに失敗しました。ネットワーク接続を確認してください。')
     } finally {
       setLoading(false)
     }
@@ -93,8 +88,6 @@ export default function Login({ onLogin }: LoginProps) {
             <>
               {/* Login Form */}
               <form onSubmit={handleLogin} className="space-y-6">
-            {!showOTP ? (
-              <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     メールアドレス
@@ -105,11 +98,11 @@ export default function Login({ onLogin }: LoginProps) {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="admin@salon.com"
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                      placeholder="example@test-salon.jp"
                       autoComplete="email"
                       required
-                      data-testid="legacy-login-email-input"
+                      data-testid="login-email-input"
                     />
                   </div>
                 </div>
@@ -121,61 +114,36 @@ export default function Login({ onLogin }: LoginProps) {
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
                       placeholder="••••••••"
                       autoComplete="current-password"
                       required
-                      data-testid="legacy-login-password-input"
+                      data-testid="login-password-input"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3 p-1 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
                   </div>
                 </div>
-              </>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  2要素認証コード
-                </label>
-                <div className="relative">
-                  <Smartphone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="6桁の認証コード"
-                    maxLength={6}
-                    required
-                    data-testid="legacy-login-otp-input"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  デモ用コード: 123456
-                </p>
-              </div>
-            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              data-testid="legacy-login-submit-button"
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] text-base"
+              data-testid="login-submit-button"
             >
-              {loading ? '認証中...' : showOTP ? '認証コードを確認' : 'ログイン'}
+              {loading ? '認証中...' : 'ログイン'}
             </button>
               </form>
 
-              {/* Demo Credentials */}
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-600 font-medium mb-2">デモ認証情報:</p>
-                <div className="space-y-1 text-xs text-gray-500">
-                  <p>メール: admin@salon.com</p>
-                  <p>パスワード: admin123</p>
-                  <p>2FAコード: 123456</p>
-                </div>
-              </div>
             </>
           )}
         </div>
