@@ -188,9 +188,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       // バックエンドAPIに認証リクエスト送信
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://salon-backend-29707400517.asia-northeast1.run.app'
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://salon-management-system-one.vercel.app/api'
       
-      const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

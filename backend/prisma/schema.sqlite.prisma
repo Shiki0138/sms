@@ -1,0 +1,376 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./data/production.db"
+}
+
+model Tenant {
+  id                        String                  @id @default(cuid())
+  name                      String
+  planId                    String
+  subscriptionStatus        String                  @default("ACTIVE")
+  subscriptionEndDate       DateTime?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  staff                     Staff[]
+  customers                 Customer[]
+  messages                  Message[]
+  messageThreads            MessageThread[]
+  reservations              Reservation[]
+  autoMessageTemplates      AutoMessageTemplate[]
+  autoMessages              AutoMessage[]
+  notifications             Notification[]
+  tags                      Tag[]
+  analytics                 Analytics[]
+  menus                     Menu[]
+  menuHistories             MenuHistory[]
+  betaApplications          BetaApplication[]
+  paymentTransactions       PaymentTransaction[]
+  monthlyAnalytics          MonthlyAnalytics[]
+}
+
+model Staff {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  email                     String                  @unique
+  name                      String?
+  password                  String
+  role                      String                  @default("STAFF")
+  twoFactorEnabled          Boolean                 @default(false)
+  twoFactorSecret           String?
+  refreshToken              String?
+  lastLogin                 DateTime?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  sentMessages              Message[]               @relation("SentMessages")
+  reservations              Reservation[]
+  notifications             Notification[]
+  feedbacks                 Feedback[]
+}
+
+model Customer {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  name                      String
+  nameKana                  String?
+  phone                     String?
+  email                     String?
+  birthDate                 DateTime?
+  gender                    String?
+  postalCode                String?
+  address                   String?
+  occupation                String?
+  notes                     String?
+  tags                      String?
+  visitCount                Int                     @default(0)
+  lastVisitDate             DateTime?
+  totalSpent                Float                   @default(0)
+  averageSpent              Float                   @default(0)
+  cancelCount               Int                     @default(0)
+  noShowCount               Int                     @default(0)
+  isVIP                     Boolean                 @default(false)
+  referralSource            String?
+  allowMarketing            Boolean                 @default(true)
+  preferredContactMethod    String                  @default("ANY")
+  preferredContactTime      String?
+  instagramId               String?
+  lineUserId                String?
+  segmentTags               String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  messages                  Message[]
+  reservations              Reservation[]
+  autoMessages              AutoMessage[]
+  messageThreads            MessageThread[]
+  menuHistories             MenuHistory[]
+  paymentTransactions       PaymentTransaction[]
+  customerTags              CustomerTag[]
+}
+
+model Message {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  threadId                  String
+  customerId                String
+  staffId                   String?
+  content                   String
+  messageType               String                  @default("MANUAL")
+  channel                   String                  @default("SYSTEM")
+  channelMessageId          String?
+  direction                 String                  @default("OUTBOUND")
+  status                    String                  @default("SENT")
+  metadata                  String?
+  isRead                    Boolean                 @default(false)
+  readAt                    DateTime?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  thread                    MessageThread           @relation(fields: [threadId], references: [id])
+  customer                  Customer                @relation(fields: [customerId], references: [id])
+  staff                     Staff?                  @relation("SentMessages", fields: [staffId], references: [id])
+}
+
+model MessageThread {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  customerId                String
+  channel                   String                  @default("SYSTEM")
+  channelThreadId           String?
+  status                    String                  @default("ACTIVE")
+  lastMessageAt             DateTime                @default(now())
+  unreadCount               Int                     @default(0)
+  metadata                  String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  customer                  Customer                @relation(fields: [customerId], references: [id])
+  messages                  Message[]
+  threadTags                ThreadTag[]
+}
+
+model Reservation {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  customerId                String
+  staffId                   String?
+  startTime                 DateTime
+  endTime                   DateTime
+  status                    String                  @default("CONFIRMED")
+  source                    String                  @default("MANUAL")
+  sourceId                  String?
+  menuId                    String?
+  menuName                  String?
+  price                     Float?
+  notes                     String?
+  reminderSent              Boolean                 @default(false)
+  reminderSentAt            DateTime?
+  customerName              String?
+  customerPhone             String?
+  customerEmail             String?
+  googleEventId             String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  customer                  Customer                @relation(fields: [customerId], references: [id])
+  staff                     Staff?                  @relation(fields: [staffId], references: [id])
+}
+
+model AutoMessageTemplate {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  type                      String
+  title                     String
+  content                   String
+  timing                    String?
+  channel                   String                  @default("LINE")
+  isActive                  Boolean                 @default(true)
+  metadata                  String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  autoMessages              AutoMessage[]
+}
+
+model AutoMessage {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  templateId                String
+  customerId                String
+  reservationId             String?
+  scheduledAt               DateTime
+  sentAt                    DateTime?
+  status                    String                  @default("SCHEDULED")
+  errorMessage              String?
+  retryCount                Int                     @default(0)
+  metadata                  String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  template                  AutoMessageTemplate     @relation(fields: [templateId], references: [id])
+  customer                  Customer                @relation(fields: [customerId], references: [id])
+}
+
+model Notification {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  staffId                   String?
+  type                      String
+  title                     String
+  message                   String
+  priority                  String                  @default("MEDIUM")
+  isRead                    Boolean                 @default(false)
+  readAt                    DateTime?
+  metadata                  String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  staff                     Staff?                  @relation(fields: [staffId], references: [id])
+}
+
+model Tag {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  name                      String
+  color                     String
+  type                      String                  @default("CUSTOMER")
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  customerTags              CustomerTag[]
+  threadTags                ThreadTag[]
+}
+
+model CustomerTag {
+  id                        String                  @id @default(cuid())
+  customerId                String
+  tagId                     String
+  createdAt                 DateTime                @default(now())
+  customer                  Customer                @relation(fields: [customerId], references: [id])
+  tag                       Tag                     @relation(fields: [tagId], references: [id])
+  
+  @@unique([customerId, tagId])
+}
+
+model ThreadTag {
+  id                        String                  @id @default(cuid())
+  threadId                  String
+  tagId                     String
+  createdAt                 DateTime                @default(now())
+  thread                    MessageThread           @relation(fields: [threadId], references: [id])
+  tag                       Tag                     @relation(fields: [tagId], references: [id])
+  
+  @@unique([threadId, tagId])
+}
+
+model Analytics {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  type                      String
+  date                      DateTime
+  data                      String
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+}
+
+model Menu {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  name                      String
+  category                  String
+  description               String?
+  duration                  Int
+  price                     Float
+  isActive                  Boolean                 @default(true)
+  displayOrder              Int                     @default(0)
+  requiresStaff             Boolean                 @default(true)
+  maxConcurrent             Int                     @default(1)
+  preparationTime           Int                     @default(0)
+  cleanupTime               Int                     @default(0)
+  metadata                  String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  menuHistories             MenuHistory[]
+  paymentTransactions       PaymentTransaction[]
+}
+
+model MenuHistory {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  customerId                String
+  menuId                    String
+  visitDate                 DateTime
+  satisfaction              Int?
+  notes                     String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  customer                  Customer                @relation(fields: [customerId], references: [id])
+  menu                      Menu                    @relation(fields: [menuId], references: [id])
+}
+
+model BetaApplication {
+  id                        String                  @id @default(cuid())
+  tenantId                  String?
+  salonName                 String
+  applicantName             String
+  email                     String                  @unique
+  phone                     String?
+  businessType              String
+  monthlyCustomers          Int?
+  currentTools              String?
+  challenges                String?
+  expectations              String?
+  status                    String                  @default("PENDING")
+  reviewNotes               String?
+  invitationSentAt          DateTime?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant?                 @relation(fields: [tenantId], references: [id])
+}
+
+model Feedback {
+  id                        String                  @id @default(cuid())
+  userId                    String?
+  staffId                   String?
+  type                      String
+  category                  String
+  title                     String
+  description               String
+  priority                  String                  @default("MEDIUM")
+  status                    String                  @default("OPEN")
+  response                  String?
+  respondedAt               DateTime?
+  metadata                  String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  staff                     Staff?                  @relation(fields: [staffId], references: [id])
+}
+
+model PaymentTransaction {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  customerId                String
+  reservationId             String?
+  amount                    Float
+  currency                  String                  @default("JPY")
+  status                    String                  @default("PENDING")
+  provider                  String
+  providerTransactionId     String?
+  method                    String?
+  menuId                    String?
+  description               String?
+  metadata                  String?
+  failureReason             String?
+  refundedAmount            Float?
+  refundedAt                DateTime?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  customer                  Customer                @relation(fields: [customerId], references: [id])
+  menu                      Menu?                   @relation(fields: [menuId], references: [id])
+}
+
+model MonthlyAnalytics {
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  yearMonth                 String
+  totalRevenue              Float                   @default(0)
+  totalReservations         Int                     @default(0)
+  newCustomers              Int                     @default(0)
+  returningCustomers        Int                     @default(0)
+  averageTicketSize         Float                   @default(0)
+  topServices               String?
+  customerRetentionRate     Float                   @default(0)
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id])
+  
+  @@unique([tenantId, yearMonth])
+}

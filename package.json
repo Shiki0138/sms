@@ -1,33 +1,13 @@
 {
   "name": "salon-management-system",
   "version": "1.0.0",
-  "description": "美容室統合管理システム",
+  "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend",
-    "build:backend": "cd backend && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "setup": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "test:setup": "node scripts/setup-test-users.ts",
-    "deploy:test": "npm run build && echo 'Ready for deployment!'"
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd frontend && npm start", 
+    "dev": "cd frontend && npm run dev"
   },
-  "keywords": [
-    "salon",
-    "management",
-    "beauty",
-    "booking"
-  ],
-  "author": "Salon Management Team",
-  "license": "MIT",
-  "devDependencies": {
-    "concurrently": "^8.2.2",
-    "@types/node": "^20.9.0",
-    "typescript": "^5.3.2"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  }
+  "workspaces": [
+    "frontend"
+  ]
 }

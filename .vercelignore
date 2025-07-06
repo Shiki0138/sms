@@ -1,0 +1,14 @@
+# Vercel ignore file
+backend/
+node_modules/
+archive/
+scripts/
+supabase/
+.env
+.env.local
+*.log
+.git/
+.gitignore
+README.md
+DEPLOYMENT_GUIDE.md
+TEST_USER_GUIDE.md
