@@ -5,6 +5,38 @@
 
 ---
 
+## エラー #004: Vite Package Not Found in Vercel Build
+
+### 発生日時
+2025年7月5日
+
+### エラー内容
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /vercel/path0/frontend/node_modules/.vite-temp/vite.config.ts
+```
+
+### 原因
+vercel.jsonのinstallCommandが適切でなく、frontendディレクトリで依存関係がインストールされていなかった
+
+### 解決策
+1. vercel.jsonを修正：
+   ```json
+   "installCommand": "cd frontend && npm install",
+   "buildCommand": "cd frontend && npm run build"
+   ```
+
+2. package.jsonのbuildスクリプトを修正：
+   ```json
+   "build": "vite build"  // npx を削除
+   ```
+
+### 予防策
+- Vercelのビルド設定では、適切なディレクトリでnpm installを実行する
+- buildCommandではnpm runスクリプトを使用する
+- npxは不要（node_modulesにインストール済みのため）
+
+---
+
 ## エラー #001: CORS Policy Error - Google Cloud Storage
 
 ### 発生日時
