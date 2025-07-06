@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "cd frontend && npm install && npx vite build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm install",
+  "installCommand": "echo 'Installing dependencies'",
   "framework": "vite",
   "rewrites": [
     {
