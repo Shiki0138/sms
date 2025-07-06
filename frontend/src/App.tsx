@@ -1676,9 +1676,11 @@ function App() {
             </div>
             
             {/* ユーザープロファイル */}
-            <div className="mt-6">
-              <UserProfile />
-            </div>
+            {enableLogin && (
+              <div className="mt-6">
+                {/* <UserProfile /> ログイン無効時は非表示 */}
+              </div>
+            )}
           </div>
         </nav>
 
