@@ -1,0 +1,23 @@
+{
+  "monitoring": {
+    "logRotation": {
+      "maxSize": "100M",
+      "maxFiles": 30,
+      "compress": true
+    },
+    "alerts": {
+      "errorThreshold": 10,
+      "responseTimeThreshold": 3000,
+      "memoryThreshold": 80,
+      "cpuThreshold": 75
+    },
+    "healthCheck": {
+      "interval": 60,
+      "timeout": 5000,
+      "endpoints": [
+        "/api/health",
+        "/api/v1/auth/health"
+      ]
+    }
+  }
+}
