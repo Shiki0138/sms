@@ -22,7 +22,7 @@ import {
 import { useAutoSave } from '../../hooks/useAutoSave'
 import AutoSaveIndicator from '../Common/AutoSaveIndicator'
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '')
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
 
 interface StripePaymentFormProps {
   amount: number

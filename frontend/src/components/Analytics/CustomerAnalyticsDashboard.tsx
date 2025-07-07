@@ -262,6 +262,21 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
     }
   }
 
+  // グラフ設定（メモ化） - hooksは早期returnより前に配置
+  const segmentChartData = useMemo(() => {
+    if (!analyticsData) return { labels: [], datasets: [] }
+    return {
+      labels: analyticsData.segments.map(s => s.name),
+      datasets: [
+        {
+          data: analyticsData.segments.map(s => s.count),
+          backgroundColor: analyticsData.segments.map(s => s.color),
+          borderWidth: 0
+        }
+      ]
+    }
+  }, [analyticsData])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -281,18 +296,6 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
       </div>
     )
   }
-
-  // グラフ設定（メモ化）
-  const segmentChartData = useMemo(() => ({
-    labels: analyticsData.segments.map(s => s.name),
-    datasets: [
-      {
-        data: analyticsData.segments.map(s => s.count),
-        backgroundColor: analyticsData.segments.map(s => s.color),
-        borderWidth: 0
-      }
-    ]
-  }), [analyticsData])
 
   const visitFrequencyData = {
     labels: analyticsData.visitFrequency.labels,
