@@ -134,7 +134,7 @@ export const formatCurrency = (amount: number): string => {
   return `¥${amount.toLocaleString()}`
 }
 
-export const formatPercentage = (value: number, decimals: number = 1): string => {
+export const formatPercentage = (value: number, decimals = 1): string => {
   return `${value.toFixed(decimals)}%`
 }
 

@@ -214,7 +214,7 @@ const DataIntegrationManager: React.FC<DataIntegrationManagerProps> = ({
       const newReservations: ExistingReservation[] = []
       
       let hotpepperRevenue = 0
-      let existingRevenue = existingReservations.reduce((sum, r) => sum + (r.price || 0), 0)
+      const existingRevenue = existingReservations.reduce((sum, r) => sum + (r.price || 0), 0)
       
       matches.forEach(match => {
         if (filteredHotpepperData.includes(match.hotpepperRecord)) {

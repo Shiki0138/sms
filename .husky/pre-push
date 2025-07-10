@@ -1,0 +1,19 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# pre-pushフック - プッシュ前の完全チェック
+echo "🚀 プッシュ前の完全チェックを実行中..."
+
+# frontendディレクトリで作業している場合
+if [ -d "frontend" ] && [ -f "frontend/scripts/pre-deploy-check.sh" ]; then
+    cd frontend
+    echo "📌 デプロイ前チェックを実行..."
+    ./scripts/pre-deploy-check.sh
+    if [ $? -ne 0 ]; then
+        echo "❌ デプロイ前チェックに失敗しました。"
+        echo "修正してから再度プッシュしてください。"
+        exit 1
+    fi
+fi
+
+echo "✅ すべてのチェックをパスしました！"

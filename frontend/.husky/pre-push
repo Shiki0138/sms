@@ -1,0 +1,22 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Pre-push hook
+echo "🔍 プッシュ前の自動チェックを実行中..."
+
+# pre-deploy-check.shが存在する場合は実行
+if [ -f "frontend/scripts/pre-deploy-check.sh" ]; then
+    cd frontend && ./scripts/pre-deploy-check.sh
+    if [ $? -ne 0 ]; then
+        echo "❌ デプロイ前チェックに失敗しました。プッシュを中止します。"
+        exit 1
+    fi
+elif [ -f "scripts/pre-deploy-check.sh" ]; then
+    ./scripts/pre-deploy-check.sh
+    if [ $? -ne 0 ]; then
+        echo "❌ デプロイ前チェックに失敗しました。プッシュを中止します。"
+        exit 1
+    fi
+fi
+
+echo "✅ すべてのチェックをパスしました。プッシュを続行します。"

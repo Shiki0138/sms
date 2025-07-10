@@ -1,0 +1,20 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# pre-commitフック - コミット前の自動チェック
+echo "🔍 コミット前の自動チェックを実行中..."
+
+# frontendディレクトリで作業している場合
+if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+    cd frontend
+    
+    # TypeScriptのコンパイルチェック（軽量版）
+    echo "📌 TypeScriptチェック..."
+    npx tsc --noEmit --skipLibCheck
+    if [ $? -ne 0 ]; then
+        echo "❌ TypeScriptエラーがあります。修正してください。"
+        exit 1
+    fi
+fi
+
+echo "✅ コミット前チェック完了"

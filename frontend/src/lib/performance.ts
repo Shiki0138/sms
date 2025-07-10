@@ -98,7 +98,7 @@ export const calculateVisibleItems = (
   containerHeight: number,
   itemHeight: number,
   totalItems: number,
-  buffer: number = 5
+  buffer = 5
 ): { start: number; end: number } => {
   const start = Math.max(0, Math.floor(scrollTop / itemHeight) - buffer);
   const visibleCount = Math.ceil(containerHeight / itemHeight);
