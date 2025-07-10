@@ -161,7 +161,7 @@ interface Reservation {
 function App() {
   // 環境設定の初期化
   const config = getEnvironmentConfig()
-  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
+  const enableLogin = false // ログイン機能を一時的に無効化
 
   useEffect(() => {
     // 環境情報をログ出力
@@ -2424,7 +2424,7 @@ function App() {
 
 // 認証で保護されたメインアプリケーション
 const AuthenticatedApp = () => {
-  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
+  const enableLogin = false // ログイン機能を一時的に無効化
   
   // ログイン機能が無効な場合は直接Appを返す
   if (!enableLogin) {
@@ -2441,7 +2441,7 @@ const AuthenticatedApp = () => {
 
 // 認証プロバイダーでラップされたルートコンポーネント
 const RootApp = () => {
-  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
+  const enableLogin = false // ログイン機能を一時的に無効化
   
   // ログイン機能が無効な場合は直接Appを返す
   if (!enableLogin) {
