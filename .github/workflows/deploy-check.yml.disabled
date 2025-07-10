@@ -1,3 +1,6 @@
+# This workflow is temporarily disabled
+# Rename back to deploy-check.yml to enable
+
 name: Deploy Check
 
 on:

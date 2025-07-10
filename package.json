@@ -6,7 +6,7 @@
     "build": "cd frontend && npm install && npm run build",
     "start": "cd frontend && npm start",
     "dev": "cd frontend && npm run dev",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "husky": "^9.1.7"
