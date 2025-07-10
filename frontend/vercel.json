@@ -1,4 +1,7 @@
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --ignore-scripts",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/(.*)",

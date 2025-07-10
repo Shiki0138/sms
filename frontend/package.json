@@ -11,7 +11,7 @@
     "test": "vitest run --reporter=verbose --bail=1 || exit 0",
     "test:coverage": "vitest run --coverage || exit 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "prepare": "cd .. && husky",
+    "prepare": "cd .. && (husky || echo 'Husky not available, skipping')",
     "pre-deploy": "./scripts/pre-deploy-check.sh",
     "safe-deploy": "./scripts/safe-deploy.sh",
     "check": "npm run pre-deploy"
