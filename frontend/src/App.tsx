@@ -84,8 +84,8 @@ if (typeof window !== 'undefined') {
   (window as any).serviceHistory = serviceHistory;
 }
 
-const API_BASE_URL = 'http://localhost:8080/api/v1'
-const USE_DUMMY_DATA = true // ダミーデータ使用フラグ
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
+const USE_DUMMY_DATA = false // 本番データを使用
 
 interface MessageThread {
   id: string
@@ -161,7 +161,7 @@ interface Reservation {
 function App() {
   // 環境設定の初期化
   const config = getEnvironmentConfig()
-  const enableLogin = false // ログイン機能を一時的に無効化
+  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
 
   useEffect(() => {
     // 環境情報をログ出力
@@ -2424,7 +2424,7 @@ function App() {
 
 // 認証で保護されたメインアプリケーション
 const AuthenticatedApp = () => {
-  const enableLogin = false // ログイン機能を一時的に無効化
+  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
   
   // ログイン機能が無効な場合は直接Appを返す
   if (!enableLogin) {
@@ -2441,7 +2441,7 @@ const AuthenticatedApp = () => {
 
 // 認証プロバイダーでラップされたルートコンポーネント
 const RootApp = () => {
-  const enableLogin = false // ログイン機能を一時的に無効化
+  const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
   
   // ログイン機能が無効な場合は直接Appを返す
   if (!enableLogin) {

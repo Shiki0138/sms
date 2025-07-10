@@ -118,7 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initAuth = () => {
       // ローカル環境でログインが無効の場合は、自動的に認証済みとして扱う
-      const isLoginEnabled = false // ログイン機能を一時的に無効化
+      const isLoginEnabled = import.meta.env.VITE_ENABLE_LOGIN === 'true'
       
       if (!isLoginEnabled) {
         // ローカル環境用のダミーユーザー
