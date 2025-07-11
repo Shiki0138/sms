@@ -4,6 +4,7 @@ import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import LimitWarning from './components/Common/LimitWarning'
 import PlanBadge from './components/Common/PlanBadge'
 import PlanLimitNotifications from './components/Common/PlanLimitNotifications'
+import ErrorBoundary from './components/Common/ErrorBoundary'
 import { useSubscription } from './contexts/SubscriptionContext'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
 import UserProfile from './components/Auth/UserProfile'
@@ -64,7 +65,8 @@ import {
   Bot,
   Loader2,
   Shield,
-  Lightbulb
+  Lightbulb,
+  Crown
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
@@ -1339,9 +1341,6 @@ function App() {
           <PlanBadge onUpgradeClick={() => setActiveView('upgrade')} />
         </div>
         
-        {/* プラン制限情報 */}
-        <PlanLimitNotifications />
-        
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <button
@@ -1774,28 +1773,68 @@ function App() {
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && <PremiumMarketingDashboard />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && <FeatureRequestForm onNewRequest={handleNewFeatureRequest} />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (
-              <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">外部API連携設定</h2>
-                <ExternalAPISettings />
-              </div>
+              <ErrorBoundary componentName="外部API連携設定">
+                <div className="space-y-6">
+                  <div className="flex items-center mb-6">
+                    <button
+                      onClick={() => setActiveTab('settings')}
+                      className="text-gray-600 hover:text-gray-900 mr-4"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">外部API連携設定</h2>
+                  </div>
+                  <ExternalAPISettings />
+                </div>
+              </ErrorBoundary>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'notification-settings' && (
-              <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">通知設定</h2>
-                <NotificationSettings />
-              </div>
+              <ErrorBoundary componentName="通知設定">
+                <div className="space-y-6">
+                  <div className="flex items-center mb-6">
+                    <button
+                      onClick={() => setActiveTab('settings')}
+                      className="text-gray-600 hover:text-gray-900 mr-4"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">通知設定</h2>
+                  </div>
+                  <NotificationSettings />
+                </div>
+              </ErrorBoundary>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'backup-settings' && (
-              <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">データバックアップ設定</h2>
-                <DataBackupSettings />
-              </div>
+              <ErrorBoundary componentName="データバックアップ設定">
+                <div className="space-y-6">
+                  <div className="flex items-center mb-6">
+                    <button
+                      onClick={() => setActiveTab('settings')}
+                      className="text-gray-600 hover:text-gray-900 mr-4"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">データバックアップ設定</h2>
+                  </div>
+                  <DataBackupSettings />
+                </div>
+              </ErrorBoundary>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'openai-settings' && (
-              <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">OpenAI設定</h2>
-                <OpenAISettings />
-              </div>
+              <ErrorBoundary componentName="OpenAI設定">
+                <div className="space-y-6">
+                  <div className="flex items-center mb-6">
+                    <button
+                      onClick={() => setActiveTab('settings')}
+                      className="text-gray-600 hover:text-gray-900 mr-4"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">OpenAI設定</h2>
+                  </div>
+                  <OpenAISettings />
+                </div>
+              </ErrorBoundary>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'menu-management' && (
               <div className="space-y-6">
@@ -1804,8 +1843,9 @@ function App() {
               </div>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'settings' && (
-              <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">設定</h2>
+              <ErrorBoundary componentName="設定画面">
+                <div className="space-y-6">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">設定</h2>
                 
                 {/* プラン管理セクション */}
                 <div className="card">
@@ -1821,12 +1861,16 @@ function App() {
                 
                 {/* Advanced Holiday Settings */}
                 <div className="card">
-                  <AdvancedHolidaySettings />
+                  <ErrorBoundary componentName="高度な休日設定">
+                    <AdvancedHolidaySettings />
+                  </ErrorBoundary>
                 </div>
 
                 {/* Reminder Settings */}
                 <div className="card">
-                  <ReminderSettings />
+                  <ErrorBoundary componentName="リマインダー設定">
+                    <ReminderSettings />
+                  </ErrorBoundary>
                 </div>
 
                 {/* Business Hours Settings */}
@@ -1957,7 +2001,8 @@ function App() {
                     </div>
                   </div>
                 </ProtectedRoute>
-              </div>
+                </div>
+              </ErrorBoundary>
             )}
           </div>
         </main>
