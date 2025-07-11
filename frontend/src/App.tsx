@@ -11,6 +11,7 @@ import CustomerAnalyticsDashboard from './components/Analytics/CustomerAnalytics
 import PremiumMarketingDashboard from './components/Analytics/PremiumMarketingDashboard'
 import AnalyticsExport from './components/Analytics/AnalyticsExport'
 import { getEnvironmentConfig, logEnvironmentInfo } from './utils/environment'
+import TestConnection from './components/TestConnection'
 import AdvancedHolidaySettings from './components/Settings/AdvancedHolidaySettings'
 import ExternalAPISettings from './components/Settings/ExternalAPISettings'
 import OpenAISettings from './components/Settings/OpenAISettings'
@@ -171,6 +172,10 @@ function App() {
     if (config.isDevelopment && config.showProductionWarnings) {
       console.warn('🚧 Development Environment - Some features are restricted')
     }
+    
+    // Supabase接続情報をログ出力
+    console.log('📊 Database Mode:', USE_DUMMY_DATA ? 'DUMMY DATA' : 'REAL DATABASE')
+    console.log('🔐 Login Enabled:', enableLogin)
   }, [])
 
   const [activeTab, setActiveTab] = useState('messages')
@@ -258,7 +263,8 @@ function App() {
         return Promise.resolve({ threads: sortedThreads })
       }
       return axios.get(`${API_BASE_URL}/messages/threads`).then(res => res.data)
-    }
+    },
+    initialData: { threads: [] } // 初期値を設定
   })
 
   const { data: customers } = useQuery<{ customers: Customer[] }>({
@@ -268,7 +274,8 @@ function App() {
         return Promise.resolve({ customers: dummyCustomers })
       }
       return axios.get(`${API_BASE_URL}/customers`).then(res => res.data)
-    }
+    },
+    initialData: { customers: [] } // 初期値を設定
   })
 
   const { data: reservations } = useQuery<{ reservations: Reservation[] }>({
@@ -293,7 +300,9 @@ function App() {
   ]
 
   // Calculate unread count
-  const unreadCount = threads?.threads.reduce((sum, t) => sum + t.unreadCount, 0) || 0
+  const unreadCount = threads?.threads && Array.isArray(threads.threads) 
+    ? threads.threads.reduce((sum, t) => sum + (t.unreadCount || 0), 0) 
+    : 0
 
   // Handle reply submission
   const handleSendReply = async (threadId: string) => {
@@ -727,22 +736,22 @@ function App() {
     console.log('Bulk Message Send:', {
       recipients: selectedCustomers.length,
       message,
-      channels: channels.reduce((acc: any, channel: string) => {
+      channels: Array.isArray(channels) ? channels.reduce((acc: any, channel: string) => {
         acc[channel] = (acc[channel] || 0) + 1
         return acc
-      }, {})
+      }, {}) : {}
     })
     
     // デモ用：実際の実装では、各チャンネルのAPIに送信
-    const channelCounts = channels.reduce((acc: any, channel: string) => {
+    const channelCounts = Array.isArray(channels) ? channels.reduce((acc: any, channel: string) => {
       acc[channel] = (acc[channel] || 0) + 1
       return acc
-    }, {})
+    }, {}) : {}
     
     let resultMessage = `${selectedCustomers.length}名にメッセージを送信しました！\n\n送信内訳:\n`
-    if (channelCounts['LINE']) resultMessage += `・LINE: ${channelCounts['LINE']}名\n`
-    if (channelCounts['Instagram']) resultMessage += `・Instagram: ${channelCounts['Instagram']}名\n`
-    if (channelCounts['Email']) resultMessage += `・Email: ${channelCounts['Email']}名\n`
+    if (channelCounts && channelCounts['LINE']) resultMessage += `・LINE: ${channelCounts['LINE']}名\n`
+    if (channelCounts && channelCounts['Instagram']) resultMessage += `・Instagram: ${channelCounts['Instagram']}名\n`
+    if (channelCounts && channelCounts['Email']) resultMessage += `・Email: ${channelCounts['Email']}名\n`
     
     // 実際の実装では、LINEメッセージAPI、Instagram Graph API、SMTPなどを使用
   }
