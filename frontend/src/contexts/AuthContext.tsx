@@ -114,9 +114,9 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  // 初期化時にローカルストレージからトークンを確認
+  // 初期化時にSupabase認証状態を確認
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       // ローカル環境でログインが無効の場合は、自動的に認証済みとして扱う
       const isLoginEnabled = import.meta.env.VITE_ENABLE_LOGIN === 'true'
       
@@ -145,28 +145,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return
       }
 
-      // 本番環境では通常の認証チェック
-      const storedToken = localStorage.getItem('salon_auth_token')
-      const storedUser = localStorage.getItem('salon_auth_user')
-
-      if (storedToken && storedUser && isTokenValid(storedToken)) {
-        try {
-          const user: User = JSON.parse(storedUser)
+      // 本番環境ではSupabase認証状態を確認
+      try {
+        const { authApi } = await import('../lib/supabase-client')
+        const staffData = await authApi.getCurrentUser()
+        
+        if (staffData) {
+          const user: User = {
+            id: staffData.id.toString(),
+            username: staffData.email,
+            email: staffData.email,
+            role: staffData.role.toLowerCase() as 'admin' | 'staff' | 'demo',
+            permissions: [
+              { resource: 'all', actions: ['read', 'write', 'delete', 'admin'] }
+            ],
+            profile: {
+              name: staffData.name || staffData.email.split('@')[0]
+            },
+            isActive: staffData.isActive,
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString()
+          }
+          
           dispatch({
             type: 'INIT_COMPLETE',
-            payload: { user, token: storedToken }
+            payload: { user, token: 'supabase-session' }
           })
-        } catch (error) {
-          console.error('Failed to parse stored user data:', error)
-          localStorage.removeItem('salon_auth_token')
-          localStorage.removeItem('salon_auth_user')
+        } else {
           dispatch({ type: 'INIT_COMPLETE' })
         }
-      } else {
-        if (storedToken) {
-          localStorage.removeItem('salon_auth_token')
-          localStorage.removeItem('salon_auth_user')
-        }
+      } catch (error) {
+        console.error('Auth initialization failed:', error)
         dispatch({ type: 'INIT_COMPLETE' })
       }
     }

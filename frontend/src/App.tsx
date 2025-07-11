@@ -288,7 +288,8 @@ function App() {
         })
       }
       return axios.get(`${API_BASE_URL}/reservations`).then(res => res.data)
-    }
+    },
+    initialData: { reservations: [] } // 初期値を設定
   })
 
   // Staff list (demo data)
@@ -299,9 +300,12 @@ function App() {
     { id: 'staff4', name: '鈴木 あゆみ' }
   ]
 
-  // Calculate unread count
+  // Calculate unread count with enhanced safety checks
   const unreadCount = threads?.threads && Array.isArray(threads.threads) 
-    ? threads.threads.reduce((sum, t) => sum + (t.unreadCount || 0), 0) 
+    ? threads.threads.reduce((sum, t) => {
+        const count = typeof t?.unreadCount === 'number' ? t.unreadCount : 0
+        return sum + count
+      }, 0) 
     : 0
 
   // Handle reply submission
@@ -805,19 +809,19 @@ function App() {
         <h2 className="text-xl md:text-2xl font-bold text-gray-900">メッセージ管理</h2>
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            {threads?.threads.filter(t => t.status === 'OPEN').length || 0} 未対応
+            {(threads?.threads && Array.isArray(threads.threads) ? threads.threads.filter(t => t?.status === 'OPEN') : []).length} 未対応
           </span>
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            {threads?.threads.filter(t => t.status === 'IN_PROGRESS').length || 0} 対応中
+            {(threads?.threads && Array.isArray(threads.threads) ? threads.threads.filter(t => t?.status === 'IN_PROGRESS') : []).length} 対応中
           </span>
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            {threads?.threads.filter(t => t.status === 'CLOSED').length || 0} 完了
+            {(threads?.threads && Array.isArray(threads.threads) ? threads.threads.filter(t => t?.status === 'CLOSED') : []).length} 完了
           </span>
         </div>
       </div>
       
       <div className="space-y-3">
-        {threads?.threads.map((thread) => (
+        {(threads?.threads && Array.isArray(threads.threads) ? threads.threads : []).map((thread) => (
           <div key={thread.id} className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
             <div className="p-4 space-y-3">
               {/* Header */}
@@ -1136,7 +1140,7 @@ function App() {
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center bg-blue-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-200">
             <Calendar className="w-4 h-4 mr-2" />
-            <span className="font-medium">今日: {reservations?.reservations.filter(r => isToday(new Date(r.startTime))).length || 0}件</span>
+            <span className="font-medium">今日: {(reservations?.reservations && Array.isArray(reservations.reservations) ? reservations.reservations.filter(r => r?.startTime && isToday(new Date(r.startTime))) : []).length}件</span>
           </div>
           <div className="flex items-center bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200">
             <CheckCircle className="w-4 h-4 mr-2" />
