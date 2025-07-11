@@ -187,51 +187,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      // バックエンドAPIに認証リクエスト送信
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://salon-management-system-one.vercel.app/api'
+      // Supabase認証を使用
+      const { authApi } = await import('../lib/supabase-client')
       
-      const response = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: credentials.username, // usernameをemailとして使用
-          password: credentials.password
-        })
-      })
-
-      if (!response.ok) {
+      const result = await authApi.login(credentials.username, credentials.password)
+      
+      if (!result.user || !result.staff) {
         dispatch({ type: 'LOGIN_FAILURE' })
         return false
       }
 
-      const result = await response.json()
-      
-      if (!result.success) {
-        dispatch({ type: 'LOGIN_FAILURE' })
-        return false
-      }
-
-      // バックエンドのレスポンスからユーザー情報を変換
-      const backendUser = result.data.user
+      // Supabaseのレスポンスからユーザー情報を変換
       const user: User = {
-        id: backendUser.id.toString(),
-        username: backendUser.email,
-        email: backendUser.email,
-        role: backendUser.role.toLowerCase() as 'admin' | 'staff' | 'demo',
+        id: result.staff.id.toString(),
+        username: result.staff.email,
+        email: result.staff.email,
+        role: result.staff.role.toLowerCase() as 'admin' | 'staff' | 'demo',
         permissions: [
           { resource: 'all', actions: ['read', 'write', 'delete', 'admin'] }
         ],
         profile: {
-          name: backendUser.name || backendUser.email.split('@')[0]
+          name: result.staff.name || result.staff.email.split('@')[0]
         },
-        isActive: backendUser.isActive,
+        isActive: result.staff.isActive,
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString()
       }
 
-      const token = result.data.token
+      const token = result.user.access_token || 'supabase-session'
 
       // ローカルストレージに保存
       localStorage.setItem('salon_auth_token', token)
