@@ -210,11 +210,11 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
       </div>
 
       {/* カレンダーグリッド */}
-      <div className="overflow-x-auto">
-        <div className="min-w-full">
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <div className="min-w-[640px] sm:min-w-full">
           {/* 日付ヘッダー */}
-          <div className="grid border-b border-gray-200 bg-gray-50" style={{gridTemplateColumns: `56px repeat(${dateRange.length}, 1fr)`}}>
-            <div className="p-2 text-xs font-medium text-gray-500 border-r border-gray-200">
+          <div className="grid border-b border-gray-200 bg-gray-50" style={{gridTemplateColumns: `60px repeat(${dateRange.length}, 1fr)`}}>
+            <div className="p-1 sm:p-2 text-xs font-medium text-gray-500 border-r border-gray-200">
               時間
             </div>
             {dateRange.map((date, index) => {
@@ -261,8 +261,8 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
                 
                 if (!dateIsHoliday) return null;
                 
-                const columnWidth = `calc((100% - 40px) / ${dateRange.length})`;
-                const leftOffset = `calc(40px + ${columnWidth} * ${dateIndex})`;
+                const columnWidth = `calc((100% - 60px) / ${dateRange.length})`;
+                const leftOffset = `calc(60px + ${columnWidth} * ${dateIndex})`;
                 
                 return (
                   <div 
@@ -287,9 +287,9 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
                 const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                 
                 return (
-                  <div key={timeStr} className="grid border-b border-gray-100 hover:bg-gray-50" style={{gridTemplateColumns: `40px repeat(${dateRange.length}, 1fr)`}}>
+                  <div key={timeStr} className="grid border-b border-gray-100 hover:bg-gray-50" style={{gridTemplateColumns: `60px repeat(${dateRange.length}, 1fr)`}}>
                     {/* 時間ラベル */}
-                    <div className="p-0.5 sm:p-1 text-xs text-gray-500 border-r border-gray-200 bg-gray-50" style={{ height: '24px' }}>
+                    <div className="p-0.5 sm:p-1 text-xs text-gray-500 border-r border-gray-200 bg-gray-50 flex items-center" style={{ height: '24px' }}>
                       {minute === 0 && (
                         <div className="font-medium text-xs">{hour.toString().padStart(2, '0')}:00</div>
                       )}
