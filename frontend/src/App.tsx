@@ -231,7 +231,9 @@ function App() {
   
   // Initialize live reservations from dummy data
   useEffect(() => {
-    const allReservations = [...pastReservations, ...futureReservations]
+    const past = Array.isArray(pastReservations) ? pastReservations : []
+    const future = Array.isArray(futureReservations) ? futureReservations : []
+    const allReservations = [...past, ...future]
     setLiveReservations(allReservations)
   }, [])
   
@@ -438,7 +440,9 @@ function App() {
   
   // Get reservations for a specific date and time slot
   const getReservationsForSlot = (date: Date, timeSlot: string) => {
-    return liveReservations.filter(r => {
+    const safeReservations = Array.isArray(liveReservations) ? liveReservations : []
+    return safeReservations.filter(r => {
+      if (!r?.startTime) return false
       const reservationDate = new Date(r.startTime)
       const reservationTime = format(reservationDate, 'HH:mm')
       const reservationDateStr = format(reservationDate, 'yyyy-MM-dd')
@@ -682,12 +686,16 @@ function App() {
   }
 
   // Handle CSV import
-  const handleCSVImport = (importedCustomers: any[]) => {
+  const handleCSVImport = (importedCustomers: any[] = []) => {
     console.log('CSV Import:', importedCustomers)
     
     // デモ用：実際の実装では、サーバーに送信して一括登録
-    const successCount = importedCustomers.length
-    alert(`${successCount}件の顧客データをインポートしました！\n\n内訳:\n・ホットペッパービューティー: ${importedCustomers.filter(c => c.source === 'HOTPEPPER').length}件\n・手動追加: ${importedCustomers.filter(c => c.source === 'MANUAL').length}件`)
+    const safeImportedCustomers = Array.isArray(importedCustomers) ? importedCustomers : []
+    const successCount = safeImportedCustomers.length
+    const hotpepperCount = safeImportedCustomers.filter(c => c?.source === 'HOTPEPPER').length
+    const manualCount = safeImportedCustomers.filter(c => c?.source === 'MANUAL').length
+    
+    alert(`${successCount}件の顧客データをインポートしました！\n\n内訳:\n・ホットペッパービューティー: ${hotpepperCount}件\n・手動追加: ${manualCount}件`)
     
     setShowCSVImporter(false)
     
@@ -697,7 +705,7 @@ function App() {
   // Handle new reservation save
   const handleSaveNewReservation = (reservationData: any) => {
     // 重複チェック
-    const isDuplicate = liveReservations.some(existing => 
+    const isDuplicate = (Array.isArray(liveReservations) ? liveReservations : []).some(existing => 
       existing.startTime === reservationData.startTime &&
       existing.customerName === reservationData.customerName &&
       existing.menuContent === reservationData.menuContent
@@ -1287,9 +1295,10 @@ function App() {
   )
 
   const Dashboard = () => {
-    const totalThreads = threads?.threads.length || 0
-    const todayReservations = liveReservations.filter(r => 
-      isToday(new Date(r.startTime))
+    const totalThreads = threads?.threads?.length || 0
+    const safeReservations = Array.isArray(liveReservations) ? liveReservations : []
+    const todayReservations = safeReservations.filter(r => 
+      r?.startTime && isToday(new Date(r.startTime))
     ).length || 0
     
     return (
@@ -1409,8 +1418,8 @@ function App() {
               </button>
             </div>
             <div className="space-y-3">
-              {liveReservations
-                .filter(r => isToday(new Date(r.startTime)))
+              {(Array.isArray(liveReservations) ? liveReservations : [])
+                .filter(r => r?.startTime && isToday(new Date(r.startTime)))
                 .slice(0, 3)
                 .map((reservation) => (
                 <button
@@ -1432,7 +1441,7 @@ function App() {
                   </div>
                 </button>
               ))}
-              {liveReservations.filter(r => isToday(new Date(r.startTime))).length === 0 && (
+              {(Array.isArray(liveReservations) ? liveReservations : []).filter(r => r?.startTime && isToday(new Date(r.startTime))).length === 0 && (
                 <div className="text-center py-4 text-gray-500 text-sm">
                   今日の予約はありません
                 </div>
@@ -2158,7 +2167,7 @@ function App() {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 border-b pb-2 mb-4">施術履歴</h3>
                   <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
-                    {liveReservations
+                    {(Array.isArray(liveReservations) ? liveReservations : [])
                       .filter(reservation => 
                         reservation.customer?.id === selectedCustomer.id && 
                         reservation.status === 'COMPLETED'
@@ -2193,7 +2202,7 @@ function App() {
                         </div>
                       </button>
                     ))}
-                    {liveReservations.filter(r => r.customer?.id === selectedCustomer.id && r.status === 'COMPLETED').length === 0 && (
+                    {(Array.isArray(liveReservations) ? liveReservations : []).filter(r => r?.customer?.id === selectedCustomer.id && r?.status === 'COMPLETED').length === 0 && (
                       <div className="text-center py-4 text-gray-500 text-sm">
                         施術履歴がありません
                       </div>
