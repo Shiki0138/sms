@@ -66,7 +66,7 @@ import {
   Shield,
   Lightbulb
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { format, isToday, isTomorrow, getDay, getWeekOfMonth } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -163,6 +163,7 @@ function App() {
   // 環境設定の初期化
   const config = getEnvironmentConfig()
   const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     // 環境情報をログ出力
@@ -271,11 +272,19 @@ function App() {
 
   const { data: customers } = useQuery<{ customers: Customer[] }>({
     queryKey: ['customers'],
-    queryFn: () => {
+    queryFn: async () => {
       if (USE_DUMMY_DATA) {
         return Promise.resolve({ customers: dummyCustomers })
       }
-      return axios.get(`${API_BASE_URL}/customers`).then(res => res.data)
+      // Supabaseから取得
+      try {
+        const { customersApi } = await import('./lib/supabase-client')
+        const data = await customersApi.getAll()
+        return { customers: data || [] }
+      } catch (error) {
+        console.error('顧客データ取得エラー:', error)
+        return { customers: [] }
+      }
     },
     initialData: { customers: [] } // 初期値を設定
   })
@@ -639,37 +648,59 @@ function App() {
   }
 
   // Handle save new customer
-  const handleSaveNewCustomer = () => {
+  const handleSaveNewCustomer = async () => {
     if (!newCustomerData.name.trim()) {
       alert('顧客名を入力してください')
       return
     }
 
-    // デモ用：実際の実装では、サーバーに保存する
-    const nextCustomerNumber = `C${String(customers?.customers.length + 1 || 1).padStart(3, '0')}`
-    
-    console.log('新規顧客登録:', {
-      customerNumber: nextCustomerNumber,
-      ...newCustomerData,
-      id: `cust${String(Date.now()).slice(-6)}`,
-      visitCount: 0,
-      createdAt: new Date().toISOString()
-    })
-
-    alert(`${newCustomerData.name}様（${nextCustomerNumber}）を新規登録しました！`)
-    
-    // フォームをリセット
-    setNewCustomerData({
-      name: '',
-      phone: '',
-      email: '',
-      instagramId: '',
-      lineId: '',
-      notes: ''
-    })
-    setShowNewCustomerModal(false)
-    
-    // 実際の実装では、React Queryのinvalidateを使用してデータを更新
+    try {
+      // 顧客番号を生成
+      const nextCustomerNumber = `C${String((customers?.customers?.length || 0) + 1).padStart(3, '0')}`
+      
+      // Supabaseに保存
+      const { customersApi } = await import('./lib/supabase-client')
+      const newCustomer = {
+        id: crypto.randomUUID(),
+        customerNumber: nextCustomerNumber,
+        name: newCustomerData.name,
+        nameKana: '', // 必要に応じて追加
+        phone: newCustomerData.phone || null,
+        email: newCustomerData.email || null,
+        instagramId: newCustomerData.instagramId || null,
+        lineId: newCustomerData.lineId || null,
+        notes: newCustomerData.notes || null,
+        gender: '未設定',
+        tenantId: 'beta-salon-001',
+        firstVisitDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      
+      await customersApi.create(newCustomer)
+      
+      // React Queryのデータを更新
+      if (queryClient) {
+        await queryClient.invalidateQueries({ queryKey: ['customers'] })
+      }
+      
+      alert(`${newCustomerData.name}様（${nextCustomerNumber}）を新規登録しました！`)
+      
+      // フォームをリセット
+      setNewCustomerData({
+        name: '',
+        phone: '',
+        email: '',
+        instagramId: '',
+        lineId: '',
+        notes: ''
+      })
+      setShowNewCustomerModal(false)
+      
+    } catch (error) {
+      console.error('顧客登録エラー:', error)
+      alert('顧客登録に失敗しました。もう一度お試しください。')
+    }
   }
 
   // Handle cancel new customer registration
