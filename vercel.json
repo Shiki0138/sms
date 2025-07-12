@@ -9,7 +9,7 @@
       }
     },
     {
-      "src": "backend/dist/server.js",
+      "src": "backend/src/server.ts",
       "use": "@vercel/node",
       "config": {
         "maxLambdaSize": "50mb"
@@ -19,11 +19,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/dist/server.js"
+      "dest": "/backend/src/server.ts"
     },
     {
       "src": "/health",
-      "dest": "/backend/dist/server.js"
+      "dest": "/backend/src/server.ts"
     },
     {
       "src": "/(.*)",
@@ -56,6 +56,6 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "installCommand": "cd frontend && npm install --ignore-scripts && cd ../backend && npm install",
-  "buildCommand": "cd backend && npm run build && cd ../frontend && npm run build"
+  "installCommand": "npm install --prefix frontend --ignore-scripts && npm install --prefix backend",
+  "buildCommand": "npm run build --prefix frontend"
 }
