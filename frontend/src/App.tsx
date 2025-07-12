@@ -4,7 +4,6 @@ import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import LimitWarning from './components/Common/LimitWarning'
 import PlanBadge from './components/Common/PlanBadge'
 import PlanLimitNotifications from './components/Common/PlanLimitNotifications'
-import ErrorBoundary from './components/Common/ErrorBoundary'
 import { useSubscription } from './contexts/SubscriptionContext'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
 import UserProfile from './components/Auth/UserProfile'
@@ -21,6 +20,8 @@ import { ReminderSettings } from './components/Settings/ReminderSettings'
 import DataBackupSettings from './components/Settings/DataBackupSettings'
 import MenuManagement from './components/Settings/MenuManagement'
 import UpgradePlan from './components/Settings/UpgradePlan'
+import SimpleSettingsFixed from './components/Settings/SimpleSettingsFixed'
+import ErrorBoundary from './components/Common/ErrorBoundary'
 import SalonCalendar from './components/Calendar/SalonCalendar'
 import MonthCalendar from './components/Calendar/MonthCalendar'
 import NewReservationModal from './components/Calendar/NewReservationModal'
@@ -29,45 +30,43 @@ import BulkMessageSender from './components/BulkMessageSender'
 import ServiceHistoryModal from './components/ServiceHistoryModal'
 import FeatureRequestForm from './components/FeatureRequestForm'
 import FilteredCustomerView from './components/FilteredCustomerView'
-import { 
-  MessageSquare, 
-  Calendar, 
-  Users, 
-  BarChart3, 
-  Settings,
-  Instagram,
-  MessageCircle,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Phone,
-  Mail,
-  Send,
-  Menu,
-  X,
-  ExternalLink,
-  Save,
-  Eye,
-  EyeOff,
-  RefreshCw,
-  Link,
-  User,
-  UserCheck,
-  MapPin,
-  Calendar as CalendarIcon,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-  Scissors,
-  Palette,
-  Star,
-  Sparkles,
-  Bot,
-  Loader2,
-  Shield,
-  Lightbulb,
-  Crown
-} from 'lucide-react'
+// Individual imports for better tree shaking and deployment compatibility
+import MessageSquare from 'lucide-react/dist/esm/icons/message-square'
+import Calendar from 'lucide-react/dist/esm/icons/calendar'
+import Users from 'lucide-react/dist/esm/icons/users'
+import BarChart3 from 'lucide-react/dist/esm/icons/bar-chart-3'
+import Settings from 'lucide-react/dist/esm/icons/settings'
+import Instagram from 'lucide-react/dist/esm/icons/instagram'
+import MessageCircle from 'lucide-react/dist/esm/icons/message-circle'
+import Clock from 'lucide-react/dist/esm/icons/clock'
+import CheckCircle from 'lucide-react/dist/esm/icons/check-circle'
+import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle'
+import Phone from 'lucide-react/dist/esm/icons/phone'
+import Mail from 'lucide-react/dist/esm/icons/mail'
+import Send from 'lucide-react/dist/esm/icons/send'
+import Menu from 'lucide-react/dist/esm/icons/menu'
+import X from 'lucide-react/dist/esm/icons/x'
+import ExternalLink from 'lucide-react/dist/esm/icons/external-link'
+import Save from 'lucide-react/dist/esm/icons/save'
+import Eye from 'lucide-react/dist/esm/icons/eye'
+import EyeOff from 'lucide-react/dist/esm/icons/eye-off'
+import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw'
+import Link from 'lucide-react/dist/esm/icons/link'
+import User from 'lucide-react/dist/esm/icons/user'
+import UserCheck from 'lucide-react/dist/esm/icons/user-check'
+import MapPin from 'lucide-react/dist/esm/icons/map-pin'
+import CalendarIcon from 'lucide-react/dist/esm/icons/calendar'
+import FileText from 'lucide-react/dist/esm/icons/file-text'
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left'
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right'
+import Scissors from 'lucide-react/dist/esm/icons/scissors'
+import Palette from 'lucide-react/dist/esm/icons/palette'
+import Star from 'lucide-react/dist/esm/icons/star'
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles'
+import Bot from 'lucide-react/dist/esm/icons/bot'
+import Loader2 from 'lucide-react/dist/esm/icons/loader-2'
+import Shield from 'lucide-react/dist/esm/icons/shield'
+import Lightbulb from 'lucide-react/dist/esm/icons/lightbulb'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { format, isToday, isTomorrow, getDay, getWeekOfMonth } from 'date-fns'
@@ -1773,7 +1772,6 @@ function App() {
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && <PremiumMarketingDashboard />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && <FeatureRequestForm onNewRequest={handleNewFeatureRequest} />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (
-              <ErrorBoundary componentName="外部API連携設定">
                 <div className="space-y-6">
                   <div className="flex items-center mb-6">
                     <button
@@ -1786,10 +1784,8 @@ function App() {
                   </div>
                   <ExternalAPISettings />
                 </div>
-              </ErrorBoundary>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'notification-settings' && (
-              <ErrorBoundary componentName="通知設定">
                 <div className="space-y-6">
                   <div className="flex items-center mb-6">
                     <button
@@ -1802,10 +1798,8 @@ function App() {
                   </div>
                   <NotificationSettings />
                 </div>
-              </ErrorBoundary>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'backup-settings' && (
-              <ErrorBoundary componentName="データバックアップ設定">
                 <div className="space-y-6">
                   <div className="flex items-center mb-6">
                     <button
@@ -1818,10 +1812,8 @@ function App() {
                   </div>
                   <DataBackupSettings />
                 </div>
-              </ErrorBoundary>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'openai-settings' && (
-              <ErrorBoundary componentName="OpenAI設定">
                 <div className="space-y-6">
                   <div className="flex items-center mb-6">
                     <button
@@ -1834,7 +1826,6 @@ function App() {
                   </div>
                   <OpenAISettings />
                 </div>
-              </ErrorBoundary>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'menu-management' && (
               <div className="space-y-6">
@@ -1843,166 +1834,12 @@ function App() {
               </div>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'settings' && (
-              <ErrorBoundary componentName="設定画面">
-                <div className="space-y-6">
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">設定</h2>
-                
-                {/* プラン管理セクション */}
-                <div className="card">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                    <Crown className="w-5 h-5 mr-2 text-purple-600" />
-                    プラン管理
-                  </h3>
-                  <PlanBadge 
-                    variant="full" 
-                    onUpgradeClick={() => setActiveView('upgrade')}
-                  />
-                </div>
-                
-                {/* Advanced Holiday Settings */}
-                <div className="card">
-                  <ErrorBoundary componentName="高度な休日設定">
-                    <AdvancedHolidaySettings />
-                  </ErrorBoundary>
-                </div>
-
-                {/* Reminder Settings */}
-                <div className="card">
-                  <ErrorBoundary componentName="リマインダー設定">
-                    <ReminderSettings />
-                  </ErrorBoundary>
-                </div>
-
-                {/* Business Hours Settings */}
-                <div className="card">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">基本営業時間設定</h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          開店時間
-                        </label>
-                        <select
-                          value={businessSettings.openHour}
-                          onChange={(e) => setBusinessSettings(prev => ({ ...prev, openHour: parseInt(e.target.value) }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          {Array.from({ length: 24 }, (_, i) => (
-                            <option key={i} value={i}>{i}:00</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          閉店時間
-                        </label>
-                        <select
-                          value={businessSettings.closeHour}
-                          onChange={(e) => setBusinessSettings(prev => ({ ...prev, closeHour: parseInt(e.target.value) }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          {Array.from({ length: 24 }, (_, i) => (
-                            <option key={i} value={i}>{i}:00</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          予約間隔
-                        </label>
-                        <select
-                          value={businessSettings.timeSlotMinutes}
-                          onChange={(e) => setBusinessSettings(prev => ({ ...prev, timeSlotMinutes: parseInt(e.target.value) }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value={15}>15分</option>
-                          <option value={30}>30分</option>
-                          <option value={60}>60分</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t border-gray-200">
-                      <button className="btn btn-primary">
-                        <Save className="w-4 h-4 mr-2" />
-                        営業時間設定を保存
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Other Settings */}
-                <div className="card">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">システム設定</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-900">通知設定</h4>
-                        <p className="text-xs text-gray-500">新しいメッセージや予約の通知を管理します</p>
-                      </div>
-                      <button 
-                        onClick={() => setActiveTab('notification-settings')}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        設定
-                      </button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-900">データバックアップ</h4>
-                        <p className="text-xs text-gray-500">定期的なデータバックアップを設定します</p>
-                      </div>
-                      <button 
-                        onClick={() => setActiveTab('backup-settings')}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        設定
-                      </button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-900">外部API連携設定</h4>
-                        <p className="text-xs text-gray-500">LINE・Instagram APIの設定を管理します</p>
-                      </div>
-                      <button 
-                        onClick={() => setActiveTab('api-settings')}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        設定
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Admin Only Settings */}
-                <ProtectedRoute requiredResource="*" requiredAction="admin" requireAuth={false}>
-                  <div className="card">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                      <Shield className="w-5 h-5 mr-2 text-red-600" />
-                      管理者限定設定
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900">OpenAI設定</h4>
-                          <p className="text-xs text-gray-500">AI返信機能のためのOpenAI API設定</p>
-                        </div>
-                        <button 
-                          onClick={() => setActiveTab('openai-settings')}
-                          className="btn btn-secondary btn-sm"
-                        >
-                          設定
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </ProtectedRoute>
-                </div>
-              </ErrorBoundary>
+              <SimpleSettingsFixed 
+                businessSettings={businessSettings}
+                setBusinessSettings={setBusinessSettings}
+                setActiveTab={setActiveTab}
+                setActiveView={setActiveView}
+              />
             )}
           </div>
         </main>
@@ -2544,19 +2381,23 @@ const RootApp = () => {
   // ログイン機能が無効な場合は直接Appを返す
   if (!enableLogin) {
     return (
-      <SubscriptionProvider>
-        <App />
-      </SubscriptionProvider>
+      <ErrorBoundary>
+        <SubscriptionProvider>
+          <App />
+        </SubscriptionProvider>
+      </ErrorBoundary>
     )
   }
   
   // ログイン機能が有効な場合は認証プロバイダーでラップ
   return (
-    <AuthProvider>
-      <SubscriptionProvider>
-        <AuthenticatedApp />
-      </SubscriptionProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <SubscriptionProvider>
+          <AuthenticatedApp />
+        </SubscriptionProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
