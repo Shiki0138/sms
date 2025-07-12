@@ -97,6 +97,54 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
     });
   };
 
+  // 同時刻の予約を検出し、横並びのインデックスを計算
+  const getOverlappingReservations = (date: Date) => {
+    const dayReservations = getReservationsForDate(date);
+    const overlappingGroups: Map<string, Reservation[]> = new Map();
+    
+    dayReservations.forEach((reservation) => {
+      const startTime = new Date(reservation.startTime);
+      const endTime = reservation.endTime 
+        ? new Date(reservation.endTime) 
+        : new Date(startTime.getTime() + 60 * 60 * 1000);
+      
+      let added = false;
+      for (const [key, group] of overlappingGroups) {
+        const overlaps = group.some(r => {
+          const rStart = new Date(r.startTime);
+          const rEnd = r.endTime 
+            ? new Date(r.endTime) 
+            : new Date(rStart.getTime() + 60 * 60 * 1000);
+          
+          return (startTime < rEnd && endTime > rStart);
+        });
+        
+        if (overlaps) {
+          group.push(reservation);
+          added = true;
+          break;
+        }
+      }
+      
+      if (!added) {
+        overlappingGroups.set(reservation.id, [reservation]);
+      }
+    });
+    
+    // 各予約に横位置とグループ幅を設定
+    const reservationLayout = new Map<string, { index: number; total: number }>();
+    overlappingGroups.forEach((group) => {
+      group.forEach((reservation, index) => {
+        reservationLayout.set(reservation.id, {
+          index: index,
+          total: group.length
+        });
+      });
+    });
+    
+    return reservationLayout;
+  };
+
   // 予約の開始時間スロットを取得
   const getReservationStartSlot = (reservation: Reservation) => {
     const start = new Date(reservation.startTime);
@@ -304,6 +352,7 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
                       const isOccupied = isSlotOccupied(date, hour, minute);
                       const slotId = `${format(date, 'yyyy-MM-dd')}-${timeStr}`;
                       const dateIsHoliday = isHoliday?.(date) || false;
+                      const overlappingLayout = getOverlappingReservations(date);
                       
                       return (
                         <div 
@@ -316,37 +365,60 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
                           {!dateIsHoliday ? (
                             reservation ? (
                               // 予約の開始スロット - 結合された枠を表示
-                              <div
-                                onClick={() => onReservationClick?.(reservation)}
-                                className={`absolute left-0.5 right-0.5 rounded text-xs cursor-pointer hover:opacity-80 transition-all ${getStatusColor(reservation.status)} overflow-hidden z-10 p-1`}
-                                style={{ 
-                                  height: `${getReservationSlotSpan(reservation) * 24 - 2}px`, // スロット数 × 高さ
-                                  top: '1px'
-                                }}
-                              >
-                                {/* 顧客名 */}
-                                <div className="font-bold text-gray-900 truncate leading-tight text-xs">
-                                  {reservation.customerName}
-                                </div>
+                              (() => {
+                                const layout = overlappingLayout.get(reservation.id) || { index: 0, total: 1 };
+                                const width = layout.total > 1 ? `${100 / layout.total}%` : '100%';
+                                const left = layout.total > 1 ? `${(100 / layout.total) * layout.index}%` : '0';
                                 
-                                {/* メニュー */}
-                                <div className="text-gray-700 truncate mt-0.5 text-xs">
-                                  {reservation.menuContent}
-                                </div>
-                                
-                                {/* 担当者 */}
-                                {reservation.staff && (
-                                  <div className="text-gray-600 truncate mt-0.5 text-xs">
-                                    👤 {reservation.staff.name}
+                                return (
+                                  <div
+                                    onClick={() => onReservationClick?.(reservation)}
+                                    className={`absolute rounded text-xs cursor-pointer hover:opacity-80 transition-all ${getStatusColor(reservation.status)} overflow-hidden z-10 p-1`}
+                                    style={{ 
+                                      height: `${getReservationSlotSpan(reservation) * 24 - 2}px`,
+                                      top: '1px',
+                                      left: left,
+                                      width: width,
+                                      paddingLeft: '2px',
+                                      paddingRight: '2px'
+                                    }}
+                                  >
+                                    {/* 顧客名 */}
+                                    <div className="font-bold text-gray-900 truncate leading-tight" style={{ fontSize: '10px' }}>
+                                      {reservation.customerName}
+                                    </div>
+                                    
+                                    {/* スタッフ名 - 複数予約時は必ず表示 */}
+                                    {(reservation.staff && layout.total > 1) && (
+                                      <div className="text-gray-600 truncate" style={{ fontSize: '9px' }}>
+                                        {reservation.staff.name}
+                                      </div>
+                                    )}
+                                    
+                                    {/* メニューは単独予約時のみ表示 */}
+                                    {layout.total === 1 && (
+                                      <>
+                                        <div className="text-gray-700 truncate mt-0.5" style={{ fontSize: '10px' }}>
+                                          {reservation.menuContent}
+                                        </div>
+                                        
+                                        {/* 担当者 */}
+                                        {reservation.staff && (
+                                          <div className="text-gray-600 truncate mt-0.5" style={{ fontSize: '10px' }}>
+                                            👤 {reservation.staff.name}
+                                          </div>
+                                        )}
+                                        
+                                        {/* 時間表示 */}
+                                        <div className="text-gray-500 mt-0.5" style={{ fontSize: '9px' }}>
+                                          {format(new Date(reservation.startTime), 'HH:mm')}
+                                          {reservation.endTime && ` - ${format(new Date(reservation.endTime), 'HH:mm')}`}
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
-                                )}
-                                
-                                {/* 時間表示 */}
-                                <div className="text-gray-500 text-xs mt-0.5">
-                                  {format(new Date(reservation.startTime), 'HH:mm')}
-                                  {reservation.endTime && ` - ${format(new Date(reservation.endTime), 'HH:mm')}`}
-                                </div>
-                              </div>
+                                );
+                              })()
                             ) : !isOccupied ? (
                               // 空きスロット
                               <button

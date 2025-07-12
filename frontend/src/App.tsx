@@ -698,9 +698,27 @@ function App() {
       })
       setShowNewCustomerModal(false)
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('顧客登録エラー:', error)
-      alert('顧客登録に失敗しました。もう一度お試しください。')
+      
+      // より詳細なエラーメッセージを表示
+      let errorMessage = '顧客登録に失敗しました。'
+      
+      if (error?.response?.status === 403) {
+        errorMessage = '顧客数の上限に達しています。プランのアップグレードが必要です。'
+      } else if (error?.response?.status === 409) {
+        errorMessage = 'この顧客情報は既に登録されています。'
+      } else if (error?.response?.status === 401) {
+        errorMessage = '認証エラーです。ページを再読み込みしてください。'
+      } else if (error?.response?.status === 500) {
+        errorMessage = 'サーバーエラーが発生しました。時間をおいて再度お試しください。'
+      } else if (error?.message) {
+        errorMessage = `エラー: ${error.message}`
+      } else {
+        errorMessage = '不明なエラーが発生しました。ブラウザのコンソールを確認してください。'
+      }
+      
+      alert(errorMessage)
     }
   }
 
@@ -1501,9 +1519,9 @@ function App() {
                 </div>
                 <div>
                   <h1 className="text-lg sm:text-xl font-bold text-gray-900">
-                    美容室統合管理システム
+                    SMS
                   </h1>
-                  <p className="text-xs text-gray-600 hidden sm:block">統合管理プラットフォーム</p>
+                  <p className="text-xs text-gray-600 hidden sm:block">Salon Management System</p>
                 </div>
               </div>
             </div>
@@ -1535,6 +1553,7 @@ function App() {
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
             onClick={() => setIsSidebarOpen(false)}
+            style={{ touchAction: 'none' }}
           />
         )}
 
@@ -1544,8 +1563,9 @@ function App() {
           w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 md:h-screen md:sticky md:top-16
+          overflow-y-auto
         `}>
-          <div className="p-4 md:p-6 pt-20 md:pt-6">
+          <div className="p-4 md:p-6 pt-20 md:pt-6 h-full overflow-y-auto">
             <div className="space-y-2">
               <button
                 onClick={() => {
