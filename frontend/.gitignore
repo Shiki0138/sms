@@ -1,6 +1,49 @@
-.vercel
+# dependencies
+node_modules
+/.pnp
+.pnp.js
 
-# 新しいファイルの追跡チェック用
-!src/components/Common/*.tsx
-!src/components/Settings/*.tsx
+# testing
+/coverage
 
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# editor
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Cache
+.eslintcache
+.cache
+.parcel-cache
+
+# Temporary files
+*.tmp
+*.temp
+*.log

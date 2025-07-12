@@ -12,7 +12,7 @@
     "test": "vitest run --reporter=verbose --bail=1 || exit 0",
     "test:coverage": "vitest run --coverage || exit 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "prepare": "echo 'Skipping husky setup on CI'",
+    "prepare": "echo 'Skipping prepare script'",
     "pre-deploy": "./scripts/pre-deploy-check.sh",
     "safe-deploy": "./scripts/safe-deploy.sh",
     "check": "npm run pre-deploy"
@@ -39,6 +39,10 @@
     "terser": "^5.43.1",
     "zod": "^3.22.4",
     "zustand": "^4.4.7"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.0",

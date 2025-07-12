@@ -1,7 +1,8 @@
 {
-  "framework": "vite",
-  "buildCommand": "cd frontend && npm run build",
+  "version": 2,
+  "framework": null,
+  "buildCommand": "bash frontend/vercel-build.sh",
   "outputDirectory": "frontend/dist",
-  "installCommand": "cd frontend && npm install --legacy-peer-deps --ignore-scripts",
-  "devCommand": "cd frontend && npm run dev"
+  "installCommand": "echo 'Skipping auto-install'",
+  "regions": ["iad1"]
 }
