@@ -33,27 +33,30 @@ export const createFeedback = async (req: AuthenticatedRequest, res: Response) =
       rating,
       userAgent,
       url,
-      timestamp
+      timestamp,
+      priority,
+      userInfo,
+      systemInfo
     } = req.body;
 
     // For simple test mode, use demo values if user is not authenticated
-    const userId = req.user?.id || 'demo-user-id';
-    const userEmailAddress = req.user?.email || 'demo@salon.test';
-    const userName = req.user?.name || 'Demo User';
+    const userId = req.user?.id || userInfo?.id || 'demo-user-id';
+    const userEmailAddress = req.user?.email || userInfo?.email || 'demo@salon.test';
+    const userName = req.user?.name || userInfo?.name || 'Demo User';
     const tenantId = req.user?.tenantId || 'demo-tenant-id';
 
     // Create feedback record
     const feedback = await prisma.feedback.create({
       data: {
-        type,
+        type: type || 'feature',
         title,
         description,
-        severity,
-        category,
+        severity: severity || priority || 'medium',
+        category: category || 'feature_request',
         screenshot,
         rating,
-        userAgent,
-        url,
+        userAgent: userAgent || systemInfo?.userAgent,
+        url: url || systemInfo?.url,
         userId,
         userEmail: userEmailAddress,
         userName,
@@ -62,7 +65,10 @@ export const createFeedback = async (req: AuthenticatedRequest, res: Response) =
         metadata: JSON.stringify({
           timestamp,
           environment: process.env.NODE_ENV,
-          version: process.env.APP_VERSION || '1.0.0'
+          version: process.env.APP_VERSION || '1.0.0',
+          priority: priority,
+          userRole: userInfo?.role,
+          systemInfo: systemInfo
         })
       }
     });
@@ -324,8 +330,70 @@ export const updateFeedbackStatus = async (req: AuthenticatedRequest, res: Respo
 
 // Helper functions
 async function sendFeedbackNotification(feedback: any) {
-  // TODO: Implement notification to admin (email, Slack, etc.)
-  logger.info('Feedback notification sent', { feedbackId: feedback.id });
+  try {
+    // メール送信設定がある場合のみ実行
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      const nodemailer = require('nodemailer');
+      
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+
+      const adminEmails = (process.env.ADMIN_EMAILS || 'admin@example.com').split(',');
+      
+      const mailOptions = {
+        from: process.env.SMTP_FROM || '"美容室管理システム" <noreply@salon-system.com>',
+        to: adminEmails.join(', '),
+        subject: `【フィードバック】${feedback.title || feedback.type}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">新しいフィードバックが届きました</h2>
+            
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>タイプ:</strong> ${feedback.type}</p>
+              <p><strong>タイトル:</strong> ${feedback.title || 'なし'}</p>
+              <p><strong>重要度:</strong> ${feedback.severity || 'medium'}</p>
+              <p><strong>カテゴリー:</strong> ${feedback.category || 'general'}</p>
+              <p><strong>送信者:</strong> ${feedback.userName} (${feedback.userEmail})</p>
+              <p><strong>送信日時:</strong> ${new Date(feedback.createdAt).toLocaleString('ja-JP')}</p>
+            </div>
+            
+            <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+              <h4 style="color: #666;">詳細:</h4>
+              <p style="white-space: pre-wrap;">${feedback.description}</p>
+            </div>
+            
+            ${feedback.rating ? `
+            <div style="margin-top: 20px;">
+              <p><strong>評価:</strong> ${feedback.rating}/5</p>
+            </div>
+            ` : ''}
+            
+            <div style="margin-top: 30px; padding: 15px; background-color: #e8f5e9; border-radius: 8px;">
+              <p style="margin: 0;">
+                <a href="${process.env.ADMIN_URL || 'http://localhost:3000'}/admin/feedback/${feedback.id}" 
+                   style="color: #4CAF50; text-decoration: none; font-weight: bold;">
+                  管理画面で詳細を確認 →
+                </a>
+              </p>
+            </div>
+          </div>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
+      logger.info('Feedback notification email sent', { feedbackId: feedback.id });
+    }
+  } catch (error) {
+    logger.error('Failed to send feedback notification email:', error);
+    // メール送信失敗してもフィードバック作成は続行
+  }
 }
 
 async function getDailyActiveUsers(startDate: Date) {

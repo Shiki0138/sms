@@ -12,7 +12,14 @@ import { PERMISSIONS } from '../utils/auth';
 
 const router = Router();
 
-// All routes require authentication
+/**
+ * @route   POST /api/v1/feedback/feature-request
+ * @desc    Submit feature request (no authentication required)
+ * @access  Public
+ */
+router.post('/feature-request', createFeedback);
+
+// All routes below require authentication
 router.use(authenticate);
 
 /**

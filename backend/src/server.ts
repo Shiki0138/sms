@@ -36,6 +36,7 @@ import testRemindersRouter from './routes/test-reminders';
 import paymentsRouter from './routes/payments';
 import healthRouter from './routes/health';
 import featureFlagsRouter from './routes/featureFlags';
+import feedbackRouter from './routes/feedback';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -132,6 +133,7 @@ app.use(`${apiPrefix}/notifications`, notificationsRouter);
 app.use(`${apiPrefix}/analytics`, analyticsRouter);
 app.use(`${apiPrefix}/auth`, authRouter);
 app.use(`${apiPrefix}/security`, securityRouter);
+app.use(`${apiPrefix}/feedback`, feedbackRouter);
 app.use(`${apiPrefix}/reminders`, remindersRouter);
 app.use(`${apiPrefix}/test-reminders`, testRemindersRouter);
 app.use(`${apiPrefix}/payments`, paymentsRouter);

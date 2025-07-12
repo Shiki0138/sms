@@ -69,11 +69,38 @@ const FeatureRequestForm: React.FC<FeatureRequestFormProps> = ({ onNewRequest })
     setSubmitStatus('idle')
 
     try {
-      // シミュレート: 実際はAPIに送信
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // APIエンドポイントに送信
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:4002' : '/api')
+      
+      const response = await fetch(`${API_URL}/v1/feedback/feature-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          priority: formData.priority,
+          userInfo: formData.userInfo,
+          submittedAt: new Date().toISOString(),
+          systemInfo: {
+            userAgent: navigator.userAgent,
+            screenResolution: `${window.screen.width}x${window.screen.height}`,
+            language: navigator.language,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit feature request')
+      }
+
+      const result = await response.json()
       
       const newRequest: FeatureRequest = {
-        id: `req_${Date.now()}`,
+        id: result.id || `req_${Date.now()}`,
         title: formData.title,
         description: formData.description,
         category: formData.category,
