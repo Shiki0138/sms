@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: sms-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://salon-management-system-one.vercel.app
+      - key: ALLOWED_ORIGINS
+        value: https://salon-management-system-one.vercel.app,https://salon-management-system.vercel.app
+      - key: SESSION_SECRET
+        sync: false
+      - key: ENABLE_DEMO_MODE
+        value: false
+      - key: ENFORCE_HTTPS
+        value: true
+      - key: API_RATE_LIMIT
+        value: 100
+      - key: LOG_LEVEL
+        value: info
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: INSTAGRAM_ACCESS_TOKEN
+        sync: false
+      - key: INSTAGRAM_APP_SECRET
+        sync: false
+      - key: ENABLE_EMAIL_NOTIFICATIONS
+        value: false

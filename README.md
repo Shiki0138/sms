@@ -1,8 +1,11 @@
-# 🏪 美容室統合管理システム
+# 💇‍♀️ SMS - Salon Management System
 
-[![Deploy to GCP](https://github.com/YOUR_USERNAME/salon-management-system/actions/workflows/deploy-gcp.yml/badge.svg)](https://github.com/YOUR_USERNAME/salon-management-system/actions/workflows/deploy-gcp.yml)
+[![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](https://salon-management-system-one.vercel.app)
+[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 
-AI搭載の次世代美容室統合管理システム。200店舗規模まで対応可能な本格的なSaaSソリューションです。
+美容室のための統合管理システム - 顧客管理、予約管理、メッセージ管理を一元化
 
 ## 🌟 主要機能
 
@@ -199,5 +202,6 @@ MIT License
 
 ---
 
-**開発者**: Claude & Human Collaboration  
-**最終更新**: 2025年6月11日
+**開発チーム**: SMS Development Team  
+**最終更新**: 2025年1月12日  
+**本番環境**: https://salon-management-system-one.vercel.app

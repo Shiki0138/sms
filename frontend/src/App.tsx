@@ -2381,8 +2381,9 @@ function App() {
 const AuthenticatedApp = () => {
   const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
   
-  // ログイン機能が無効な場合は直接Appを返す
-  if (!enableLogin) {
+  // ログイン機能が無効な場合でも本番では認証を要求
+  if (!enableLogin && import.meta.env.DEV) {
+    console.warn('⚠️ 開発モード：認証をバイパスしています')
     return <App />
   }
   
@@ -2398,8 +2399,9 @@ const AuthenticatedApp = () => {
 const RootApp = () => {
   const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
   
-  // ログイン機能が無効な場合は直接Appを返す
-  if (!enableLogin) {
+  // 本番環境では常に認証を要求
+  if (!enableLogin && import.meta.env.DEV) {
+    console.warn('⚠️ 開発モード：認証をバイパスしています')
     return (
       <ErrorBoundary>
         <SubscriptionProvider>
