@@ -1,12 +1,8 @@
 {
-  "buildCommand": "cd frontend && npm install --ignore-scripts && npm run build",
+  "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm install",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
+  "installCommand": "cd frontend && npm install --ignore-scripts",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/(.*)",
