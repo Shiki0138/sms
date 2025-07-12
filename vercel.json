@@ -1,7 +1,7 @@
 {
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "cd frontend && npm install --ignore-scripts",
+  "installCommand": "echo 'Skipping root install' && cd frontend && npm install --ignore-scripts",
   "framework": "vite",
   "rewrites": [
     {
