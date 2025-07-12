@@ -183,6 +183,11 @@ const UpgradePlan: React.FC = () => {
             </div>
           </div>
           <div className="text-right">
+            {PLAN_PRICING[currentPlan].originalMonthly !== PLAN_PRICING[currentPlan].monthly && (
+              <p className="text-sm text-blue-600 line-through">
+                ¥{PLAN_PRICING[currentPlan].originalMonthly.toLocaleString()}
+              </p>
+            )}
             <p className="text-2xl font-bold text-blue-900">
               ¥{PLAN_PRICING[currentPlan].monthly.toLocaleString()}
             </p>
@@ -209,11 +214,21 @@ const UpgradePlan: React.FC = () => {
                   : 'border-gray-200 hover:border-gray-300'
               } ${isDowngrade ? 'opacity-50' : ''}`}
             >
-              {/* 人気バッジ */}
+              {/* バッジ */}
               {plan === 'standard' && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                   <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                     人気No.1
+                  </span>
+                  <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    特別割引中
+                  </span>
+                </div>
+              )}
+              {plan !== 'standard' && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    特別割引中
                   </span>
                 </div>
               )}
@@ -236,12 +251,27 @@ const UpgradePlan: React.FC = () => {
 
                 {/* 価格 */}
                 <div className="text-center mb-6">
-                  <div className="text-3xl font-bold text-gray-900">
+                  <div className="mb-1">
+                    {PLAN_PRICING[plan].originalMonthly !== PLAN_PRICING[plan].monthly && (
+                      <span className="text-lg text-gray-500 line-through">
+                        ¥{PLAN_PRICING[plan].originalMonthly.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-3xl font-bold text-red-600">
                     ¥{PLAN_PRICING[plan].monthly.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600">/ 月</div>
-                  <div className="mt-2 text-sm text-gray-600">
-                    初期費用: ¥{PLAN_PRICING[plan].setup.toLocaleString()}
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">初期費用: </span>
+                    {PLAN_PRICING[plan].originalSetup !== PLAN_PRICING[plan].setup && (
+                      <span className="text-sm text-gray-500 line-through mr-2">
+                        ¥{PLAN_PRICING[plan].originalSetup.toLocaleString()}
+                      </span>
+                    )}
+                    <span className="text-sm font-semibold text-red-600">
+                      ¥{PLAN_PRICING[plan].setup.toLocaleString()}
+                    </span>
                   </div>
                 </div>
 
