@@ -86,7 +86,7 @@ if (typeof window !== 'undefined') {
   (window as any).serviceHistory = serviceHistory;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:4002' : '/api')
 const USE_DUMMY_DATA = false // 本番データを使用
 
 interface MessageThread {
