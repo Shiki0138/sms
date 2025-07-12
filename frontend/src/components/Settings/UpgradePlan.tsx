@@ -3,23 +3,22 @@ import { useSubscription } from '../../contexts/SubscriptionContext'
 import { PLAN_NAMES, PLAN_PRICING, SubscriptionPlan, PLAN_CONFIGS } from '../../types/subscription'
 import PaymentForm from '../Payment/PaymentForm'
 import FeatureComparison from './FeatureComparison'
-import { 
-  Shield, 
-  Zap, 
-  Crown, 
-  Check, 
-  X, 
-  TrendingUp,
-  Users,
-  Brain,
-  BarChart3,
-  MessageSquare,
-  Download,
-  Sparkles,
-  Clock,
-  CreditCard,
-  ArrowRight
-} from 'lucide-react'
+// Individual imports for better tree shaking and deployment compatibility
+import Shield from 'lucide-react/dist/esm/icons/shield'
+import Zap from 'lucide-react/dist/esm/icons/zap'
+import Crown from 'lucide-react/dist/esm/icons/crown'
+import Check from 'lucide-react/dist/esm/icons/check'
+import X from 'lucide-react/dist/esm/icons/x'
+import TrendingUp from 'lucide-react/dist/esm/icons/trending-up'
+import Users from 'lucide-react/dist/esm/icons/users'
+import Brain from 'lucide-react/dist/esm/icons/brain'
+import BarChart3 from 'lucide-react/dist/esm/icons/bar-chart-3'
+import MessageSquare from 'lucide-react/dist/esm/icons/message-square'
+import Download from 'lucide-react/dist/esm/icons/download'
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles'
+import Clock from 'lucide-react/dist/esm/icons/clock'
+import CreditCard from 'lucide-react/dist/esm/icons/credit-card'
+import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right'
 
 const UpgradePlan: React.FC = () => {
   const { currentPlan, upgradePlan, subscriptionInfo } = useSubscription()

@@ -33,7 +33,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    target: 'esnext',
+    target: 'es2020', // esnextからes2020に変更（Vercel互換性向上）
     sourcemap: false, // 本番では無効化
     rollupOptions: {
       output: {
@@ -41,7 +41,7 @@ export default defineConfig({
           // ベンダーライブラリを分離
           vendor: ['react', 'react-dom'],
           charts: ['chart.js', 'react-chartjs-2'], 
-          ui: ['lucide-react', '@headlessui/react'],
+          ui: ['@headlessui/react', 'lucide-react'], // lucide-reactを含める
           utils: ['date-fns', 'clsx']
         }
       }
@@ -56,6 +56,11 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'lucide-react']
+    include: ['react', 'react-dom', 'lucide-react'],
+    // lucide-reactを除外せず、最適化に含める
+  },
+  esbuild: {
+    // Tree-shakingを最適化
+    treeShaking: true,
   },
 })

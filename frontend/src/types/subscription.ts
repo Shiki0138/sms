@@ -71,7 +71,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, { limits: PlanLimits; featur
     limits: {
       maxStaff: 3,
       maxCustomers: 500,
-      maxAIRepliesPerMonth: 0, // AI機能なし
+      maxAIRepliesPerMonth: 50, // AI機能月50回まで
       maxDataExport: 3, // 基本エクスポートのみ
       analyticsRetentionDays: 30,
       supportLevel: 'email'
@@ -84,8 +84,8 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, { limits: PlanLimits; featur
       calendarView: true,
       basicReporting: true,
       
-      // AI機能なし
-      aiReplyGeneration: false,
+      // AI機能制限付き
+      aiReplyGeneration: true,  // AI返信機能（月50回まで）
       aiAnalytics: false,
       
       // 分析機能制限
@@ -94,9 +94,9 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, { limits: PlanLimits; featur
       performanceAnalytics: false,
       advancedReporting: false,
       
-      // 外部連携なし
-      lineIntegration: false,
-      instagramIntegration: false,
+      // 外部連携追加
+      lineIntegration: true,     // LINE連携可能
+      instagramIntegration: true, // Instagram DM連携可能
       
       // エクスポート機能制限
       csvExport: true,  // 基本CSVエクスポートのみ

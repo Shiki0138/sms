@@ -1,1 +1,6 @@
 .vercel
+
+# 新しいファイルの追跡チェック用
+!src/components/Common/*.tsx
+!src/components/Settings/*.tsx
+

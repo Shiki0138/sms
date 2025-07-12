@@ -47,18 +47,28 @@ interface ServiceHistoryModalProps {
   reservation: Reservation | null
   onClose: () => void
   onUpdateStylistNotes: (id: string, notes: string) => void
+  onUpdateReservation?: (id: string, updates: Partial<Reservation>) => void
 }
 
 const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
   reservation,
   onClose,
-  onUpdateStylistNotes
+  onUpdateStylistNotes,
+  onUpdateReservation
 }) => {
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesContent, setNotesContent] = useState(reservation?.stylistNotes || '')
   const [beforePhotos, setBeforePhotos] = useState<string[]>(reservation?.beforePhotos || [])
   const [afterPhotos, setAfterPhotos] = useState<string[]>(reservation?.afterPhotos || [])
   const [showPhotoUpload, setShowPhotoUpload] = useState<'before' | 'after' | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editData, setEditData] = useState({
+    startTime: reservation?.startTime || '',
+    endTime: reservation?.endTime || '',
+    staff: reservation?.staff || null,
+    menuContent: reservation?.menuContent || '',
+    price: reservation?.price || 0
+  })
 
   const handleSaveNotes = () => {
     if (reservation) {
@@ -188,9 +198,20 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                 <FileText className="w-6 h-6 mr-2 text-blue-600" />
                 施術履歴詳細
               </h2>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center space-x-2">
+                {!isEditMode && onUpdateReservation && (
+                  <button
+                    onClick={() => setIsEditMode(true)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <Edit3 className="w-4 h-4 mr-1" />
+                    編集
+                  </button>
+                )}
+                <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
 
             {/* 基本情報 */}
@@ -253,13 +274,10 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                     <div className="font-medium text-lg">{reservation.menuContent}</div>
                   </div>
                   {reservation.price && (
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="w-5 h-5 text-green-600" />
-                      <div>
-                        <div className="text-sm text-gray-600">料金</div>
-                        <div className="font-medium text-lg text-green-700">
-                          ¥{reservation.price.toLocaleString()}
-                        </div>
+                    <div>
+                      <div className="text-sm text-gray-600">料金</div>
+                      <div className="font-medium text-lg text-green-700">
+                        ¥{reservation.price.toLocaleString()}
                       </div>
                     </div>
                   )}
