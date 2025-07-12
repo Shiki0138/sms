@@ -63,11 +63,15 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
   const [showPhotoUpload, setShowPhotoUpload] = useState<'before' | 'after' | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [editData, setEditData] = useState({
-    startTime: reservation?.startTime || '',
-    endTime: reservation?.endTime || '',
-    staff: reservation?.staff || null,
+    date: reservation?.startTime ? format(new Date(reservation.startTime), 'yyyy-MM-dd') : '',
+    startTime: reservation?.startTime ? format(new Date(reservation.startTime), 'HH:mm') : '',
+    endTime: reservation?.endTime ? format(new Date(reservation.endTime), 'HH:mm') : '',
+    staffId: reservation?.staff?.id || '',
+    staffName: reservation?.staff?.name || '',
     menuContent: reservation?.menuContent || '',
-    price: reservation?.price || 0
+    price: reservation?.price || 0,
+    status: reservation?.status || 'CONFIRMED',
+    notes: reservation?.notes || ''
   })
 
   const handleSaveNotes = () => {
@@ -75,6 +79,40 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
       onUpdateStylistNotes(reservation.id, notesContent)
       setEditingNotes(false)
     }
+  }
+
+  const handleSaveEdit = () => {
+    if (reservation && onUpdateReservation) {
+      const updates: Partial<Reservation> = {
+        startTime: `${editData.date}T${editData.startTime}:00`,
+        endTime: editData.endTime ? `${editData.date}T${editData.endTime}:00` : undefined,
+        menuContent: editData.menuContent,
+        price: editData.price,
+        status: editData.status as Reservation['status'],
+        notes: editData.notes,
+        staff: editData.staffId ? {
+          id: editData.staffId,
+          name: editData.staffName
+        } : undefined
+      }
+      onUpdateReservation(reservation.id, updates)
+      setIsEditMode(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditData({
+      date: reservation?.startTime ? format(new Date(reservation.startTime), 'yyyy-MM-dd') : '',
+      startTime: reservation?.startTime ? format(new Date(reservation.startTime), 'HH:mm') : '',
+      endTime: reservation?.endTime ? format(new Date(reservation.endTime), 'HH:mm') : '',
+      staffId: reservation?.staff?.id || '',
+      staffName: reservation?.staff?.name || '',
+      menuContent: reservation?.menuContent || '',
+      price: reservation?.price || 0,
+      status: reservation?.status || 'CONFIRMED',
+      notes: reservation?.notes || ''
+    })
+    setIsEditMode(false)
   }
 
   const handlePhotoUpdate = (photoUrl: string, type: 'before' | 'after') => {
@@ -218,48 +256,139 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
             <div className="space-y-6">
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">基本情報</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="w-5 h-5 text-gray-500" />
-                    <div>
-                      <div className="text-sm text-gray-600">施術日</div>
-                      <div className="font-medium">
-                        {format(new Date(reservation.startTime), 'yyyy年M月d日(E)', { locale: ja })}
+                {isEditMode ? (
+                  // 編集モード
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          施術日
+                        </label>
+                        <input
+                          type="date"
+                          value={editData.date}
+                          onChange={(e) => setEditData({...editData, date: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <Clock className="w-5 h-5 text-gray-500" />
-                    <div>
-                      <div className="text-sm text-gray-600">施術時間</div>
-                      <div className="font-medium">
-                        {format(new Date(reservation.startTime), 'HH:mm', { locale: ja })}
-                        {reservation.endTime && ` - ${format(new Date(reservation.endTime), 'HH:mm', { locale: ja })}`}
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            開始時間
+                          </label>
+                          <input
+                            type="time"
+                            value={editData.startTime}
+                            onChange={(e) => setEditData({...editData, startTime: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            終了時間
+                          </label>
+                          <input
+                            type="time"
+                            value={editData.endTime}
+                            onChange={(e) => setEditData({...editData, endTime: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center space-x-3">
-                    <User className="w-5 h-5 text-gray-500" />
-                    <div>
-                      <div className="text-sm text-gray-600">担当スタッフ</div>
-                      <div className="font-medium">{reservation.staff?.name || '未設定'}</div>
-                    </div>
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          担当スタッフ
+                        </label>
+                        <input
+                          type="text"
+                          value={editData.staffName}
+                          onChange={(e) => setEditData({...editData, staffName: e.target.value})}
+                          placeholder="スタッフ名を入力"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
 
-                  <div className="flex items-center space-x-3">
-                    <div className="w-5 h-5 flex items-center justify-center">
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(reservation.status)}`}>
-                        {getStatusLabel(reservation.status)}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          ステータス
+                        </label>
+                        <select
+                          value={editData.status}
+                          onChange={(e) => setEditData({...editData, status: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="TENTATIVE">仮予約</option>
+                          <option value="CONFIRMED">確定</option>
+                          <option value="COMPLETED">完了</option>
+                          <option value="CANCELLED">キャンセル</option>
+                          <option value="NO_SHOW">無断キャンセル</option>
+                        </select>
                       </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-gray-600">予約経路</div>
-                      <div className="font-medium">{getSourceLabel(reservation.source)}</div>
+
+                    <div className="flex justify-end space-x-2 pt-4 border-t">
+                      <button
+                        onClick={handleCancelEdit}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        キャンセル
+                      </button>
+                      <button
+                        onClick={handleSaveEdit}
+                        className="btn btn-primary btn-sm"
+                      >
+                        <Save className="w-4 h-4 mr-1" />
+                        保存
+                      </button>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  // 表示モード
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <div className="text-sm text-gray-600">施術日</div>
+                        <div className="font-medium">
+                          {format(new Date(reservation.startTime), 'yyyy年M月d日(E)', { locale: ja })}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <Clock className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <div className="text-sm text-gray-600">施術時間</div>
+                        <div className="font-medium">
+                          {format(new Date(reservation.startTime), 'HH:mm', { locale: ja })}
+                          {reservation.endTime && ` - ${format(new Date(reservation.endTime), 'HH:mm', { locale: ja })}`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <User className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <div className="text-sm text-gray-600">担当スタッフ</div>
+                        <div className="font-medium">{reservation.staff?.name || '未設定'}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(reservation.status)}`}>
+                          {getStatusLabel(reservation.status)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-600">予約経路</div>
+                        <div className="font-medium">{getSourceLabel(reservation.source)}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 施術内容 */}
@@ -268,24 +397,75 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                   {getMenuIcon(reservation.menuContent)}
                   <span className="ml-2">施術内容</span>
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-600">メニュー</div>
-                    <div className="font-medium text-lg">{reservation.menuContent}</div>
-                  </div>
-                  {reservation.price && (
-                    <div>
-                      <div className="text-sm text-gray-600">料金</div>
-                      <div className="font-medium text-lg text-green-700">
-                        ¥{reservation.price.toLocaleString()}
+                {isEditMode ? (
+                  // 編集モード
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          メニュー内容
+                        </label>
+                        <input
+                          type="text"
+                          value={editData.menuContent}
+                          onChange={(e) => setEditData({...editData, menuContent: e.target.value})}
+                          placeholder="カット、カラー、パーマなど"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          料金
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
+                          <input
+                            type="number"
+                            value={editData.price}
+                            onChange={(e) => setEditData({...editData, price: parseInt(e.target.value) || 0})}
+                            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-                {reservation.notes && (
-                  <div className="mt-3">
-                    <div className="text-sm text-gray-600">お客様要望</div>
-                    <div className="mt-1 text-gray-700">{reservation.notes}</div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        お客様要望・メモ
+                      </label>
+                      <textarea
+                        value={editData.notes}
+                        onChange={(e) => setEditData({...editData, notes: e.target.value})}
+                        placeholder="お客様のご要望や特記事項を入力"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  // 表示モード
+                  <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm text-gray-600">メニュー</div>
+                        <div className="font-medium text-lg">{reservation.menuContent}</div>
+                      </div>
+                      {reservation.price && (
+                        <div>
+                          <div className="text-sm text-gray-600">料金</div>
+                          <div className="font-medium text-lg text-green-700">
+                            ¥{reservation.price.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {reservation.notes && (
+                      <div className="mt-3">
+                        <div className="text-sm text-gray-600">お客様要望</div>
+                        <div className="mt-1 text-gray-700">{reservation.notes}</div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
