@@ -1,8 +1,23 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "bash frontend/vercel-build.sh",
+  "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "echo 'Skipping auto-install'",
-  "regions": ["iad1"]
+  "installCommand": "cd frontend && npm ci --legacy-peer-deps --no-audit --no-fund",
+  "regions": ["iad1"],
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
+    }
+  ]
 }
