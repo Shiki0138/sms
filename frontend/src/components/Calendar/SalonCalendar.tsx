@@ -38,6 +38,8 @@ interface SalonCalendarProps {
   };
   isHoliday?: (date: Date) => boolean;
   getHolidayType?: (date: Date) => string | null;
+  getDayBusinessHours?: (date: Date) => { isOpen: boolean; openTime: string; closeTime: string } | null;
+  allowOutOfHoursBooking?: boolean;
 }
 
 const SalonCalendar: React.FC<SalonCalendarProps> = ({
@@ -49,7 +51,9 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
   onTimeSlotClick,
   businessHours,
   isHoliday,
-  getHolidayType
+  getHolidayType,
+  getDayBusinessHours,
+  allowOutOfHoursBooking = false
 }) => {
   // コンポーネントデバッグ用（本番では削除）
   // console.log('SalonCalendar received reservations:', reservations.length, 'items');
@@ -421,16 +425,57 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
                               })()
                             ) : !isOccupied ? (
                               // 空きスロット
-                              <button
-                                onClick={() => onTimeSlotClick?.(date, hour, minute)}
-                                className={`w-full h-full rounded hover:bg-blue-50 transition-colors group ${
-                                  selectedTimeSlot === slotId ? 'bg-blue-100 border border-blue-300' : ''
-                                }`}
-                                onMouseEnter={() => setSelectedTimeSlot(slotId)}
-                                onMouseLeave={() => setSelectedTimeSlot(null)}
-                              >
-                                <Plus className="w-3 h-3 text-gray-400 group-hover:text-blue-500 mx-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </button>
+                              (() => {
+                                const dayHours = getDayBusinessHours?.(date);
+                                const isOutOfHours = dayHours && !dayHours.isOpen;
+                                const dayOfWeek = date.getDay();
+                                const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                                const defaultDayHours = businessHours[dayNames[dayOfWeek] as keyof typeof businessHours];
+                                
+                                // 営業時間チェック
+                                let isTimeOutOfHours = false;
+                                if (dayHours && dayHours.isOpen) {
+                                  const [openHour, openMinute] = dayHours.openTime.split(':').map(Number);
+                                  const [closeHour, closeMinute] = dayHours.closeTime.split(':').map(Number);
+                                  const currentMinutes = hour * 60 + minute;
+                                  const openMinutes = openHour * 60 + openMinute;
+                                  const closeMinutes = closeHour * 60 + closeMinute;
+                                  isTimeOutOfHours = currentMinutes < openMinutes || currentMinutes >= closeMinutes;
+                                }
+                                
+                                const handleSlotClick = () => {
+                                  if ((isOutOfHours || isTimeOutOfHours) && !allowOutOfHoursBooking) {
+                                    alert('営業時間外のため予約できません');
+                                    return;
+                                  }
+                                  
+                                  if ((isOutOfHours || isTimeOutOfHours) && allowOutOfHoursBooking) {
+                                    const confirmed = confirm('営業時間外です。それでも予約を続けますか？');
+                                    if (!confirmed) return;
+                                  }
+                                  
+                                  onTimeSlotClick?.(date, hour, minute);
+                                };
+                                
+                                return (
+                                  <button
+                                    onClick={handleSlotClick}
+                                    className={`w-full h-full rounded transition-colors group ${
+                                      isOutOfHours || isTimeOutOfHours
+                                        ? 'bg-gray-100 hover:bg-gray-200'
+                                        : 'hover:bg-blue-50'
+                                    } ${
+                                      selectedTimeSlot === slotId ? 'bg-blue-100 border border-blue-300' : ''
+                                    }`}
+                                    onMouseEnter={() => setSelectedTimeSlot(slotId)}
+                                    onMouseLeave={() => setSelectedTimeSlot(null)}
+                                  >
+                                    <Plus className={`w-3 h-3 mx-auto opacity-0 group-hover:opacity-100 transition-opacity ${
+                                      isOutOfHours || isTimeOutOfHours ? 'text-gray-400' : 'text-gray-400 group-hover:text-blue-500'
+                                    }`} />
+                                  </button>
+                                );
+                              })()
                             ) : null
                             // 予約の継続部分は何も表示しない（上の予約枠が覆っている）
                           ) : null}
