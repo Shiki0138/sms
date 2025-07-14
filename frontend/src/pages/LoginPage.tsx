@@ -18,7 +18,7 @@ export const LoginPage: React.FC = () => {
       const response = await mockAuthService.login(email, password);
       
       if (response.success) {
-        navigate('/dashboard');
+        navigate('/');
       } else {
         setError(response.error || 'ログインに失敗しました');
       }
@@ -30,10 +30,10 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-2xl sm:text-3xl font-extrabold text-gray-900">
             美容室管理システム
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -43,9 +43,9 @@ export const LoginPage: React.FC = () => {
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <input type="hidden" name="remember" value="true" />
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="email-address" className="sr-only">
+              <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1">
                 メールアドレス
               </label>
               <input
@@ -54,14 +54,14 @@ export const LoginPage: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="メールアドレス"
+                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 text-base sm:text-sm"
+                placeholder="admin@salon-system.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 パスワード
               </label>
               <input
@@ -70,8 +70,8 @@ export const LoginPage: React.FC = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="パスワード"
+                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 text-base sm:text-sm"
+                placeholder="admin123"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -84,11 +84,11 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <p className="text-gray-600">
-                テストアカウント: admin@salon-system.com / admin123
-              </p>
+          <div className="bg-blue-50 rounded-md p-4">
+            <div className="text-sm text-blue-800">
+              <p className="font-medium">テストアカウント:</p>
+              <p>メール: admin@salon-system.com</p>
+              <p>パスワード: admin123</p>
             </div>
           </div>
 
@@ -96,7 +96,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'ログイン中...' : 'ログイン'}
             </button>
