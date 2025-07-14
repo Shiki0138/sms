@@ -228,7 +228,7 @@ export interface PlanPricing {
 // プラン料金情報（バックエンドと統一）
 export const PLAN_PRICING: Record<SubscriptionPlan, PlanPricing> = {
   light: {
-    setup: 49800,        // 元: 128000
+    setup: 29800,        // 元: 128000
     originalSetup: 128000,
     monthly: 9800,       // 元: 29800
     originalMonthly: 29800,
