@@ -1,0 +1,744 @@
+// Prisma schema — full, validated version (error‑free)
+// ===============================================
+// GENERATOR & DATASOURCE ----------------------------------------------------
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ENUMS --------------------------------------------------------------------
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+// CORE MODELS --------------------------------------------------------------
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  plan      String   @default("light") // light / standard / premium_ai
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  staff                Staff[]
+  customers            Customer[]
+  threads              MessageThread[]
+  reservations         Reservation[]
+  templates            Template[]
+  auditLogs            AuditLog[]
+  settings             TenantSetting[]
+  tags                 Tag[]
+  autoMessageTemplates AutoMessageTemplate[]
+  autoMessageLogs      AutoMessageLog[]
+  menus                Menu[]
+  menuCategories       MenuCategory[]
+  menuHistory          MenuHistory[]
+  recommendations      MenuRecommendation[]
+  notifications        Notification[]
+  analyticsMetrics     AnalyticsMetric[]
+  predictionData       PredictionData[]
+  customerBehaviors    CustomerBehavior[]
+  loginHistory         LoginHistory[]
+  securityEvents       SecurityEvent[]
+  customerPreferences  CustomerPreference[]
+  marketingCampaigns   MarketingCampaign[]
+  staffPerformance     StaffPerformance[]
+  payments             Payment[]
+  subscription         Subscription?
+  invoices             Invoice[]
+  feedback             Feedback[]
+  quickRatings         QuickRating[]
+  tenantFeatureFlags   TenantFeatureFlag[]
+  autoSaves            AutoSave[]
+  contactInquiries     ContactInquiry[]
+
+  // Indexes
+  @@index([isActive])
+  @@index([plan, isActive])
+  @@map("tenants")
+}
+
+model TenantSetting {
+  id       String @id @default(cuid())
+  tenantId String
+  key      String
+  value    String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@map("tenant_settings")
+}
+
+model Staff {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  name        String
+  role        String    @default("STAFF") // ADMIN / MANAGER / STAFF
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  tenantId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // 2FA
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+  backupCodes      String?
+
+  // Security
+  loginAttempts        Int       @default(0)
+  lockedUntil          DateTime?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+
+  // Relations
+  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens        RefreshToken[]
+  assignedThreads      MessageThread[]    @relation("AssignedStaff")
+  sentMessages         Message[]
+  handledReservations  Reservation[]      @relation("HandledBy")
+  createdTemplates     Template[]
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+  loginHistory         LoginHistory[]     @relation("LoginHistory")
+  securityEvents       SecurityEvent[]    @relation("SecurityEvents")
+  staffPerformance     StaffPerformance[]
+  preferredByCustomers Customer[]         @relation("PreferredStaff")
+  contactResponses     ContactResponse[]
+
+  @@map("staff")
+}
+
+model Customer {
+  id               String    @id @default(cuid())
+  name             String?
+  nameKana         String?
+  gender           String?
+  birthDate        DateTime?
+  phone            String?
+  email            String?
+  address          String?
+  instagramId      String?   @unique
+  lineId           String?   @unique
+  firstVisitDate   DateTime?
+  lastVisitDate    DateTime?
+  visitCount       Int       @default(0)
+  totalSpent       Decimal?  @default(0)
+  notes            String?
+  segment          String?
+  lifetimeValue    Decimal?  @default(0)
+  riskScore        Int?      @default(0)
+  preferredStaffId String?
+  profilePhoto     String?
+  tenantId         String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  threads             MessageThread[]
+  reservations        Reservation[]
+  customerTags        CustomerTag[]
+  autoMessageLogs     AutoMessageLog[]
+  menuHistory         MenuHistory[]
+  recommendations     MenuRecommendation[]
+  notifications       Notification[]
+  customerBehavior    CustomerBehavior?
+  customerPreferences CustomerPreference[]
+  preferredStaff      Staff?               @relation("PreferredStaff", fields: [preferredStaffId], references: [id], onDelete: SetNull)
+  payments            Payment[]
+  subscriptions       Subscription[]
+  feedback            Feedback[]
+  quickRatings        QuickRating[]
+  contactInquiries    ContactInquiry[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@index([tenantId, phone])
+  @@index([tenantId, email])
+  @@index([tenantId, lastVisitDate])
+  @@map("customers")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#3B82F6")
+  type      String // CUSTOMER / THREAD
+  tenantId  String
+  createdAt DateTime @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerTags CustomerTag[]
+  threadTags   ThreadTag[]
+
+  @@unique([tenantId, name, type])
+  @@map("tags")
+}
+
+model CustomerTag {
+  customerId String
+  tagId      String
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, tagId])
+  @@map("customer_tags")
+}
+
+model MessageThread {
+  id               String   @id @default(cuid())
+  customerId       String?
+  channel          String
+  channelThreadId  String
+  assignedStaffId  String?
+  status           String   @default("OPEN")
+  aiAnalyzed       Boolean  @default(false)
+  sentimentScore   Float?
+  priorityLevel    Int      @default(3)
+  autoReplyEnabled Boolean  @default(true)
+  tenantId         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer      Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  assignedStaff Staff?      @relation("AssignedStaff", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  messages      Message[]
+  threadTags    ThreadTag[]
+
+  @@unique([tenantId, channel, channelThreadId])
+  @@index([tenantId, status])
+  @@map("message_threads")
+}
+
+model ThreadTag {
+  threadId  String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  tag    Tag           @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([threadId, tagId])
+  @@map("thread_tags")
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  threadId   String
+  senderId   String?
+  senderType String
+  content    String
+  mediaType  String   @default("TEXT")
+  mediaUrl   String?
+  externalId String?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender Staff?        @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
+}
+
+model Reservation {
+  id                String        @id @default(cuid())
+  startTime         DateTime
+  endTime           DateTime?
+  menuContent       String?
+  customerName      String?
+  customerId        String?
+  customerPhone     String?
+  customerEmail     String?
+  staffId           String?
+  source            String
+  sourceId          String?
+  status            String        @default("CONFIRMED")
+  paymentStatus     PaymentStatus @default(PENDING)
+  notes             String?
+  totalAmount       Decimal?      @default(0)
+  estimatedDuration Int?
+  profitMargin      Decimal?
+  weatherImpact     String?
+  sourceCampaign    String?
+  tenantId          String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  nextVisitDate     DateTime?
+  reminderSentAt    DateTime?
+  followUpSentAt    DateTime?
+  beforePhotos      String?
+  afterPhotos       String?
+  stylistNotes      String?
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  staff           Staff?           @relation("HandledBy", fields: [staffId], references: [id], onDelete: SetNull)
+  autoMessageLogs AutoMessageLog[]
+  menus           Menu[]
+  payments        Payment[]
+  feedback        Feedback[]
+
+  @@index([tenantId, startTime])
+  @@map("reservations")
+}
+
+// ---------------------------------------------------------------------------
+// MANAGEMENT / CONTENT -------------------------------------------------------
+model Template {
+  id        String   @id @default(cuid())
+  tenantId  String
+  creatorId String?
+  name      String
+  subject   String?
+  body      String
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator Staff? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, name])
+  @@map("templates")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  staffId   String?
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, action])
+  @@map("audit_logs")
+}
+
+model AutoMessageTemplate {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  trigger      String
+  content      String
+  scheduleCRON String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  autoMessageLogs AutoMessageLog[]
+
+  @@unique([tenantId, name])
+  @@map("auto_message_templates")
+}
+
+model AutoMessageLog {
+  id            String   @id @default(cuid())
+  tenantId      String
+  templateId    String
+  customerId    String?
+  reservationId String?
+  status        String   @default("SENT") // SENT / FAILED
+  errorMessage  String?
+  sentAt        DateTime @default(now())
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template    AutoMessageTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  customer    Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  reservation Reservation?        @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@map("auto_message_logs")
+}
+
+// MENUS ---------------------------------------------------------------------
+model MenuCategory {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+  order    Int    @default(0)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  menus  Menu[]
+
+  @@unique([tenantId, name])
+  @@map("menu_categories")
+}
+
+model Menu {
+  id          String   @id @default(cuid())
+  tenantId    String
+  categoryId  String?
+  name        String
+  description String?
+  price       Decimal  @default(0)
+  durationMin Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category        MenuCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  history         MenuHistory[]
+  reservations    Reservation[]
+  recommendations MenuRecommendation[]
+
+  @@unique([tenantId, name])
+  @@map("menus")
+}
+
+model MenuHistory {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  menuId     String
+  orderedAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, customerId])
+  @@map("menu_history")
+}
+
+model MenuRecommendation {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  menuId     String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, customerId])
+  @@map("menu_recommendations")
+}
+
+// NOTIFICATIONS & ANALYTICS --------------------------------------------------
+model Notification {
+  id         String   @id @default(cuid())
+  tenantId   String
+  staffId    String?
+  customerId String?
+  title      String
+  message    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff    Staff?    @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, read])
+  @@map("notifications")
+}
+
+model AnalyticsMetric {
+  id        String   @id @default(cuid())
+  tenantId  String
+  date      DateTime
+  metric    String
+  value     Float
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date, metric])
+  @@map("analytics_metrics")
+}
+
+model PredictionData {
+  id        String   @id @default(cuid())
+  tenantId  String
+  target    String
+  date      DateTime
+  predicted Float
+  actual    Float?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, target, date])
+  @@map("prediction_data")
+}
+
+model CustomerBehavior {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String   @unique
+  behavior   String
+  score      Int
+  timestamp  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, customerId])
+  @@map("customer_behaviors")
+}
+
+// AUTH ----------------------------------------------------------------------
+model RefreshToken {
+  id        String   @id @default(cuid())
+  staffId   String   @unique
+  token     String   @unique
+  expiresAt DateTime
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model LoginHistory {
+  id        String   @id @default(cuid())
+  tenantId  String
+  staffId   String
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation("LoginHistory", fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, staffId])
+  @@map("login_history")
+}
+
+model SecurityEvent {
+  id          String   @id @default(cuid())
+  tenantId    String
+  staffId     String?
+  type        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff? @relation("SecurityEvents", fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, type])
+  @@map("security_events")
+}
+
+// PREFERENCES & MARKETING ----------------------------------------------------
+model CustomerPreference {
+  id         String @id @default(cuid())
+  tenantId   String
+  customerId String
+  key        String
+  value      String
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, key])
+  @@map("customer_preferences")
+}
+
+model MarketingCampaign {
+  id        String    @id @default(cuid())
+  tenantId  String
+  name      String
+  channel   String
+  startDate DateTime
+  endDate   DateTime?
+  budget    Decimal?
+  createdAt DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@map("marketing_campaigns")
+}
+
+model StaffPerformance {
+  id       String @id @default(cuid())
+  tenantId String
+  staffId  String
+  metric   String
+  value    Float
+  period   String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, staffId, metric, period])
+  @@map("staff_performance")
+}
+
+// PAYMENTS -------------------------------------------------------------------
+model Payment {
+  id            String        @id @default(cuid())
+  tenantId      String
+  customerId    String
+  reservationId String?
+  provider      String
+  amount        Decimal
+  status        PaymentStatus @default(PENDING)
+  errorCode     String?
+  createdAt     DateTime      @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@map("payments")
+}
+
+model Subscription {
+  id         String        @id @default(cuid())
+  tenantId   String        @unique
+  customerId String
+  plan       String
+  status     PaymentStatus @default(PENDING)
+  startedAt  DateTime
+  endedAt    DateTime?
+  providerId String?
+  createdAt  DateTime      @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@index([tenantId, status])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id             String    @id @default(cuid())
+  tenantId       String
+  subscriptionId String?
+  invoiceNumber  String    @unique
+  amount         Decimal
+  issuedAt       DateTime
+  dueDate        DateTime?
+  paidAt         DateTime?
+  status         String    @default("OPEN")
+  pdfUrl         String?
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@map("invoices")
+}
+
+// FEEDBACK ------------------------------------------------------------------
+model Feedback {
+  id            String   @id @default(cuid())
+  tenantId      String
+  customerId    String?
+  reservationId String?
+  rating        Int?
+  comment       String?
+  status        String   @default("OPEN")
+  createdAt     DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@map("feedback")
+}
+
+model QuickRating {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String?
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("quick_ratings")
+}
+
+// FEATURE FLAGS -------------------------------------------------------------
+model TenantFeatureFlag {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@map("tenant_feature_flags")
+}
+
+// AUXILIARY -----------------------------------------------------------------
+model AutoSave {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  timestamp DateTime @default(now())
+  dataType  String
+  data      Json
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, dataType])
+  @@map("auto_saves")
+}
+
+model ContactInquiry {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String?
+  status     String   @default("OPEN")
+  title      String
+  message    String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer  Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  responses ContactResponse[]
+
+  @@index([tenantId, status])
+  @@map("contact_inquiries")
+}
+
+model ContactResponse {
+  id        String   @id @default(cuid())
+  inquiryId String
+  staffId   String?
+  message   String
+  createdAt DateTime @default(now())
+
+  inquiry ContactInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  staff   Staff?         @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([inquiryId])
+  @@map("contact_responses")
+}
