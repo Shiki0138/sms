@@ -180,7 +180,10 @@ function App() {
     console.log('🔐 Login Enabled:', enableLogin)
   }, [])
 
-  const [activeTab, setActiveTab] = useState('messages')
+  const [activeTab, setActiveTab] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('tab') || 'messages';
+  })
   const [activeView, setActiveView] = useState<'main' | 'upgrade'>('main')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [replyMessage, setReplyMessage] = useState('')
@@ -659,26 +662,28 @@ function App() {
       // 顧客番号を生成
       const nextCustomerNumber = `C${String((customers?.customers?.length || 0) + 1).padStart(3, '0')}`
       
-      // Supabaseに保存
-      const { customersApi } = await import('./lib/supabase-client')
+      // デモ用：ローカルストレージに保存（実際の実装ではSupabaseを使用）
       const newCustomer = {
         id: crypto.randomUUID(),
         customerNumber: nextCustomerNumber,
         name: newCustomerData.name,
         nameKana: '', // 必要に応じて追加
-        phone: newCustomerData.phone || null,
-        email: newCustomerData.email || null,
-        instagramId: newCustomerData.instagramId || null,
-        lineId: newCustomerData.lineId || null,
-        notes: newCustomerData.notes || null,
+        phone: newCustomerData.phone || '',
+        email: newCustomerData.email || '',
+        instagramId: newCustomerData.instagramId || '',
+        lineId: newCustomerData.lineId || '',
+        notes: newCustomerData.notes || '',
         gender: '未設定',
-        tenantId: 'beta-salon-001',
-        firstVisitDate: new Date().toISOString(),
+        visitCount: 0,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        lastVisitDate: null,
+        source: 'MANUAL' as const
       }
       
-      await customersApi.create(newCustomer)
+      // ローカルストレージに保存（デモ用）
+      const existingCustomers = JSON.parse(localStorage.getItem('demoCustomers') || '[]')
+      existingCustomers.push(newCustomer)
+      localStorage.setItem('demoCustomers', JSON.stringify(existingCustomers))
       
       // React Queryのデータを更新
       if (queryClient) {
@@ -1353,9 +1358,8 @@ function App() {
     
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">ダッシュボード</h2>
-          <PlanBadge onUpgradeClick={() => setActiveView('upgrade')} />
+        <div className="flex items-center">
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900">ダッシュボード</h2>
         </div>
         
         {/* Stats Grid */}

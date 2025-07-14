@@ -18,7 +18,7 @@ export const LoginPage: React.FC = () => {
       const response = await mockAuthService.login(email, password);
       
       if (response.success) {
-        navigate('/');
+        navigate('/?tab=dashboard');
       } else {
         setError(response.error || 'ログインに失敗しました');
       }
