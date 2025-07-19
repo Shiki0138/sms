@@ -319,7 +319,7 @@ export const OptimizedDoughnutChart: React.FC<OptimizedDoughnutChartProps> = ({
 }
 
 // チャートデータ最適化ユーティリティ
-export const optimizeChartData = (rawData: any[], maxDataPoints = 50) => {
+export const optimizeChartData = (rawData: any[], maxDataPoints: number = 50) => {
   if (rawData.length <= maxDataPoints) return rawData
   
   const interval = Math.ceil(rawData.length / maxDataPoints)
@@ -327,7 +327,7 @@ export const optimizeChartData = (rawData: any[], maxDataPoints = 50) => {
 }
 
 // 大量データ用サンプリング関数
-export const sampleData = (data: any[], maxPoints = 100) => {
+export const sampleData = (data: any[], maxPoints: number = 100) => {
   if (data.length <= maxPoints) return data
   
   const step = data.length / maxPoints
@@ -341,7 +341,7 @@ export const sampleData = (data: any[], maxPoints = 100) => {
 }
 
 // 色生成ユーティリティ
-export const generateColors = (count: number, opacity = 0.8) => {
+export const generateColors = (count: number, opacity: number = 0.8) => {
   const colors = []
   for (let i = 0; i < count; i++) {
     const hue = (i * 360) / count

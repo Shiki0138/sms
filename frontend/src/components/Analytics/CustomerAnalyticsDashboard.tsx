@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -69,7 +69,11 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('3months')
 
-  const fetchAnalyticsData = useCallback(async () => {
+  useEffect(() => {
+    fetchAnalyticsData()
+  }, [timeRange])
+
+  const fetchAnalyticsData = async () => {
     setIsLoading(true)
     try {
       // 実際の顧客データと施術履歴データを使用した分析
@@ -85,14 +89,9 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [timeRange])
+  }
 
-  useEffect(() => {
-    fetchAnalyticsData()
-  }, [fetchAnalyticsData])
-
-
-  const generateRealAnalyticsData = useCallback((customers: any[], serviceHistory: any[]): AnalyticsData => {
+  const generateRealAnalyticsData = (customers: any[], serviceHistory: any[]): AnalyticsData => {
     // 顧客セグメント分析
     const vipCustomers = customers.filter(c => c.visitCount >= 15)
     const regularCustomers = customers.filter(c => c.visitCount >= 5 && c.visitCount < 15)
@@ -141,7 +140,7 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
       servicePopularity,
       monthlyTrends: monthlyData
     }
-  }, [])
+  }
 
   const generateMonthlyData = (serviceHistory: any[]) => {
     const months = []
@@ -262,21 +261,6 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
     }
   }
 
-  // グラフ設定（メモ化） - hooksは早期returnより前に配置
-  const segmentChartData = useMemo(() => {
-    if (!analyticsData) return { labels: [], datasets: [] }
-    return {
-      labels: analyticsData.segments.map(s => s.name),
-      datasets: [
-        {
-          data: analyticsData.segments.map(s => s.count),
-          backgroundColor: analyticsData.segments.map(s => s.color),
-          borderWidth: 0
-        }
-      ]
-    }
-  }, [analyticsData])
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -295,6 +279,18 @@ const CustomerAnalyticsDashboardCore: React.FC = () => {
         <p className="text-gray-600">分析データの読み込みに失敗しました</p>
       </div>
     )
+  }
+
+  // グラフ設定
+  const segmentChartData = {
+    labels: analyticsData.segments.map(s => s.name),
+    datasets: [
+      {
+        data: analyticsData.segments.map(s => s.count),
+        backgroundColor: analyticsData.segments.map(s => s.color),
+        borderWidth: 0
+      }
+    ]
   }
 
   const visitFrequencyData = {

@@ -134,7 +134,7 @@ export const formatCurrency = (amount: number): string => {
   return `¥${amount.toLocaleString()}`
 }
 
-export const formatPercentage = (value: number, decimals = 1): string => {
+export const formatPercentage = (value: number, decimals: number = 1): string => {
   return `${value.toFixed(decimals)}%`
 }
 
@@ -163,7 +163,7 @@ export const debounce = <T extends (...args: any[]) => any>(
   let timeout: NodeJS.Timeout
   return (...args: Parameters<T>) => {
     clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
+    timeout = setTimeout(() => func.apply(null, args), wait)
   }
 }
 
@@ -174,7 +174,7 @@ export const throttle = <T extends (...args: any[]) => any>(
   let inThrottle: boolean
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
-      func(...args)
+      func.apply(null, args)
       inThrottle = true
       setTimeout(() => (inThrottle = false), limit)
     }

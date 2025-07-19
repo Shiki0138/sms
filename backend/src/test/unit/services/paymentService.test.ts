@@ -62,6 +62,7 @@ class MockPaymentProvider implements IPaymentProvider {
 }
 
 // Prismaクライアントのモック
+jest.mock('@prisma/client');
 const mockPrisma = {
   tenant: {
     findUnique: jest.fn(),
@@ -84,11 +85,6 @@ const mockPrisma = {
   }
 };
 
-// PrismaClientのモック
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn(() => mockPrisma)
-}));
-
 describe('PaymentService', () => {
   let paymentService: PaymentService;
   let mockProvider: MockPaymentProvider;
@@ -101,8 +97,7 @@ describe('PaymentService', () => {
     paymentService = new PaymentService();
     (paymentService as any).providers = new Map([['stripe', mockProvider]]);
     
-    // Prismaモックをグローバルに設定
-    global.prisma = mockPrisma as any;
+    // Prismaモックを設定
     (paymentService as any).prisma = mockPrisma;
   });
 

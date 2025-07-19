@@ -8,15 +8,13 @@ interface LimitWarningProps {
   currentValue: number
   warningThreshold?: number // 警告を表示する閾値（デフォルト80%）
   className?: string
-  onUpgradeClick?: () => void
 }
 
 const LimitWarning: React.FC<LimitWarningProps> = ({
   limitType,
   currentValue,
   warningThreshold = 0.8,
-  className = '',
-  onUpgradeClick
+  className = ''
 }) => {
   const { limits, getRemainingLimit, isWithinLimit } = useSubscription()
 
@@ -144,10 +142,7 @@ const LimitWarning: React.FC<LimitWarningProps> = ({
           
           {!withinLimit && (
             <div className="mt-3">
-              <button 
-                onClick={onUpgradeClick}
-                className="text-xs bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors"
-              >
+              <button className="text-xs bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors">
                 プランをアップグレード
               </button>
             </div>

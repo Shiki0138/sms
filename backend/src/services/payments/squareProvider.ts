@@ -44,22 +44,27 @@ export class SquarePaymentProvider implements IPaymentProvider {
     };
   }
 
-  async cancelSubscription(subscriptionId: string): Promise<PaymentResult> {
-    logger.warn('Square cancel subscription provider is disabled - returning demo response');
-    return {
-      success: false,
-      errorCode: 'PROVIDER_DISABLED',
-      message: 'Square cancel subscription provider is currently disabled'
-    };
+  async cancelSubscription(subscriptionId: string): Promise<boolean> {
+    logger.warn('Square cancel subscription provider is disabled');
+    return false;
   }
 
-  async createPaymentMethod(customerId: string, card: any): Promise<PaymentMethod | null> {
-    logger.warn('Square create payment method provider is disabled');
-    return null;
+  async updateSubscription(subscriptionId: string, planId: string): Promise<boolean> {
+    logger.warn('Square update subscription provider is disabled');
+    return false;
   }
 
-  async getPaymentMethods(customerId: string): Promise<PaymentMethod[]> {
-    logger.warn('Square get payment methods provider is disabled');
+  async retrievePaymentMethods(customerId: string): Promise<PaymentMethod[]> {
+    logger.warn('Square retrieve payment methods provider is disabled');
     return [];
+  }
+
+  async createPaymentMethod(customerId: string, paymentData: any): Promise<PaymentMethod> {
+    logger.warn('Square create payment method provider is disabled');
+    throw new Error('Square payment method creation is disabled');
+  }
+
+  async handleWebhook(payload: string, signature: string): Promise<void> {
+    logger.warn('Square webhook handling is disabled');
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Mail, MessageCircle, Calendar, Clock, TestTube2, Settings, Save } from 'lucide-react';
 
-interface ReminderSettingsData {
+interface ReminderSettings {
   emailEnabled: boolean;
   lineEnabled: boolean;
   weekBeforeEnabled: boolean;
@@ -130,7 +130,7 @@ const Button: React.FC<Button> = ({
 };
 
 export const ReminderSettings: React.FC = () => {
-  const [settings, setSettings] = useState<ReminderSettingsData>({
+  const [settings, setSettings] = useState<ReminderSettings>({
     emailEnabled: true,
     lineEnabled: true,
     weekBeforeEnabled: true,

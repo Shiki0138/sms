@@ -124,7 +124,7 @@ class AnalyticsAPI {
   private token: string | null
 
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_BASE_URL || '/api/v1'
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
     this.token = localStorage.getItem('token')
   }
 

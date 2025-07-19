@@ -79,10 +79,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                   type="text"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   placeholder="ユーザー名を入力"
                   disabled={isLoading}
-                  autoComplete="username"
+                  data-testid="login-username-input"
                 />
               </div>
             </div>
@@ -102,16 +102,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   placeholder="パスワードを入力"
                   disabled={isLoading}
-                  autoComplete="current-password"
+                  data-testid="login-password-input"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center min-w-[44px] min-h-[44px] touch-manipulation"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   disabled={isLoading}
+                  data-testid="login-password-toggle"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -124,7 +125,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
 
             {/* エラーメッセージ */}
             {error && (
-              <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg">
+              <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg" data-testid="login-error-message">
                 <AlertCircle className="h-5 w-5" />
                 <span className="text-sm">{error}</span>
               </div>
@@ -134,7 +135,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[48px] touch-manipulation"
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              data-testid="login-submit-button"
             >
               {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -147,6 +149,70 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
+          {/* デモ用クイックログイン */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-gray-700">デモアカウント</span>
+              <button
+                type="button"
+                onClick={() => setShowCredentials(!showCredentials)}
+                className="text-xs text-blue-600 hover:text-blue-700"
+              >
+                {showCredentials ? '非表示' : '表示'}
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('demo')}
+                className="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                disabled={isLoading}
+                data-testid="login-demo-button"
+              >
+                デモユーザー
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin')}
+                className="px-3 py-2 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                disabled={isLoading}
+                data-testid="login-admin-button"
+              >
+                管理者
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('staff1')}
+                className="px-3 py-2 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                disabled={isLoading}
+              >
+                田中 美咲
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('staff2')}
+                className="px-3 py-2 text-xs bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
+                disabled={isLoading}
+              >
+                佐藤 千夏
+              </button>
+            </div>
+
+            {showCredentials && (
+              <div className="mt-4 text-xs text-gray-600 space-y-2">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="font-medium mb-2">ログイン情報:</p>
+                  <div className="space-y-1">
+                    <div>デモ: salon_demo_001 / Demo2024Salon!</div>
+                    <div>管理者: admin_system / AdminSalon2024!System</div>
+                    <div>スタッフ1: tanaka_misaki / Staff2024Tanaka!</div>
+                    <div>スタッフ2: sato_chinatsu / Staff2024Sato!</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* フッター */}

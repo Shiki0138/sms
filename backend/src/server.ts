@@ -38,6 +38,8 @@ import healthRouter from './routes/health';
 import featureFlagsRouter from './routes/featureFlags';
 import feedbackRouter from './routes/feedback';
 import businessHoursRouter from './routes/businessHours';
+import externalRouter from './routes/external';
+import integrationsRouter from './routes/integrations';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -140,6 +142,8 @@ app.use(`${apiPrefix}/test-reminders`, testRemindersRouter);
 app.use(`${apiPrefix}/payments`, paymentsRouter);
 app.use(`${apiPrefix}/features`, featureFlagsRouter);
 app.use(`${apiPrefix}/business-hours`, businessHoursRouter);
+app.use(`${apiPrefix}/external`, externalRouter);
+app.use(`${apiPrefix}/integrations`, integrationsRouter);
 // 🧠 美容室スタッフが感動するAI分析システム (一時的に無効化)
 // app.use(`${apiPrefix}/emotional-analytics`, emotionalAnalyticsRouter);
 // 🪄 美容室スタッフが『まるで魔法！』と驚く外部API統合システム (一時的に無効化)

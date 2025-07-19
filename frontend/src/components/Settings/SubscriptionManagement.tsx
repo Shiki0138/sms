@@ -1,14 +1,7 @@
 import React, { useState } from 'react'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { PLAN_NAMES, PLAN_PRICING, SubscriptionPlan } from '../../types/subscription'
-// Individual imports for better tree shaking and deployment compatibility
-import Check from 'lucide-react/dist/esm/icons/check'
-import Crown from 'lucide-react/dist/esm/icons/crown'
-import Zap from 'lucide-react/dist/esm/icons/zap'
-import Shield from 'lucide-react/dist/esm/icons/shield'
-import AlertTriangle from 'lucide-react/dist/esm/icons/alert-triangle'
-import CreditCard from 'lucide-react/dist/esm/icons/credit-card'
-import Calendar from 'lucide-react/dist/esm/icons/calendar'
+import { Check, Crown, Zap, Shield, AlertTriangle, CreditCard, Calendar } from 'lucide-react'
 
 const SubscriptionManagement: React.FC = () => {
   const { subscriptionInfo, currentPlan, limits, features, upgradePlan } = useSubscription()

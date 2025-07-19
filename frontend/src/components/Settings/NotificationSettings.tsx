@@ -64,7 +64,7 @@ const NotificationSettings: React.FC = () => {
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings>({
     businessHours: { enabled: true, start: '09:00', end: '18:00' },
     quietHours: { enabled: true, start: '22:00', end: '07:00' },
-    emailAddress: 'salon@example.com',
+    emailAddress: 'test@test-salon.local',
     pushEnabled: true
   })
 
@@ -203,7 +203,7 @@ const NotificationSettings: React.FC = () => {
               value={generalSettings.emailAddress}
               onChange={(e) => setGeneralSettings(prev => ({ ...prev, emailAddress: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="salon@example.com"
+              placeholder="test@test-salon.local"
             />
           </div>
 

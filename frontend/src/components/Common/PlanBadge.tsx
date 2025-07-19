@@ -1,10 +1,6 @@
 import React from 'react'
 import { useSubscription } from '../../contexts/SubscriptionContext'
-// Individual imports for better tree shaking and deployment compatibility
-import Shield from 'lucide-react/dist/esm/icons/shield'
-import Zap from 'lucide-react/dist/esm/icons/zap'
-import Crown from 'lucide-react/dist/esm/icons/crown'
-import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right'
+import { Shield, Zap, Crown, ChevronRight } from 'lucide-react'
 import { PLAN_NAMES } from '../../types/subscription'
 
 interface PlanBadgeProps {
@@ -21,20 +17,14 @@ const PlanBadge: React.FC<PlanBadgeProps> = ({
   const { currentPlan, subscriptionInfo } = useSubscription()
 
   const getPlanIcon = () => {
-    const icons = {
-      light: Shield,
-      standard: Zap,
-      premium_ai: Crown
+    switch (currentPlan) {
+      case 'light':
+        return <Shield className="w-4 h-4" />
+      case 'standard':
+        return <Zap className="w-4 h-4" />
+      case 'premium_ai':
+        return <Crown className="w-4 h-4" />
     }
-    
-    const IconComponent = icons[currentPlan] || Shield
-    
-    if (!IconComponent) {
-      console.error(`Icon component is undefined for plan: ${currentPlan}`)
-      return <Shield className="w-4 h-4" />
-    }
-    
-    return <IconComponent className="w-4 h-4" />
   }
 
   const getPlanColor = () => {
@@ -45,8 +35,6 @@ const PlanBadge: React.FC<PlanBadgeProps> = ({
         return 'bg-orange-100 text-orange-800 border-orange-200'
       case 'premium_ai':
         return 'bg-purple-100 text-purple-800 border-purple-200'
-      default:
-        return 'bg-green-100 text-green-800 border-green-200'
     }
   }
 

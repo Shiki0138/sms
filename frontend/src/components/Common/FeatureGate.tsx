@@ -1,25 +1,20 @@
 import React from 'react'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import { PlanFeatures } from '../../types/subscription'
-// Individual imports for better tree shaking and deployment compatibility
-import Lock from 'lucide-react/dist/esm/icons/lock'
-import Crown from 'lucide-react/dist/esm/icons/crown'
-import Zap from 'lucide-react/dist/esm/icons/zap'
+import { Lock, Crown, Zap } from 'lucide-react'
 
 interface FeatureGateProps {
   feature: keyof PlanFeatures
   children: React.ReactNode
   fallback?: React.ReactNode
   showUpgradePrompt?: boolean
-  onUpgrade?: () => void
 }
 
 const FeatureGate: React.FC<FeatureGateProps> = ({
   feature,
   children,
   fallback,
-  showUpgradePrompt = true,
-  onUpgrade
+  showUpgradePrompt = true
 }) => {
   const { hasFeature, currentPlan } = useSubscription()
 
@@ -155,17 +150,11 @@ const FeatureGate: React.FC<FeatureGateProps> = ({
       </div>
       
       <div className="space-y-2">
-        <button 
-          onClick={onUpgrade}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
+        <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
           プランをアップグレード
         </button>
         
-        <button 
-          onClick={onUpgrade}
-          className="w-full text-blue-600 hover:text-blue-700 text-sm"
-        >
+        <button className="w-full text-blue-600 hover:text-blue-700 text-sm">
           詳細を確認する
         </button>
       </div>

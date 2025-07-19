@@ -221,18 +221,18 @@ const NewReservationModal: React.FC<NewReservationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-        <div className="p-4 sm:p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
           {/* ヘッダー */}
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center">
-              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-blue-600" />
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center">
+              <Calendar className="w-6 h-6 mr-2 text-blue-600" />
               新規予約作成
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="text-gray-400 hover:text-gray-600"
             >
               <X className="w-6 h-6" />
             </button>
@@ -259,7 +259,7 @@ const NewReservationModal: React.FC<NewReservationModalProps> = ({
                       }
                     }}
                     placeholder="顧客名を入力または検索..."
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <Search className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />

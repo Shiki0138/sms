@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import LimitWarning from './components/Common/LimitWarning'
 import PlanBadge from './components/Common/PlanBadge'
@@ -67,6 +67,7 @@ import Bot from 'lucide-react/dist/esm/icons/bot'
 import Loader2 from 'lucide-react/dist/esm/icons/loader-2'
 import Shield from 'lucide-react/dist/esm/icons/shield'
 import Lightbulb from 'lucide-react/dist/esm/icons/lightbulb'
+import LogOut from 'lucide-react/dist/esm/icons/log-out'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { format, isToday, isTomorrow, getDay, getWeekOfMonth } from 'date-fns'
@@ -165,6 +166,7 @@ function App() {
   const config = getEnvironmentConfig()
   const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
   const queryClient = useQueryClient()
+  const { user, logout } = useAuth()
 
   useEffect(() => {
     // 環境情報をログ出力
@@ -1738,6 +1740,25 @@ function App() {
               >
                 <Settings className="w-5 h-5 flex-shrink-0" />
                 <span className="font-medium">設定</span>
+              </button>
+            </div>
+            
+            {/* ログアウトセクション */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="px-4 py-2 text-sm text-gray-600">
+                ログイン中: {user?.profile?.name || user?.email || 'ゲスト'}
+              </div>
+              <button
+                onClick={() => {
+                  logout()
+                  setActiveTab('dashboard')
+                  setIsSidebarOpen(false)
+                  window.location.href = '/login'
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">ログアウト</span>
               </button>
             </div>
             

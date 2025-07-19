@@ -17,7 +17,7 @@ export class StripePaymentProvider implements IPaymentProvider {
     }
     
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-05-28.basil',
       typescript: true
     });
   }
@@ -58,7 +58,9 @@ export class StripePaymentProvider implements IPaymentProvider {
         });
         
         // 成功通知
-        await this.notifyPaymentSuccess(request.customerId, paymentIntent);
+        if (request.customerId) {
+          await this.notifyPaymentSuccess(request.customerId, paymentIntent);
+        }
         
         return {
           success: true,
@@ -135,7 +137,7 @@ export class StripePaymentProvider implements IPaymentProvider {
       const priceId = this.mapPlanToStripePriceId(request.planId);
       
       const subscription = await this.stripe.subscriptions.create({
-        customer: request.customerId || await this.createCustomer(),
+        customer: request.customerId || (await this.createCustomer()).id,
         items: [{ price: priceId }],
         payment_behavior: 'default_incomplete',
         payment_settings: { save_default_payment_method: 'on_subscription' },
@@ -146,15 +148,15 @@ export class StripePaymentProvider implements IPaymentProvider {
       });
 
       const invoice = subscription.latest_invoice as Stripe.Invoice;
-      const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+      const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent | null;
 
-      if (paymentIntent.status === 'succeeded') {
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
         logger.info('Stripe subscription created:', subscription.id);
         return {
           success: true,
           paymentId: subscription.id
         };
-      } else if (paymentIntent.status === 'requires_action') {
+      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
         return {
           success: false,
           requiresAction: true,
@@ -162,7 +164,7 @@ export class StripePaymentProvider implements IPaymentProvider {
           paymentId: subscription.id
         };
       } else {
-        throw new Error(`Subscription failed with status: ${paymentIntent.status}`);
+        throw new Error(`Subscription failed with status: ${paymentIntent?.status || 'unknown'}`);
       }
     } catch (error: any) {
       logger.error('Stripe subscription error:', error);
@@ -410,16 +412,15 @@ export class StripePaymentProvider implements IPaymentProvider {
     try {
       await prisma.payment.create({
         data: {
-          id: paymentIntent.id,
+          providerPaymentId: paymentIntent.id,
           amount: paymentIntent.amount / 100, // セントから円に変換
           currency: paymentIntent.currency,
           status: paymentIntent.status,
           provider: 'stripe',
-          providerPaymentId: paymentIntent.id,
-          customerId: request.customerId,
+          description: request.description,
+          paymentMethodId: request.paymentMethodId || '',
           tenantId: request.metadata?.tenantId || '',
-          metadata: request.metadata || {},
-          createdAt: new Date()
+          metadata: request.metadata || {}
         }
       });
     } catch (error) {
@@ -485,7 +486,7 @@ export class StripePaymentProvider implements IPaymentProvider {
       const refund = await this.stripe.refunds.create({
         payment_intent: paymentId,
         amount: amount ? Math.round(amount * 100) : undefined, // 部分返金対応
-        reason: reason || 'requested_by_customer',
+        reason: 'requested_by_customer',
         metadata: {
           refundReason: reason || 'Customer requested refund'
         }
