@@ -20,8 +20,8 @@ import { ReminderSettings } from './components/Settings/ReminderSettings'
 import DataBackupSettings from './components/Settings/DataBackupSettings'
 import MenuManagement from './components/Settings/MenuManagement'
 import UpgradePlan from './components/Settings/UpgradePlan'
-import SimpleSettingsFixed from './components/Settings/SimpleSettingsFixed'
-import ErrorBoundary from './components/Common/ErrorBoundary'
+// import SimpleSettingsFixed from './components/Settings/SimpleSettingsFixed' // Component not found
+// import ErrorBoundary from './components/Common/ErrorBoundary' // Component not found
 import SalonCalendar from './components/Calendar/SalonCalendar'
 import MonthCalendar from './components/Calendar/MonthCalendar'
 import NewReservationModal from './components/Calendar/NewReservationModal'
@@ -1879,12 +1879,10 @@ function App() {
               </div>
             )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'settings' && (
-              <SimpleSettingsFixed 
-                businessSettings={businessSettings}
-                setBusinessSettings={setBusinessSettings}
-                setActiveTab={setActiveTab}
-                setActiveView={setActiveView}
-              />
+              <div className="space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">設定</h2>
+                <NotificationSettings />
+              </div>
             )}
           </div>
         </main>
@@ -2428,23 +2426,23 @@ const RootApp = () => {
   if (!enableLogin && import.meta.env.DEV) {
     console.warn('⚠️ 開発モード：認証をバイパスしています')
     return (
-      <ErrorBoundary>
+      <>
         <SubscriptionProvider>
           <App />
         </SubscriptionProvider>
-      </ErrorBoundary>
+      </>
     )
   }
   
   // ログイン機能が有効な場合は認証プロバイダーでラップ
   return (
-    <ErrorBoundary>
+    <>
       <AuthProvider>
         <SubscriptionProvider>
           <AuthenticatedApp />
         </SubscriptionProvider>
       </AuthProvider>
-    </ErrorBoundary>
+    </>
   )
 }
 
