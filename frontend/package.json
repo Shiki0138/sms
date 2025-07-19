@@ -17,7 +17,8 @@
     "prepare": "echo 'Prepare script disabled'",
     "pre-deploy": "echo 'Pre-deploy checks disabled'",
     "safe-deploy": "echo 'Safe deploy disabled'",
-    "check": "echo 'Check disabled'"
+    "check": "echo 'Check disabled'",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@headlessui/react": "1.7.17",
