@@ -30,44 +30,46 @@ import BulkMessageSender from './components/BulkMessageSender'
 import ServiceHistoryModal from './components/ServiceHistoryModal'
 import FeatureRequestForm from './components/FeatureRequestForm'
 import FilteredCustomerView from './components/FilteredCustomerView'
-// Individual imports for better tree shaking and deployment compatibility
-import MessageSquare from 'lucide-react/dist/esm/icons/message-square'
-import Calendar from 'lucide-react/dist/esm/icons/calendar'
-import Users from 'lucide-react/dist/esm/icons/users'
-import BarChart3 from 'lucide-react/dist/esm/icons/bar-chart-3'
-import Settings from 'lucide-react/dist/esm/icons/settings'
-import Instagram from 'lucide-react/dist/esm/icons/instagram'
-import MessageCircle from 'lucide-react/dist/esm/icons/message-circle'
-import Clock from 'lucide-react/dist/esm/icons/clock'
-import CheckCircle from 'lucide-react/dist/esm/icons/check-circle'
-import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle'
-import Phone from 'lucide-react/dist/esm/icons/phone'
-import Mail from 'lucide-react/dist/esm/icons/mail'
-import Send from 'lucide-react/dist/esm/icons/send'
-import Menu from 'lucide-react/dist/esm/icons/menu'
-import X from 'lucide-react/dist/esm/icons/x'
-import ExternalLink from 'lucide-react/dist/esm/icons/external-link'
-import Save from 'lucide-react/dist/esm/icons/save'
-import Eye from 'lucide-react/dist/esm/icons/eye'
-import EyeOff from 'lucide-react/dist/esm/icons/eye-off'
-import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw'
-import Link from 'lucide-react/dist/esm/icons/link'
-import User from 'lucide-react/dist/esm/icons/user'
-import UserCheck from 'lucide-react/dist/esm/icons/user-check'
-import MapPin from 'lucide-react/dist/esm/icons/map-pin'
-import CalendarIcon from 'lucide-react/dist/esm/icons/calendar'
-import FileText from 'lucide-react/dist/esm/icons/file-text'
-import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left'
-import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right'
-import Scissors from 'lucide-react/dist/esm/icons/scissors'
-import Palette from 'lucide-react/dist/esm/icons/palette'
-import Star from 'lucide-react/dist/esm/icons/star'
-import Sparkles from 'lucide-react/dist/esm/icons/sparkles'
-import Bot from 'lucide-react/dist/esm/icons/bot'
-import Loader2 from 'lucide-react/dist/esm/icons/loader-2'
-import Shield from 'lucide-react/dist/esm/icons/shield'
-import Lightbulb from 'lucide-react/dist/esm/icons/lightbulb'
-import LogOut from 'lucide-react/dist/esm/icons/log-out'
+// Import icons from lucide-react
+import {
+  MessageSquare,
+  Calendar,
+  Users,
+  BarChart3,
+  Settings,
+  Instagram,
+  MessageCircle,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Phone,
+  Mail,
+  Send,
+  Menu,
+  X,
+  ExternalLink,
+  Save,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Link,
+  User,
+  UserCheck,
+  MapPin,
+  Calendar as CalendarIcon,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Scissors,
+  Palette,
+  Star,
+  Sparkles,
+  Bot,
+  Loader2,
+  Shield,
+  Lightbulb,
+  LogOut
+} from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { format, isToday, isTomorrow, getDay, getWeekOfMonth } from 'date-fns'

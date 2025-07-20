@@ -56,27 +56,28 @@
     "react-dom": "18.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
-    "@testing-library/jest-dom": "^6.1.5",
-    "@types/lodash": "^4.14.202",
-    "@types/react": "18.2.43",
-    "@types/react-dom": "18.2.17",
+    "@types/lodash": "^4.17.20",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@types/testing-library__jest-dom": "^5.14.9",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.55.0",
-    "@eslint/js": "^9.0.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "husky": "^9.1.7",
+    "jsdom": "^24.0.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
     "typescript": "5.2.2",
     "vite": "5.0.8",
-    "vitest": "^3.2.3",
-    "jsdom": "^24.0.0"
+    "vitest": "^3.2.3"
   },
   "license": "UNLICENSED"
 }

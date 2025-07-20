@@ -1,5 +1,16 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { debounce } from 'lodash'
+
+// Simple debounce implementation
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+}
 
 interface UseAutoSaveOptions {
   delay?: number // 自動保存の遅延時間（ミリ秒）

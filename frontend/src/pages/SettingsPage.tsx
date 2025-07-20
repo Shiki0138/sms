@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, Clock, Bell, Shield, CreditCard, Database, Users, Calendar } from 'lucide-react';
-import EnhancedBusinessHoursSettings from '@/components/Settings/EnhancedBusinessHoursSettings';
+// import EnhancedBusinessHoursSettings from '@/components/Settings/EnhancedBusinessHoursSettings'; // Component not found
 
 const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('business-hours');
@@ -51,7 +51,11 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <div className="p-6">
-              {activeTab === 'business-hours' && <EnhancedBusinessHoursSettings />}
+              {activeTab === 'business-hours' && (
+                <div className="text-center py-12 text-gray-500">
+                  営業時間・休日設定機能は準備中です
+                </div>
+              )}
               {activeTab === 'notifications' && (
                 <div className="text-center py-12 text-gray-500">
                   通知設定機能は準備中です

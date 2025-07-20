@@ -223,7 +223,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         lastLoginAt: new Date().toISOString()
       }
 
-      const token = result.user.access_token || 'supabase-session'
+      const token = (result.user as any).access_token || 'supabase-session'
 
       // ローカルストレージに保存
       localStorage.setItem('salon_auth_token', token)

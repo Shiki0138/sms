@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import EnhancedSalonCalendar from '@/components/Calendar/EnhancedSalonCalendar';
-import type { BusinessHoursSettings } from '@/types/businessHours';
+// import EnhancedSalonCalendar from '@/components/Calendar/EnhancedSalonCalendar'; // Component not found
+// import type { BusinessHoursSettings } from '@/types/businessHours';
 import { Calendar, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 

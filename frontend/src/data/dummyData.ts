@@ -60,6 +60,8 @@ export interface Reservation {
   notes?: string
   price?: number
   stylistNotes?: string // 美容師メモ
+  beforePhotos?: string[]
+  afterPhotos?: string[]
 }
 
 export interface MessageThread {
