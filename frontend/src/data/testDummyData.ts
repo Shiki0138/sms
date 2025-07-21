@@ -14,8 +14,22 @@ export const testDummyData = {
     }
   ],
   staff: [
-    { id: '1', name: 'スタッフA' },
-    { id: '2', name: 'スタッフB' }
+    { 
+      id: '1', 
+      name: 'スタッフA',
+      position: 'スタイリスト',
+      specialties: ['カット', 'カラー'],
+      joinDate: '2020-01-01',
+      performance: { rating: 4.5, reviews: 120 }
+    },
+    { 
+      id: '2', 
+      name: 'スタッフB',
+      position: 'アシスタント',
+      specialties: ['シャンプー', 'マッサージ'],
+      joinDate: '2022-06-01',
+      performance: { rating: 4.2, reviews: 45 }
+    }
   ]
 };
 
@@ -31,5 +45,9 @@ export const initialSetupData = {
   operationHours: {
     weekday: { start: '10:00', end: '20:00' },
     weekend: { start: '10:00', end: '19:00' }
-  }
+  },
+  customers: testDummyData.customers,
+  reservations: testDummyData.reservations,
+  messages: [],
+  staff: testDummyData.staff
 };

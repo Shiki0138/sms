@@ -67,20 +67,12 @@ const demoBusinessHoursSettings: BusinessHoursSettings = {
   ],
   specialHolidays: [
     {
-      id: '1',
-      name: '年末年始休業',
-      startDate: '2024-12-29',
-      endDate: '2025-01-03',
-      description: '年末年始のお休み',
-      allowBooking: false
+      date: '2024-12-29',
+      description: '年末年始休業'
     },
     {
-      id: '2',
-      name: '夏季休業',
-      startDate: '2024-08-13',
-      endDate: '2024-08-15',
-      description: 'お盆休み',
-      allowBooking: true // 警告付きで予約可能
+      date: '2024-08-13',
+      description: '夏季休業'
     }
   ],
   bookingSettings: {

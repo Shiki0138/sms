@@ -21,3 +21,7 @@ export const salonOptions = [
     openHours: '10:00-20:00'
   }
 ];
+
+(salonOptions as any).salonTypes = ['hair', 'nail', 'beauty', 'eyelash', 'relaxation'];
+(salonOptions as any).prefectures = ['東京都', '神奈川県', '千葉県', '埼玉県'];
+(salonOptions as any).capacityOptions = [5, 10, 15, 20, 30, 50];

@@ -34,9 +34,9 @@ export const menuTemplates = {
 export const setMenuTemplates = menuTemplates;
 
 export const menuCategories = [
-  { id: 'hair', name: 'ヘアメニュー' },
-  { id: 'nail', name: 'ネイルメニュー' },
-  { id: 'beauty', name: 'エステメニュー' },
-  { id: 'eyelash', name: 'まつげメニュー' },
-  { id: 'relaxation', name: 'リラクゼーション' }
+  { id: 'hair', name: 'ヘアメニュー', icon: '✂️' },
+  { id: 'nail', name: 'ネイルメニュー', icon: '💅' },
+  { id: 'beauty', name: 'エステメニュー', icon: '✨' },
+  { id: 'eyelash', name: 'まつげメニュー', icon: '👁️' },
+  { id: 'relaxation', name: 'リラクゼーション', icon: '🌿' }
 ];

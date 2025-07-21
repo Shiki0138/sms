@@ -22,10 +22,17 @@ export const adminAccounts = [
   }
 ]
 
-export const adminTestAccounts = adminAccounts
+export const adminTestAccounts = adminAccounts.map(acc => ({
+  ...acc,
+  salonInfo: {
+    name: 'テストサロン',
+    address: '東京都渋谷区'
+  }
+}))
 
 export const loginTestInstructions = {
   admin: '管理者としてログイン',
   staff: 'スタッフとしてログイン',
-  demo: 'デモユーザーとしてログイン'
+  demo: 'デモユーザーとしてログイン',
+  commonPassword: 'test123'
 }
