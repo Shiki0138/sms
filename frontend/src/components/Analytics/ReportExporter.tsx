@@ -268,7 +268,8 @@ const ReportExporter: React.FC<ReportExporterProps> = ({
 
   // Excel生成関数
   const generateExcel = async () => {
-    const workbook = XLSX.utils.book_new()
+    throw new Error('Excel export is not available yet. Please install xlsx package.');
+    /* const workbook = XLSX.utils.book_new()
     
     // 基本統計シート
     const basicStatsData = [
@@ -346,7 +347,7 @@ const ReportExporter: React.FC<ReportExporterProps> = ({
       XLSX.utils.book_append_sheet(workbook, insightsSheet, 'インサイト')
     }
     
-    return workbook
+    return workbook */
   }
 
   // エクスポート実行
@@ -362,8 +363,8 @@ const ReportExporter: React.FC<ReportExporterProps> = ({
         const pdf = await generatePDF()
         pdf.save(`${filename}.pdf`)
       } else {
-        const workbook = await generateExcel()
-        XLSX.writeFile(workbook, `${filename}.xlsx`)
+        await generateExcel()
+        // XLSX.writeFile(workbook, `${filename}.xlsx`)
       }
       
       setExportStatus('success')

@@ -21,3 +21,11 @@ export const adminAccounts = [
     name: 'デモユーザー'
   }
 ]
+
+export const adminTestAccounts = adminAccounts
+
+export const loginTestInstructions = {
+  admin: '管理者としてログイン',
+  staff: 'スタッフとしてログイン',
+  demo: 'デモユーザーとしてログイン'
+}

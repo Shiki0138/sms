@@ -21,7 +21,7 @@ const ExternalAPISettings: React.FC = () => {
   const [lineConnected, setLineConnected] = useState(false)
   
   // 管理者・オーナーのみアクセス可能（小文字に対応）
-  const canConfigureAPIs = user?.role === 'admin' || user?.role === 'ADMIN' || user?.role === 'OWNER'
+  const canConfigureAPIs = user?.role === 'admin'
   
   const handleLineConnect = async () => {
     if (!canConfigureAPIs) {
