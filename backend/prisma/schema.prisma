@@ -134,6 +134,7 @@ model Customer {
   address         String?
   instagramId     String?   @unique
   lineId          String?   @unique
+  profilePhoto    String?
   firstVisitDate  DateTime?
   lastVisitDate   DateTime?
   visitCount      Int       @default(0)

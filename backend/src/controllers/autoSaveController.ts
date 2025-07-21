@@ -237,10 +237,9 @@ async function restoreMessageData(data: any, targetId: string, tenantId: string)
   // prisma is now imported at the top
   
   return await prisma.message.update({
-    where: { id: targetId, tenantId },
+    where: { id: targetId },
     data: {
       content: data.content,
-      messageType: data.messageType,
       // その他の復元可能なフィールド
     },
   });
