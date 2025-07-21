@@ -18,7 +18,7 @@ import { ja } from 'date-fns/locale'
 import jsPDF from 'jspdf'
 // @ts-ignore
 import 'jspdf-autotable'
-import * as XLSX from 'xlsx'
+// import * as XLSX from 'xlsx' // TODO: Install xlsx package
 
 interface Customer {
   id: string

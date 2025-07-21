@@ -18,3 +18,18 @@ export const testDummyData = {
     { id: '2', name: 'スタッフB' }
   ]
 };
+
+export const testCustomers = testDummyData.customers;
+export const testStaff = testDummyData.staff;
+export const initialSetupData = {
+  businessInfo: {
+    name: 'サンプルサロン',
+    address: '東京都渋谷区',
+    phone: '03-1234-5678',
+    email: 'info@salon.com'
+  },
+  operationHours: {
+    weekday: { start: '10:00', end: '20:00' },
+    weekend: { start: '10:00', end: '19:00' }
+  }
+};

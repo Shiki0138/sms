@@ -30,6 +30,21 @@ const demoReservations = [
   }
 ];
 
+// 型定義
+interface BusinessHoursSettings {
+  businessHours: Array<{
+    dayOfWeek: number
+    isOpen: boolean
+    openTime: string
+    closeTime: string
+  }>
+  holidays: string[]
+  specialHolidays: Array<{
+    date: string
+    description: string
+  }>
+}
+
 // デモ用の営業時間設定
 const demoBusinessHoursSettings: BusinessHoursSettings = {
   businessHours: [
@@ -151,7 +166,7 @@ const CalendarDemoPage: React.FC = () => {
             </div>
 
             <div className="h-[600px]">
-              <EnhancedSalonCalendar
+              {/* <EnhancedSalonCalendar
                 reservations={demoReservations}
                 view={view}
                 currentDate={currentDate}
@@ -159,7 +174,10 @@ const CalendarDemoPage: React.FC = () => {
                 onReservationClick={handleReservationClick}
                 onTimeSlotClick={handleTimeSlotClick}
                 businessHoursSettings={demoBusinessHoursSettings}
-              />
+              /> */}
+              <div className="flex items-center justify-center h-full text-gray-500">
+                カレンダーコンポーネントは準備中です
+              </div>
             </div>
           </div>
 

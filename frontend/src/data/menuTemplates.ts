@@ -30,3 +30,13 @@ export const menuTemplates = {
     { name: 'アロマセラピー', price: 7000, duration: 60 }
   ]
 };
+
+export const setMenuTemplates = menuTemplates;
+
+export const menuCategories = [
+  { id: 'hair', name: 'ヘアメニュー' },
+  { id: 'nail', name: 'ネイルメニュー' },
+  { id: 'beauty', name: 'エステメニュー' },
+  { id: 'eyelash', name: 'まつげメニュー' },
+  { id: 'relaxation', name: 'リラクゼーション' }
+];
