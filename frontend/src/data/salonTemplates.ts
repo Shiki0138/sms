@@ -6,7 +6,27 @@ export const salonTemplates = [
   { id: '5', name: 'リラクゼーション', type: 'relaxation' }
 ];
 
-export const salonOptions = [
+interface SalonOption {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  address: string;
+  phone: string;
+  email: string;
+  capacity: number;
+  priceRange: string;
+  services: string[];
+  openHours: string;
+}
+
+interface SalonOptionsWithExtras {
+  salonTypes: string[];
+  prefectures: string[];
+  capacityOptions: { value: number; label: string }[];
+}
+
+export const salonOptions: SalonOption[] = [
   {
     id: '1',
     name: 'ヘアサロン',
@@ -22,6 +42,15 @@ export const salonOptions = [
   }
 ];
 
-(salonOptions as any).salonTypes = ['hair', 'nail', 'beauty', 'eyelash', 'relaxation'];
-(salonOptions as any).prefectures = ['東京都', '神奈川県', '千葉県', '埼玉県'];
-(salonOptions as any).capacityOptions = [5, 10, 15, 20, 30, 50];
+export const salonOptionsExtras: SalonOptionsWithExtras = {
+  salonTypes: ['hair', 'nail', 'beauty', 'eyelash', 'relaxation'],
+  prefectures: ['東京都', '神奈川県', '千葉県', '埼玉県'],
+  capacityOptions: [
+    { value: 5, label: '5席' },
+    { value: 10, label: '10席' },
+    { value: 15, label: '15席' },
+    { value: 20, label: '20席' },
+    { value: 30, label: '30席' },
+    { value: 50, label: '50席' }
+  ]
+};

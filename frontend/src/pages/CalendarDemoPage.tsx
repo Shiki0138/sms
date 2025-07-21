@@ -56,31 +56,8 @@ const demoBusinessHoursSettings: BusinessHoursSettings = {
     { dayOfWeek: 5, isOpen: true, openTime: '10:00', closeTime: '20:00' },
     { dayOfWeek: 6, isOpen: true, openTime: '10:00', closeTime: '20:00' },
   ],
-  weeklyClosedDays: [1], // 毎週月曜日
-  regularHolidays: [
-    {
-      id: '1',
-      dayOfWeek: 2, // 火曜日
-      weekNumbers: [2, 4], // 第2・第4火曜日
-      isActive: true
-    }
-  ],
-  specialHolidays: [
-    {
-      date: '2024-12-29',
-      description: '年末年始休業'
-    },
-    {
-      date: '2024-08-13',
-      description: '夏季休業'
-    }
-  ],
-  bookingSettings: {
-    allowOutOfHoursBooking: true,
-    outOfHoursWarningMessage: '営業時間外のご予約です。確認後、スタッフから連絡させていただく場合があります。',
-    allowHolidayBooking: true,
-    holidayWarningMessage: '休業日のご予約です。特別に対応可能か確認後、ご連絡させていただきます。'
-  }
+  holidays: [],
+  specialHolidays: []
 };
 
 const CalendarDemoPage: React.FC = () => {

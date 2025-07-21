@@ -26,7 +26,9 @@ export const adminTestAccounts = adminAccounts.map(acc => ({
   ...acc,
   salonInfo: {
     name: 'テストサロン',
-    address: '東京都渋谷区'
+    address: '東京都渋谷区',
+    type: 'hair',
+    location: '東京都渋谷区'
   }
 }))
 

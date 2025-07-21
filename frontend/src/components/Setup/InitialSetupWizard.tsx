@@ -19,7 +19,7 @@ import {
   Shield,
   Sparkles
 } from 'lucide-react'
-import { salonTemplates, salonOptions } from '../../data/salonTemplates'
+import { salonTemplates, salonOptions, salonOptionsExtras } from '../../data/salonTemplates'
 import { menuTemplates, setMenuTemplates, menuCategories } from '../../data/menuTemplates'
 import { testCustomers, testStaff, initialSetupData } from '../../data/testDummyData'
 import { apiTemplates, recommendedAPISetup } from '../../data/apiTemplates'
@@ -256,7 +256,7 @@ const InitialSetupWizard: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">選択してください</option>
-                  {salonOptions.salonTypes.map((type) => (
+                  {salonOptionsExtras.salonTypes.map((type) => (
                     <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
@@ -271,7 +271,7 @@ const InitialSetupWizard: React.FC = () => {
                   onChange={(e) => setSetupData({...setupData, prefecture: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {salonOptions.prefectures.map((prefecture) => (
+                  {salonOptionsExtras.prefectures.map((prefecture) => (
                     <option key={prefecture} value={prefecture}>{prefecture}</option>
                   ))}
                 </select>
@@ -325,7 +325,7 @@ const InitialSetupWizard: React.FC = () => {
                   onChange={(e) => setSetupData({...setupData, capacity: parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {salonOptions.capacityOptions.map((option) => (
+                  {salonOptionsExtras.capacityOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
@@ -353,12 +353,12 @@ const InitialSetupWizard: React.FC = () => {
                     <span className="text-2xl mr-3">{category.icon}</span>
                     <h4 className="text-lg font-medium text-gray-900">{category.name}</h4>
                     <span className="ml-auto text-sm text-gray-500">
-                      {categoryMenus.filter(menu => selectedMenus.includes(menu.id)).length} / {categoryMenus.length} 選択中
+                      {categoryMenus.filter((menu: any) => selectedMenus.includes(menu.id)).length} / {categoryMenus.length} 選択中
                     </span>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {categoryMenus.map((menu) => (
+                    {categoryMenus.map((menu: any) => (
                       <div
                         key={menu.id}
                         className={`border rounded-lg p-3 cursor-pointer transition-colors ${
@@ -438,8 +438,8 @@ const InitialSetupWizard: React.FC = () => {
                     
                     <div className="text-xs text-gray-600">
                       <p>入社: {new Date(staff.joinDate).getFullYear()}年</p>
-                      <p>満足度: {staff.performance.customerSatisfaction}/5.0</p>
-                      <p>リピート率: {staff.performance.repeatCustomerRate}%</p>
+                      <p>レビュー: {staff.performance.rating}/5.0</p>
+                      <p>評価数: {staff.performance.reviews}件</p>
                     </div>
                   </div>
                 </div>
