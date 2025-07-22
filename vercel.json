@@ -1,9 +1,9 @@
 {
-  "buildCommand": "cd frontend && npm ci --legacy-peer-deps --no-audit --no-fund --no-progress && npm run build",
-  "outputDirectory": "frontend/dist",
-  "installCommand": "echo 'Skipping root install'",
+  "rootDirectory": "frontend",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm ci --legacy-peer-deps",
   "framework": "vite",
-  "nodeVersion": "20.x",
   "routes": [
     {
       "src": "/(.*)",
