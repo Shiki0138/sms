@@ -1,21 +1,3 @@
 {
-  "rootDirectory": "frontend",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm ci --legacy-peer-deps",
-  "framework": "vite",
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
-  "env": {
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
-    "NPM_CONFIG_STRICT_PEER_DEPS": "false",
-    "NPM_CONFIG_AUDIT": "false",
-    "NPM_CONFIG_FUND": "false",
-    "NPM_CONFIG_PROGRESS": "false"
-  }
+  "rootDirectory": "frontend"
 }
