@@ -15,7 +15,11 @@ import toast from 'react-hot-toast'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
-const ExternalAPISettings: React.FC = () => {
+interface ExternalAPISettingsProps {
+  defaultTab?: 'line' | 'instagram' | 'google';
+}
+
+const ExternalAPISettings: React.FC<ExternalAPISettingsProps> = ({ defaultTab }) => {
   const { user } = useAuth()
   const [isConnectingLine, setIsConnectingLine] = useState(false)
   const [lineConnected, setLineConnected] = useState(false)
