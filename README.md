@@ -204,4 +204,4 @@ MIT License
 
 **開発チーム**: SMS Development Team  
 **最終更新**: 2025年1月12日  
-**本番環境**: https://salon-management-system-one.vercel.app
+**本番環境**: https://salon-management-system-one.vercel.app# Deploy trigger
