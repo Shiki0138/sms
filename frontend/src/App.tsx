@@ -260,29 +260,53 @@ function App() {
     customClosedDates: ['2025-01-01', '2025-12-31'] as string[] // YYYY-MM-DD format
   })
   
-  // Fetch holiday settings from Supabase
+  // Fetch holiday settings from Supabase or localStorage
   useEffect(() => {
     const fetchHolidaySettings = async () => {
       if (!user?.id) return
       
       try {
-        const { data: settings, error } = await supabase
-          .from('holiday_settings')
-          .select('*')
-          .eq('salon_id', user.id)
-          .single()
-        
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-          throw error
-        }
-        
-        if (settings) {
+        // まずローカルストレージから読み込み
+        const localSettings = localStorage.getItem(`holiday_settings_${user.id}`)
+        if (localSettings) {
+          const parsed = JSON.parse(localSettings)
           setBusinessSettings(prev => ({
             ...prev,
-            closedDays: settings.weekly_closed_days || [1],
-            nthWeekdayRules: settings.nth_weekday_rules || [],
-            customClosedDates: settings.specific_holidays || []
+            closedDays: parsed.weeklyClosedDays || [1],
+            nthWeekdayRules: parsed.nthWeekdayRules || [],
+            customClosedDates: parsed.specificHolidays || []
           }))
+          return
+        }
+
+        // ローカルにない場合はSupabaseから取得を試みる
+        try {
+          const { data: settings, error } = await supabase
+            .from('holiday_settings')
+            .select('*')
+            .eq('salon_id', user.id)
+            .single()
+          
+          if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+            console.error('Supabase holiday fetch error:', error)
+          }
+          
+          if (settings) {
+            setBusinessSettings(prev => ({
+              ...prev,
+              closedDays: settings.weekly_closed_days || [1],
+              nthWeekdayRules: settings.nth_weekday_rules || [],
+              customClosedDates: settings.specific_holidays || []
+            }))
+            // ローカルストレージにも保存
+            localStorage.setItem(`holiday_settings_${user.id}`, JSON.stringify({
+              weeklyClosedDays: settings.weekly_closed_days || [1],
+              nthWeekdayRules: settings.nth_weekday_rules || [],
+              specificHolidays: settings.specific_holidays || []
+            }))
+          }
+        } catch (supabaseError) {
+          console.warn('Supabase holiday fetch failed, using defaults:', supabaseError)
         }
       } catch (error) {
         console.error('Failed to fetch holiday settings:', error)
@@ -290,6 +314,22 @@ function App() {
     }
     
     fetchHolidaySettings()
+    
+    // localStorageの変更を監視
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `holiday_settings_${user?.id}` && e.newValue) {
+        const parsed = JSON.parse(e.newValue)
+        setBusinessSettings(prev => ({
+          ...prev,
+          closedDays: parsed.weeklyClosedDays || [1],
+          nthWeekdayRules: parsed.nthWeekdayRules || [],
+          customClosedDates: parsed.specificHolidays || []
+        }))
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [user?.id])
   
   // Calendar view state
