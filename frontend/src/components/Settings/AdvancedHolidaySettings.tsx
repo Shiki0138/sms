@@ -33,7 +33,9 @@ interface HolidayPreview {
 
 const AdvancedHolidaySettings: React.FC = () => {
   const { user } = useAuth()
-  const salonId = user?.id || 'default-salon' // 実際のサロンIDロジックに合わせて修正が必要
+  // 現在のシステムではtenantIdがないため、一時的にユーザーIDをtenantIdとして使用
+  // 将来的には適切なtenantIdを使用すべき
+  const tenantId = user?.id || 'default-tenant'
   
   const [holidaySettings, setHolidaySettings] = useState<HolidaySettings>({
     weeklyClosedDays: [1], // デフォルト：月曜日
@@ -62,54 +64,39 @@ const AdvancedHolidaySettings: React.FC = () => {
   const loadHolidaySettings = async () => {
     setIsLoading(true)
     try {
-      // まずローカルストレージから読み込みを試みる
-      const localSettings = localStorage.getItem(`holiday_settings_${salonId}`)
-      if (localSettings) {
-        const parsed = JSON.parse(localSettings)
-        setHolidaySettings(parsed)
-        setIsLoading(false)
-        return
-      }
-
-      // ローカルにない場合はSupabaseから取得を試みる
-      try {
-        const { data: settings, error } = await supabase
-          .from('holiday_settings')
-          .select('*')
-          .eq('salon_id', salonId)
-          .single()
-        
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-          console.error('Supabase error details:', error)
-          // Supabaseエラーは無視してローカルストレージを使用
+      // Supabaseから休日設定を取得
+      const { data: settings, error } = await supabase
+        .from('holiday_settings')
+        .select('*')
+        .eq('tenantId', tenantId)
+        .single()
+      
+      if (error) {
+        if (error.code === 'PGRST116') { // No rows returned
+          console.log('No holiday settings found for tenant, using defaults')
+        } else {
+          console.error('Error loading holiday settings:', error)
+          toast.error('休日設定の読み込みに失敗しました。Supabaseの設定を確認してください。')
         }
-        
-        if (settings) {
-          setHolidaySettings({
-            weeklyClosedDays: settings.weekly_closed_days || [],
-            nthWeekdayRules: settings.nth_weekday_rules || [],
-            specificHolidays: settings.specific_holidays || []
-          })
-          // ローカルストレージにも保存
-          localStorage.setItem(`holiday_settings_${salonId}`, JSON.stringify({
-            weeklyClosedDays: settings.weekly_closed_days || [],
-            nthWeekdayRules: settings.nth_weekday_rules || [],
-            specificHolidays: settings.specific_holidays || []
-          }))
-          return
-        }
-      } catch (supabaseError) {
-        console.warn('Supabase access failed, using local storage fallback:', supabaseError)
       }
-
-      // デフォルト値を使用
-      setHolidaySettings({
-        weeklyClosedDays: [1], // 月曜日
-        nthWeekdayRules: [],
-        specificHolidays: []
-      })
+      
+      if (settings) {
+        setHolidaySettings({
+          weeklyClosedDays: settings.weekly_closed_days || [],
+          nthWeekdayRules: settings.nth_weekday_rules || [],
+          specificHolidays: settings.specific_holidays || []
+        })
+      } else {
+        // 設定が存在しない場合はデフォルト値を使用
+        setHolidaySettings({
+          weeklyClosedDays: [1], // 月曜日
+          nthWeekdayRules: [],
+          specificHolidays: []
+        })
+      }
     } catch (error) {
       console.error('Holiday settings load error:', error)
+      toast.error('休日設定の読み込みに失敗しました')
       
       // エラー時はデフォルト値で初期化
       setHolidaySettings({
@@ -180,47 +167,52 @@ const AdvancedHolidaySettings: React.FC = () => {
   const saveHolidaySettings = async () => {
     setIsSaving(true)
     try {
-      // ローカルストレージに保存
-      localStorage.setItem(`holiday_settings_${salonId}`, JSON.stringify(holidaySettings))
+      // 既存の設定を確認
+      const { data: existing, error: checkError } = await supabase
+        .from('holiday_settings')
+        .select('id')
+        .eq('tenantId', tenantId)
+        .single()
       
-      // Supabaseへの保存も試みる（エラーは無視）
-      try {
-        const { data: existing, error: checkError } = await supabase
+      const settingsData = {
+        tenantId: tenantId,
+        weekly_closed_days: holidaySettings.weeklyClosedDays,
+        nth_weekday_rules: holidaySettings.nthWeekdayRules,
+        specific_holidays: holidaySettings.specificHolidays,
+        updatedAt: new Date().toISOString()
+      }
+      
+      let result
+      if (existing && !checkError) {
+        // 更新
+        result = await supabase
           .from('holiday_settings')
-          .select('id')
-          .eq('salon_id', salonId)
-          .single()
+          .update(settingsData)
+          .eq('tenantId', tenantId)
+          .select()
+      } else {
+        // 新規作成
+        result = await supabase
+          .from('holiday_settings')
+          .insert({
+            ...settingsData,
+            createdAt: new Date().toISOString()
+          })
+          .select()
+      }
+      
+      if (result.error) {
+        console.error('Supabase save error:', result.error)
         
-        const settingsData = {
-          salon_id: salonId,
-          weekly_closed_days: holidaySettings.weeklyClosedDays,
-          nth_weekday_rules: holidaySettings.nthWeekdayRules,
-          specific_holidays: holidaySettings.specificHolidays,
-          updated_at: new Date().toISOString()
-        }
-        
-        let result
-        if (existing && !checkError) {
-          // 更新
-          result = await supabase
-            .from('holiday_settings')
-            .update(settingsData)
-            .eq('salon_id', salonId)
+        // テーブルが存在しない場合の詳細なエラーメッセージ
+        if (result.error.message.includes('relation') && result.error.message.includes('does not exist')) {
+          toast.error('holiday_settingsテーブルが存在しません。Supabaseでテーブルを作成してください。')
+          console.error('Please run the migration script in Supabase SQL Editor:', 
+            '/supabase/migrations/create_holiday_settings_table.sql')
         } else {
-          // 新規作成
-          result = await supabase
-            .from('holiday_settings')
-            .insert({
-              ...settingsData,
-              created_at: new Date().toISOString()
-            })
+          toast.error(`保存に失敗しました: ${result.error.message}`)
         }
-        
-        if (result.error) {
-          console.warn('Supabase save failed, but local storage saved successfully:', result.error)
-        }
-      } catch (supabaseError) {
-        console.warn('Supabase save failed, but local storage saved successfully:', supabaseError)
+        return
       }
       
       toast.success('休日設定を保存しました')
