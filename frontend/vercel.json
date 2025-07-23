@@ -1,18 +1,21 @@
 {
   "buildCommand": "npm ci --legacy-peer-deps && npm run build",
   "outputDirectory": "dist",
-  "installCommand": "echo 'Skipping root install'",
+  "installCommand": "npm ci --legacy-peer-deps",
   "framework": "vite",
-  "nodeVersion": "18.x",
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 10
     }
-  ],
-  "env": {
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
-    "NPM_CONFIG_STRICT_PEER_DEPS": "false"
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

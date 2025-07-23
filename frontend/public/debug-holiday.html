@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>休日設定デバッグツール</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            background: #e0e0e0;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 休日設定デバッグツール</h1>
+        
+        <div class="section">
+            <h2>1. Supabase接続テスト</h2>
+            <button onclick="testSupabaseConnection()">接続テスト実行</button>
+            <div id="supabase-result" class="debug-info"></div>
+        </div>
+
+        <div class="section">
+            <h2>2. 現在のユーザー情報</h2>
+            <button onclick="checkCurrentUser()">ユーザー情報取得</button>
+            <div id="user-result" class="debug-info"></div>
+        </div>
+
+        <div class="section">
+            <h2>3. 休日設定データ確認</h2>
+            <button onclick="checkHolidaySettings()">データ取得</button>
+            <div id="holiday-result" class="debug-info"></div>
+        </div>
+
+        <div class="section">
+            <h2>4. テスト保存</h2>
+            <button onclick="testSaveHoliday()">テスト休日を保存</button>
+            <div id="save-result" class="debug-info"></div>
+        </div>
+
+        <div class="section">
+            <h2>5. 手動SQL実行</h2>
+            <p>Supabaseダッシュボードで以下のSQLを実行してください：</p>
+            <pre><code>-- holiday_settingsテーブルが存在するか確認
+SELECT * FROM holiday_settings;
+
+-- もしエラーが出る場合は、テーブルを作成
+CREATE TABLE IF NOT EXISTS holiday_settings (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "tenantId" TEXT NOT NULL UNIQUE,
+  weekly_closed_days INTEGER[] DEFAULT '{}',
+  nth_weekday_rules JSONB DEFAULT '[]',
+  specific_holidays TEXT[] DEFAULT '{}',
+  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- RLSを無効化（テスト用）
+ALTER TABLE holiday_settings DISABLE ROW LEVEL SECURITY;</code></pre>
+        </div>
+    </div>
+
+    <script type="module">
+        // Supabase設定
+        const SUPABASE_URL = 'https://fqwdbywgknavgwqpnlkj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxd2RieXdna25hdmd3cXBubGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExNzc2MDQsImV4cCI6MjA2Njc1MzYwNH0._CJ-IvMB1JqotdMQla75qj8U8SFZkEsEi2YWJSeHpMM';
+
+        // Supabaseクライアントを動的にロード
+        async function getSupabase() {
+            if (!window.supabase) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+                document.head.appendChild(script);
+                
+                await new Promise((resolve) => {
+                    script.onload = resolve;
+                });
+                
+                const { createClient } = window.supabase;
+                window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            return window.supabaseClient;
+        }
+
+        window.testSupabaseConnection = async function() {
+            const resultDiv = document.getElementById('supabase-result');
+            try {
+                resultDiv.innerHTML = '接続テスト中...';
+                const supabase = await getSupabase();
+                
+                // 簡単なクエリを実行
+                const { data, error } = await supabase
+                    .from('holiday_settings')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    resultDiv.className = 'debug-info error';
+                    resultDiv.innerHTML = `<strong>エラー:</strong><br><pre>${JSON.stringify(error, null, 2)}</pre>`;
+                } else {
+                    resultDiv.className = 'debug-info success';
+                    resultDiv.innerHTML = '<strong>✓ Supabase接続成功</strong>';
+                }
+            } catch (err) {
+                resultDiv.className = 'debug-info error';
+                resultDiv.innerHTML = `<strong>接続エラー:</strong> ${err.message}`;
+            }
+        };
+
+        window.checkCurrentUser = async function() {
+            const resultDiv = document.getElementById('user-result');
+            try {
+                resultDiv.innerHTML = '取得中...';
+                const supabase = await getSupabase();
+                
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error) {
+                    resultDiv.className = 'debug-info error';
+                    resultDiv.innerHTML = `<strong>エラー:</strong> ${error.message}`;
+                } else if (user) {
+                    resultDiv.className = 'debug-info success';
+                    resultDiv.innerHTML = `
+                        <strong>認証済みユーザー:</strong><br>
+                        <strong>ID:</strong> <code>${user.id}</code><br>
+                        <strong>Email:</strong> <code>${user.email}</code><br>
+                        <strong>greenroom51確認:</strong> ${user.email === 'greenroom51@gmail.com' ? '✓ 一致' : '✗ 不一致'}
+                        <br><br>
+                        <strong>重要:</strong> テナントIDとして使用: <code>${user.id}</code>
+                    `;
+                } else {
+                    resultDiv.className = 'debug-info error';
+                    resultDiv.innerHTML = '<strong>ユーザーが認証されていません</strong>';
+                }
+            } catch (err) {
+                resultDiv.className = 'debug-info error';
+                resultDiv.innerHTML = `<strong>エラー:</strong> ${err.message}`;
+            }
+        };
+
+        window.checkHolidaySettings = async function() {
+            const resultDiv = document.getElementById('holiday-result');
+            try {
+                resultDiv.innerHTML = '取得中...';
+                const supabase = await getSupabase();
+                
+                // 全データを取得
+                const { data, error } = await supabase
+                    .from('holiday_settings')
+                    .select('*');
+                
+                if (error) {
+                    resultDiv.className = 'debug-info error';
+                    resultDiv.innerHTML = `<strong>エラー:</strong><br><pre>${JSON.stringify(error, null, 2)}</pre>`;
+                } else {
+                    resultDiv.className = 'debug-info';
+                    if (data.length === 0) {
+                        resultDiv.innerHTML = '<strong>休日設定データが見つかりません</strong>';
+                    } else {
+                        resultDiv.innerHTML = `
+                            <strong>保存されている休日設定 (${data.length}件):</strong><br>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                    }
+                }
+            } catch (err) {
+                resultDiv.className = 'debug-info error';
+                resultDiv.innerHTML = `<strong>エラー:</strong> ${err.message}`;
+            }
+        };
+
+        window.testSaveHoliday = async function() {
+            const resultDiv = document.getElementById('save-result');
+            try {
+                resultDiv.innerHTML = '保存中...';
+                const supabase = await getSupabase();
+                
+                // 現在のユーザーを取得
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    resultDiv.className = 'debug-info error';
+                    resultDiv.innerHTML = '<strong>ユーザーが認証されていません</strong>';
+                    return;
+                }
+                
+                const testData = {
+                    tenantId: user.id,
+                    weekly_closed_days: [0, 1], // 日曜・月曜
+                    nth_weekday_rules: [],
+                    specific_holidays: ['2024-07-23'],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // 既存データを確認
+                const { data: existing } = await supabase
+                    .from('holiday_settings')
+                    .select('id')
+                    .eq('tenantId', user.id)
+                    .single();
+                
+                let result;
+                if (existing) {
+                    // 更新
+                    result = await supabase
+                        .from('holiday_settings')
+                        .update(testData)
+                        .eq('tenantId', user.id);
+                } else {
+                    // 新規作成
+                    result = await supabase
+                        .from('holiday_settings')
+                        .insert([testData]);
+                }
+                
+                if (result.error) {
+                    resultDiv.className = 'debug-info error';
+                    resultDiv.innerHTML = `<strong>保存エラー:</strong><br><pre>${JSON.stringify(result.error, null, 2)}</pre>`;
+                } else {
+                    resultDiv.className = 'debug-info success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ テスト休日設定を保存しました</strong><br>
+                        テナントID: <code>${user.id}</code><br>
+                        定休日: 日曜・月曜<br>
+                        特定休日: 2024-07-23
+                    `;
+                }
+            } catch (err) {
+                resultDiv.className = 'debug-info error';
+                resultDiv.innerHTML = `<strong>エラー:</strong> ${err.message}`;
+            }
+        };
+    </script>
+</body>
+</html>

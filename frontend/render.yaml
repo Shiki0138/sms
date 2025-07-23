@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: salon-management-frontend
+    env: node
+    buildCommand: npm ci --legacy-peer-deps && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_API_URL
+        value: "/api/v1"
+      - key: VITE_ENABLE_LOGIN
+        value: "true"
+      - key: VITE_SUPABASE_URL
+        value: "https://fqwdbywgknavgwqpnlkj.supabase.co"
+      - key: VITE_SUPABASE_ANON_KEY
+        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxd2RieXdna25hdmd3cXBubGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExNzc2MDQsImV4cCI6MjA2Njc1MzYwNH0._CJ-IvMB1JqotdMQla75qj8U8SFZkEsEi2YWJSeHpMM"
+      - key: VITE_DEMO_MODE
+        value: "false"

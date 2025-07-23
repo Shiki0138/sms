@@ -5,6 +5,7 @@ import { createError, asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { PERMISSIONS } from '../utils/auth';
 import BroadcastService from '../services/broadcastService';
+import ExternalMessageService from '../services/externalMessageService';
 
 const prisma = new PrismaClient();
 
@@ -510,14 +511,56 @@ export const sendMessage = asyncHandler(async (req: Request, res: Response) => {
     data: { updatedAt: new Date() },
   });
 
-  // TODO: Send actual message via external API (Instagram/LINE)
-  // This would be implemented in a separate service
-  logger.info(`Message queued for external sending`, {
-    messageId: message.id,
-    threadId: data.threadId,
-    channel: thread.channel,
-    tenantId,
-  });
+  // Send actual message via external API (Instagram/LINE)
+  const externalMessageService = new ExternalMessageService();
+  
+  // Prepare external message data
+  const recipientId = thread.channel === 'LINE' 
+    ? thread.customer.lineId 
+    : thread.customer.instagramId;
+    
+  if (recipientId) {
+    const externalResult = await externalMessageService.sendMessage({
+      channel: thread.channel,
+      recipientId,
+      content: data.content,
+      mediaType: data.mediaType,
+      mediaUrl: data.mediaUrl,
+      tenantId,
+    });
+    
+    if (externalResult.success) {
+      logger.info(`External message sent successfully`, {
+        messageId: message.id,
+        threadId: data.threadId,
+        channel: thread.channel,
+        externalMessageId: externalResult.messageId,
+      });
+      
+      // Update message with external ID
+      if (externalResult.messageId) {
+        await prisma.message.update({
+          where: { id: message.id },
+          data: { externalMessageId: externalResult.messageId },
+        });
+      }
+    } else {
+      logger.error(`Failed to send external message`, {
+        messageId: message.id,
+        threadId: data.threadId,
+        channel: thread.channel,
+        error: externalResult.error,
+      });
+      
+      // Note: We don't throw error here to avoid disrupting the flow
+      // The message is already saved in database
+    }
+  } else {
+    logger.warn(`No external recipient ID found`, {
+      threadId: data.threadId,
+      channel: thread.channel,
+    });
+  }
 
   // Log audit event
   await prisma.auditLog.create({

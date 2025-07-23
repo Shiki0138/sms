@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   MessageCircle, 
   Instagram, 
@@ -7,11 +7,14 @@ import {
   Info,
   Check,
   X,
-  Loader2
+  Loader2,
+  Settings
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase-client'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import ApiCredentialsModal from './ApiCredentialsModal'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
@@ -23,9 +26,43 @@ const ExternalAPISettings: React.FC<ExternalAPISettingsProps> = ({ defaultTab })
   const { user } = useAuth()
   const [isConnectingLine, setIsConnectingLine] = useState(false)
   const [lineConnected, setLineConnected] = useState(false)
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false)
+  const [selectedService, setSelectedService] = useState<'line' | 'instagram' | 'google'>('line')
+  const [apiSettings, setApiSettings] = useState<any>({})
   
   // 管理者・オーナーのみアクセス可能（小文字に対応）
   const canConfigureAPIs = user?.role === 'admin'
+  
+  // API設定を読み込む
+  useEffect(() => {
+    loadApiSettings()
+  }, [user?.id])
+  
+  const loadApiSettings = async () => {
+    if (!user?.id) return
+    
+    try {
+      const { data, error } = await supabase
+        .from('api_settings')
+        .select('*')
+        .eq('tenantId', user.id)
+      
+      if (error) throw error
+      
+      const settings: any = {}
+      data?.forEach(item => {
+        settings[item.service] = item.credentials
+      })
+      setApiSettings(settings)
+      
+      // LINE接続状態を確認
+      if (settings.line?.channelAccessToken) {
+        setLineConnected(true)
+      }
+    } catch (error) {
+      console.error('Failed to load API settings:', error)
+    }
+  }
   
   const handleLineConnect = async () => {
     if (!canConfigureAPIs) {
@@ -112,24 +149,38 @@ const ExternalAPISettings: React.FC<ExternalAPISettingsProps> = ({ defaultTab })
                 LINE公式アカウントと連携することで、顧客とのコミュニケーションを効率化できます。
               </p>
               
-              {!lineConnected && (
-                <button
-                  onClick={handleLineConnect}
-                  disabled={isConnectingLine}
-                  className="btn btn-primary flex items-center"
-                >
-                  {isConnectingLine ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      連携中...
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      LINE連携を開始
-                    </>
-                  )}
-                </button>
+              {!lineConnected ? (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      setSelectedService('line')
+                      setShowCredentialsModal(true)
+                    }}
+                    className="btn btn-primary flex items-center"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    LINE API設定
+                  </button>
+                  <p className="text-xs text-gray-500">
+                    まずAPI認証情報を設定してください
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center text-green-700">
+                    <Check className="w-4 h-4 mr-2" />
+                    <span className="text-sm">API設定済み</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedService('line')
+                      setShowCredentialsModal(true)
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    設定を変更
+                  </button>
+                </div>
               )}
             </div>
             
@@ -201,6 +252,19 @@ const ExternalAPISettings: React.FC<ExternalAPISettingsProps> = ({ defaultTab })
           </div>
         </div>
       </div>
+      
+      {/* API認証情報モーダル */}
+      {showCredentialsModal && (
+        <ApiCredentialsModal
+          isOpen={showCredentialsModal}
+          onClose={() => {
+            setShowCredentialsModal(false)
+            loadApiSettings() // モーダルを閉じた時に設定を再読み込み
+          }}
+          service={selectedService}
+          currentCredentials={apiSettings[selectedService]}
+        />
+      )}
     </div>
   )
 }

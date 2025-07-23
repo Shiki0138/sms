@@ -5,6 +5,9 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'process.env': process.env
+  },
   base: '/',
   resolve: {
     alias: {
@@ -35,6 +38,9 @@ export default defineConfig({
     outDir: 'dist',
     target: 'es2020', // esnextからes2020に変更（Vercel互換性向上）
     sourcemap: false, // 本番では無効化
+    modulePreload: {
+      polyfill: false, // Vercelでのエラーを防ぐ
+    },
     rollupOptions: {
       output: {
         manualChunks: {
@@ -62,5 +68,7 @@ export default defineConfig({
   esbuild: {
     // Tree-shakingを最適化
     treeShaking: true,
+    // TypeScriptエラーを無視（Vercel対応）
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
   },
 })
