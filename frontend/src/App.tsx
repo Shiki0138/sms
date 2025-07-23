@@ -30,6 +30,7 @@ import BulkMessageSender from './components/BulkMessageSender'
 import ServiceHistoryModal from './components/ServiceHistoryModal'
 import FeatureRequestForm from './components/FeatureRequestForm'
 import FilteredCustomerView from './components/FilteredCustomerView'
+import SettingsPage from './pages/SettingsPage'
 // Import icons from lucide-react
 import {
   MessageSquare,
@@ -1683,21 +1684,6 @@ function App() {
               
               <button
                 onClick={() => {
-                  setActiveTab('menu-management')
-                  setIsSidebarOpen(false)
-                }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                  activeTab === 'menu-management' 
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <Scissors className="w-5 h-5 flex-shrink-0" />
-                <span className="font-medium">メニュー管理</span>
-              </button>
-              
-              <button
-                onClick={() => {
                   setActiveTab('feature-request')
                   setIsSidebarOpen(false)
                   setUnreadFeatureRequests(0) // Clear notification count when visiting page
@@ -1818,73 +1804,8 @@ function App() {
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'analytics' && <CustomerAnalyticsDashboard />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'premium-marketing' && <PremiumMarketingDashboard />}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'feature-request' && <FeatureRequestForm onNewRequest={handleNewFeatureRequest} />}
-            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'api-settings' && (
-                <div className="space-y-6">
-                  <div className="flex items-center mb-6">
-                    <button
-                      onClick={() => setActiveTab('settings')}
-                      className="text-gray-600 hover:text-gray-900 mr-4"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">外部API連携設定</h2>
-                  </div>
-                  <ExternalAPISettings />
-                </div>
-            )}
-            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'notification-settings' && (
-                <div className="space-y-6">
-                  <div className="flex items-center mb-6">
-                    <button
-                      onClick={() => setActiveTab('settings')}
-                      className="text-gray-600 hover:text-gray-900 mr-4"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">通知設定</h2>
-                  </div>
-                  <NotificationSettings />
-                </div>
-            )}
-            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'backup-settings' && (
-                <div className="space-y-6">
-                  <div className="flex items-center mb-6">
-                    <button
-                      onClick={() => setActiveTab('settings')}
-                      className="text-gray-600 hover:text-gray-900 mr-4"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">データバックアップ設定</h2>
-                  </div>
-                  <DataBackupSettings />
-                </div>
-            )}
-            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'openai-settings' && (
-                <div className="space-y-6">
-                  <div className="flex items-center mb-6">
-                    <button
-                      onClick={() => setActiveTab('settings')}
-                      className="text-gray-600 hover:text-gray-900 mr-4"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">OpenAI設定</h2>
-                  </div>
-                  <OpenAISettings />
-                </div>
-            )}
-            {activeView === 'main' && !showFilteredCustomerView && activeTab === 'menu-management' && (
-              <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">メニュー管理</h2>
-                <MenuManagement />
-              </div>
-            )}
             {activeView === 'main' && !showFilteredCustomerView && activeTab === 'settings' && (
-              <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900">設定</h2>
-                <NotificationSettings />
-              </div>
+              <SettingsPage />
             )}
           </div>
         </main>
