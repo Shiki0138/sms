@@ -289,12 +289,22 @@ function App() {
         }
         
         if (settings) {
+          console.log('✅ App.tsx - Holiday settings loaded from Supabase:', settings)
+          console.log('  - weekly_closed_days:', settings.weekly_closed_days)
+          console.log('  - nth_weekday_rules:', settings.nth_weekday_rules)
+          console.log('  - specific_holidays:', settings.specific_holidays)
+          
           setBusinessSettings(prev => ({
             ...prev,
             closedDays: settings.weekly_closed_days || [1],
             nthWeekdayRules: settings.nth_weekday_rules || [],
             customClosedDates: settings.specific_holidays || []
           }))
+          
+          // デバッグ用アラート（greenroom51のみ）
+          if (user?.email === 'greenroom51@gmail.com') {
+            alert(`App.tsx: 休日設定を読み込みました\n定休日: ${(settings.weekly_closed_days || []).map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${(settings.specific_holidays || []).length}件`)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch holiday settings:', error)
@@ -478,8 +488,15 @@ function App() {
     const dayOfWeek = getDay(date)
     const dateString = format(date, 'yyyy-MM-dd')
     
+    // デバッグ用ログ
+    console.log(`🔍 isClosedDay check for ${dateString}:`)
+    console.log('  - dayOfWeek:', dayOfWeek, ['日','月','火','水','木','金','土'][dayOfWeek])
+    console.log('  - businessSettings.closedDays:', businessSettings.closedDays)
+    console.log('  - businessSettings.customClosedDates:', businessSettings.customClosedDates)
+    
     // 毎週の定休日チェック
     if (businessSettings.closedDays.includes(dayOfWeek)) {
+      console.log(`  ✅ ${dateString} is weekly closed day`)
       return true
     }
     
@@ -488,13 +505,19 @@ function App() {
       if (dayOfWeek === rule.weekday) {
         const weekOfMonth = getWeekOfMonth(date, { weekStartsOn: 1 })
         if (rule.nth.includes(weekOfMonth)) {
+          console.log(`  ✅ ${dateString} is nth weekday closed (week ${weekOfMonth})`)
           return true
         }
       }
     }
     
     // 特定日チェック
-    return businessSettings.customClosedDates.includes(dateString)
+    if (businessSettings.customClosedDates.includes(dateString)) {
+      console.log(`  ✅ ${dateString} is specific closed date`)
+      return true
+    }
+    
+    return false
   }
 
   // Get holiday type for display
