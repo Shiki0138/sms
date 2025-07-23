@@ -13,6 +13,7 @@ import { ja } from 'date-fns/locale'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase-client'
 import toast from 'react-hot-toast'
+import HolidaySettingsDebug from './HolidaySettingsDebug'
 
 interface NthWeekdayRule {
   nth: number[] // 第何週 [1, 2, 3, 4, 5]
@@ -36,6 +37,9 @@ const AdvancedHolidaySettings: React.FC = () => {
   // 現在のシステムではtenantIdがないため、一時的にユーザーIDをtenantIdとして使用
   // 将来的には適切なtenantIdを使用すべき
   const tenantId = user?.id || 'default-tenant'
+  
+  console.log('AdvancedHolidaySettings - User:', user)
+  console.log('AdvancedHolidaySettings - TenantId:', tenantId)
   
   const [holidaySettings, setHolidaySettings] = useState<HolidaySettings>({
     weeklyClosedDays: [1], // デフォルト：月曜日
@@ -74,6 +78,7 @@ const AdvancedHolidaySettings: React.FC = () => {
       if (error) {
         if (error.code === 'PGRST116') { // No rows returned
           console.log('No holiday settings found for tenant, using defaults')
+          console.log(`テナントID「${tenantId}」の休日設定が見つかりません。新規作成してください。`)
         } else {
           console.error('Error loading holiday settings:', error)
           toast.error('休日設定の読み込みに失敗しました。Supabaseの設定を確認してください。')
@@ -215,7 +220,7 @@ const AdvancedHolidaySettings: React.FC = () => {
         return
       }
       
-      toast.success('休日設定を保存しました')
+      toast.success(`休日設定を保存しました (テナントID: ${tenantId})`)
       
       // 保存後に再読み込みして同期
       await loadHolidaySettings()
@@ -569,6 +574,9 @@ const AdvancedHolidaySettings: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* デバッグ情報（開発環境のみ） */}
+      {import.meta.env.DEV && <HolidaySettingsDebug />}
     </div>
   )
 }

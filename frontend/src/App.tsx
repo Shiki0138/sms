@@ -268,6 +268,9 @@ function App() {
       // 現在のシステムではtenantIdがないため、ユーザーIDをtenantIdとして使用
       const tenantId = user.id
       
+      console.log('App.tsx - User:', user)
+      console.log('App.tsx - TenantId for holiday fetch:', tenantId)
+      
       try {
         const { data: settings, error } = await supabase
           .from('holiday_settings')
