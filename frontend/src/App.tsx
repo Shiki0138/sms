@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { useLogout } from './hooks/useLogout'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import LimitWarning from './components/Common/LimitWarning'
 import PlanBadge from './components/Common/PlanBadge'
@@ -170,7 +171,8 @@ function App() {
   const config = getEnvironmentConfig()
   const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
   const queryClient = useQueryClient()
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
+  const handleLogout = useLogout()
 
   useEffect(() => {
     // 環境情報をログ出力
@@ -1807,10 +1809,9 @@ function App() {
               </div>
               <button
                 onClick={() => {
-                  logout()
                   setActiveTab('dashboard')
                   setIsSidebarOpen(false)
-                  window.location.href = '/login'
+                  handleLogout()
                 }}
                 className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50"
               >

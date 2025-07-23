@@ -575,8 +575,8 @@ const AdvancedHolidaySettings: React.FC = () => {
         </div>
       </div>
       
-      {/* デバッグ情報（開発環境のみ） */}
-      {import.meta.env.DEV && <HolidaySettingsDebug />}
+      {/* デバッグ情報 */}
+      <HolidaySettingsDebug />
     </div>
   )
 }

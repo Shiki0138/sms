@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { User, LogOut, Settings, Shield, Clock, Phone, Mail, ChevronDown } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { useLogout } from '../../hooks/useLogout'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
 const UserProfile: React.FC = () => {
-  const { user, logout, hasPermission } = useAuth()
+  const { user, hasPermission } = useAuth()
+  const handleLogout = useLogout()
   const [isOpen, setIsOpen] = useState(false)
 
   if (!user) return null
@@ -168,7 +170,7 @@ const UserProfile: React.FC = () => {
             <button
               onClick={() => {
                 setIsOpen(false)
-                logout()
+                handleLogout()
               }}
               className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50 flex items-center space-x-2"
             >
