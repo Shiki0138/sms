@@ -52,7 +52,12 @@ const SalonCalendar: React.FC<SalonCalendarProps> = ({
   getHolidayType
 }) => {
   // コンポーネントデバッグ用（本番では削除）
-  // console.log('SalonCalendar received reservations:', reservations.length, 'items');
+  console.log('🗓️ SalonCalendar props:', {
+    hasIsHoliday: !!isHoliday,
+    hasGetHolidayType: !!getHolidayType,
+    businessHours,
+    currentDate: format(currentDate, 'yyyy-MM-dd')
+  });
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
 
   // カレンダーの日付範囲を計算

@@ -262,16 +262,38 @@ function App() {
     customClosedDates: ['2025-01-01', '2025-12-31'] as string[] // YYYY-MM-DD format
   })
   
+  // 一貫したテナントIDを取得する関数
+  const getTenantId = async () => {
+    // デモモードの場合
+    if (user?.id === 'demo-user') {
+      return 'demo-user'
+    }
+    
+    // Supabase認証ユーザーの場合
+    try {
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+      if (supabaseUser) {
+        return supabaseUser.id
+      }
+    } catch (error) {
+      console.error('Failed to get Supabase user:', error)
+    }
+    
+    // フォールバック
+    return user?.id || 'default-tenant'
+  }
+  
   // Fetch holiday settings from Supabase
   useEffect(() => {
     const fetchHolidaySettings = async () => {
       if (!user?.id) return
       
-      // 現在のシステムではtenantIdがないため、ユーザーIDをtenantIdとして使用
-      const tenantId = user.id
+      // 一貫したテナントIDを取得
+      const tenantId = await getTenantId()
       
       console.log('App.tsx - User:', user)
       console.log('App.tsx - TenantId for holiday fetch:', tenantId)
+      console.log('App.tsx - User email:', user?.email)
       
       try {
         const { data: settings, error } = await supabase
@@ -294,49 +316,63 @@ function App() {
           console.log('  - nth_weekday_rules:', settings.nth_weekday_rules)
           console.log('  - specific_holidays:', settings.specific_holidays)
           
-          setBusinessSettings(prev => ({
-            ...prev,
-            closedDays: settings.weekly_closed_days || [1],
-            nthWeekdayRules: settings.nth_weekday_rules || [],
-            customClosedDates: settings.specific_holidays || []
-          }))
+          setBusinessSettings(prev => {
+            const newSettings = {
+              ...prev,
+              closedDays: settings.weekly_closed_days || [1],
+              nthWeekdayRules: settings.nth_weekday_rules || [],
+              customClosedDates: settings.specific_holidays || []
+            }
+            console.log('📝 App.tsx - Updating businessSettings from:', prev, 'to:', newSettings)
+            return newSettings
+          })
           
           // デバッグ用アラート（greenroom51のみ）
           if (user?.email === 'greenroom51@gmail.com') {
             alert(`App.tsx: 休日設定を読み込みました\n定休日: ${(settings.weekly_closed_days || []).map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${(settings.specific_holidays || []).length}件`)
           }
+        } else {
+          console.log('⚠️ App.tsx - No holiday settings found, keeping defaults')
         }
       } catch (error) {
         console.error('Failed to fetch holiday settings:', error)
       }
     }
     
-    fetchHolidaySettings()
+    let subscription: any = null
     
-    // Supabaseのリアルタイム更新を監視
-    const subscription = supabase
-      .channel('holiday_settings_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'holiday_settings',
-        filter: `tenantId=eq.${user?.id}`
-      }, (payload) => {
-        console.log('Holiday settings changed:', payload)
-        if (payload.new) {
-          const settings = payload.new as any
-          setBusinessSettings(prev => ({
-            ...prev,
-            closedDays: settings.weekly_closed_days || [1],
-            nthWeekdayRules: settings.nth_weekday_rules || [],
-            customClosedDates: settings.specific_holidays || []
-          }))
-        }
+    // 設定を取得してから、リアルタイム更新の監視を開始
+    fetchHolidaySettings().then(() => {
+      // Supabaseのリアルタイム更新を監視
+      getTenantId().then(actualTenantId => {
+        subscription = supabase
+          .channel('holiday_settings_changes')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'holiday_settings',
+            filter: `tenantId=eq.${actualTenantId}`
+          }, (payload) => {
+            console.log('Holiday settings changed:', payload)
+            if (payload.new) {
+              const settings = payload.new as any
+              setBusinessSettings(prev => ({
+                ...prev,
+                closedDays: settings.weekly_closed_days || [1],
+                nthWeekdayRules: settings.nth_weekday_rules || [],
+                customClosedDates: settings.specific_holidays || []
+              }))
+            }
+          })
+          .subscribe()
       })
-      .subscribe()
+    })
     
+    // クリーンアップ関数
     return () => {
-      subscription.unsubscribe()
+      if (subscription) {
+        subscription.unsubscribe()
+      }
     }
   }, [user?.id])
   
@@ -488,35 +524,44 @@ function App() {
     const dayOfWeek = getDay(date)
     const dateString = format(date, 'yyyy-MM-dd')
     
-    // デバッグ用ログ
+    // デバッグ用ログ - 詳細情報
     console.log(`🔍 isClosedDay check for ${dateString}:`)
     console.log('  - dayOfWeek:', dayOfWeek, ['日','月','火','水','木','金','土'][dayOfWeek])
+    console.log('  - businessSettings:', businessSettings)
     console.log('  - businessSettings.closedDays:', businessSettings.closedDays)
+    console.log('  - businessSettings.nthWeekdayRules:', businessSettings.nthWeekdayRules)
     console.log('  - businessSettings.customClosedDates:', businessSettings.customClosedDates)
     
     // 毎週の定休日チェック
-    if (businessSettings.closedDays.includes(dayOfWeek)) {
+    if (businessSettings.closedDays && businessSettings.closedDays.includes(dayOfWeek)) {
       console.log(`  ✅ ${dateString} is weekly closed day`)
       return true
     }
     
     // 毎月第◯◯曜日チェック
-    for (const rule of businessSettings.nthWeekdayRules) {
-      if (dayOfWeek === rule.weekday) {
-        const weekOfMonth = getWeekOfMonth(date, { weekStartsOn: 1 })
-        if (rule.nth.includes(weekOfMonth)) {
-          console.log(`  ✅ ${dateString} is nth weekday closed (week ${weekOfMonth})`)
-          return true
+    if (businessSettings.nthWeekdayRules) {
+      for (const rule of businessSettings.nthWeekdayRules) {
+        console.log(`    - Checking rule: weekday ${rule.weekday}, nth: ${rule.nth}`)
+        if (dayOfWeek === rule.weekday) {
+          const weekOfMonth = getWeekOfMonth(date, { weekStartsOn: 1 })
+          const weekOfMonthAlt = Math.ceil(date.getDate() / 7) // 別の計算方法
+          console.log(`    - Date ${dateString}: weekOfMonth=${weekOfMonth}, weekOfMonthAlt=${weekOfMonthAlt}, date.getDate()=${date.getDate()}`)
+          console.log(`    - Rule nth array:`, rule.nth, `includes ${weekOfMonth}?`, rule.nth && rule.nth.includes(weekOfMonth))
+          if (rule.nth && rule.nth.includes(weekOfMonth)) {
+            console.log(`  ✅ ${dateString} is nth weekday closed (week ${weekOfMonth})`)
+            return true
+          }
         }
       }
     }
     
     // 特定日チェック
-    if (businessSettings.customClosedDates.includes(dateString)) {
+    if (businessSettings.customClosedDates && businessSettings.customClosedDates.includes(dateString)) {
       console.log(`  ✅ ${dateString} is specific closed date`)
       return true
     }
     
+    console.log(`  ❌ ${dateString} is NOT a holiday`)
     return false
   }
 

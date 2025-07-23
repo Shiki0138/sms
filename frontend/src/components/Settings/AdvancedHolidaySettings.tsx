@@ -33,9 +33,34 @@ interface HolidayPreview {
 
 const AdvancedHolidaySettings: React.FC = () => {
   const { user } = useAuth()
-  // 現在のシステムではtenantIdがないため、一時的にユーザーIDをtenantIdとして使用
-  // 将来的には適切なtenantIdを使用すべき
-  const tenantId = user?.id || 'default-tenant'
+  const [tenantId, setTenantId] = useState<string>('default-tenant')
+  
+  // 一貫したテナントIDを取得
+  useEffect(() => {
+    const getTenantId = async () => {
+      // デモモードの場合
+      if (user?.id === 'demo-user') {
+        setTenantId('demo-user')
+        return
+      }
+      
+      // Supabase認証ユーザーの場合
+      try {
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+        if (supabaseUser) {
+          setTenantId(supabaseUser.id)
+          return
+        }
+      } catch (error) {
+        console.error('Failed to get Supabase user:', error)
+      }
+      
+      // フォールバック
+      setTenantId(user?.id || 'default-tenant')
+    }
+    
+    getTenantId()
+  }, [user])
   
   console.log('🔍 AdvancedHolidaySettings - Debug Info:')
   console.log('  - User:', user)
@@ -87,8 +112,10 @@ const AdvancedHolidaySettings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    loadHolidaySettings()
-  }, [])
+    if (tenantId && tenantId !== 'default-tenant') {
+      loadHolidaySettings()
+    }
+  }, [tenantId])
 
   useEffect(() => {
     generateHolidayPreviews()
@@ -96,6 +123,9 @@ const AdvancedHolidaySettings: React.FC = () => {
 
   const loadHolidaySettings = async () => {
     setIsLoading(true)
+    console.log('📥 Loading holiday settings...')
+    console.log('  - tenantId:', tenantId)
+    
     try {
       // Supabaseから休日設定を取得
       const { data: settings, error } = await supabase
@@ -103,6 +133,8 @@ const AdvancedHolidaySettings: React.FC = () => {
         .select('*')
         .eq('tenantId', tenantId)
         .single()
+      
+      console.log('📥 Load result:', { settings, error })
       
       if (error) {
         if (error.code === 'PGRST116') { // No rows returned
@@ -209,13 +241,39 @@ const AdvancedHolidaySettings: React.FC = () => {
 
   const saveHolidaySettings = async () => {
     setIsSaving(true)
+    console.log('🚀 Starting saveHolidaySettings...')
+    console.log('  - tenantId:', tenantId)
+    console.log('  - holidaySettings:', holidaySettings)
+    
     try {
+      // Supabase接続テスト
+      const { data: testData, error: testError } = await supabase
+        .from('holiday_settings')
+        .select('count')
+        .limit(1)
+      
+      if (testError) {
+        console.error('❌ Supabase connection test failed:', testError)
+        if (testError.message.includes('relation') && testError.message.includes('does not exist')) {
+          toast.error('holiday_settingsテーブルが存在しません。まずSupabaseでテーブルを作成してください。')
+          alert('❌ エラー: holiday_settingsテーブルが存在しません\n\nSupabase Dashboard > SQL Editor で以下を実行してください:\n\nCREATE TABLE holiday_settings (\n  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,\n  "tenantId" TEXT NOT NULL UNIQUE,\n  weekly_closed_days INTEGER[] DEFAULT \'{}\',\n  nth_weekday_rules JSONB DEFAULT \'[]\',\n  specific_holidays TEXT[] DEFAULT \'{}\',\n  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,\n  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP\n);')
+          return
+        } else {
+          toast.error('Supabase接続エラー: ' + testError.message)
+          return
+        }
+      }
+      
+      console.log('✅ Supabase connection test passed')
+      
       // 既存の設定を確認
       const { data: existing, error: checkError } = await supabase
         .from('holiday_settings')
         .select('id')
         .eq('tenantId', tenantId)
         .single()
+      
+      console.log('🔍 Existing check result:', { existing, checkError })
       
       const settingsData = {
         tenantId: tenantId,
@@ -244,8 +302,10 @@ const AdvancedHolidaySettings: React.FC = () => {
           .select()
       }
       
+      console.log('💾 Save operation result:', result)
+      
       if (result.error) {
-        console.error('Supabase save error:', result.error)
+        console.error('❌ Supabase save error:', result.error)
         
         // テーブルが存在しない場合の詳細なエラーメッセージ
         if (result.error.message.includes('relation') && result.error.message.includes('does not exist')) {
@@ -257,6 +317,8 @@ const AdvancedHolidaySettings: React.FC = () => {
         }
         return
       }
+      
+      console.log('✅ Save successful! Saved data:', result.data)
       
       toast.success(`休日設定を保存しました (テナントID: ${tenantId})`)
       console.log('✅ Holiday settings saved successfully')
@@ -717,6 +779,43 @@ const AdvancedHolidaySettings: React.FC = () => {
             className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
           >
             再読み込み
+          </button>
+          
+          <button 
+            onClick={async () => {
+              try {
+                console.log('🧪 Testing direct Supabase save...')
+                const testData = {
+                  tenantId: tenantId,
+                  weekly_closed_days: [1, 2], // 月火
+                  nth_weekday_rules: [],
+                  specific_holidays: ['2024-07-25'],
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                }
+                
+                const { data, error } = await supabase
+                  .from('holiday_settings')
+                  .upsert(testData, { onConflict: 'tenantId' })
+                  .select()
+                
+                if (error) {
+                  console.error('❌ Test save failed:', error)
+                  alert('テスト保存失敗: ' + error.message)
+                } else {
+                  console.log('✅ Test save successful:', data)
+                  alert('✅ テスト保存成功!\nデータ: ' + JSON.stringify(data, null, 2))
+                  // 設定を再読み込み
+                  await loadHolidaySettings()
+                }
+              } catch (error: any) {
+                console.error('Test save error:', error)
+                alert('テストエラー: ' + error.message)
+              }
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+          >
+            テスト保存
           </button>
           
           {debugInfo?.supabaseUser?.email === 'greenroom51@gmail.com' && (

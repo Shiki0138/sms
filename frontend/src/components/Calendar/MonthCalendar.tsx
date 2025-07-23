@@ -41,6 +41,13 @@ const MonthCalendar: React.FC<MonthCalendarProps> = ({
   getHolidayType,
   onDayClick
 }) => {
+  // デバッグログ
+  console.log('📅 MonthCalendar props:', {
+    hasIsHoliday: !!isHoliday,
+    hasGetHolidayType: !!getHolidayType,
+    currentDate: format(currentDate, 'yyyy-MM-dd')
+  });
+  
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // 月曜日開始
