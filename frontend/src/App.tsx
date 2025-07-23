@@ -20,6 +20,7 @@ import { ReminderSettings } from './components/Settings/ReminderSettings'
 import DataBackupSettings from './components/Settings/DataBackupSettings'
 import MenuManagement from './components/Settings/MenuManagement'
 import UpgradePlan from './components/Settings/UpgradePlan'
+import { supabase } from './lib/supabase-client'
 // import SimpleSettingsFixed from './components/Settings/SimpleSettingsFixed' // Component not found
 // import ErrorBoundary from './components/Common/ErrorBoundary' // Component not found
 import SalonCalendar from './components/Calendar/SalonCalendar'
@@ -259,31 +260,28 @@ function App() {
     customClosedDates: ['2025-01-01', '2025-12-31'] as string[] // YYYY-MM-DD format
   })
   
-  // Fetch holiday settings from API
+  // Fetch holiday settings from Supabase
   useEffect(() => {
     const fetchHolidaySettings = async () => {
       if (!user?.id) return
       
       try {
-        const response = await axios.get(`${API_BASE_URL}/business-hours/settings/${user.id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
+        const { data: settings, error } = await supabase
+          .from('holiday_settings')
+          .select('*')
+          .eq('salon_id', user.id)
+          .single()
         
-        if (response.data) {
-          const { weeklyClosedDays, regularHolidays, specialHolidays } = response.data
-          
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+          throw error
+        }
+        
+        if (settings) {
           setBusinessSettings(prev => ({
             ...prev,
-            closedDays: weeklyClosedDays || [1],
-            nthWeekdayRules: regularHolidays?.map((holiday: any) => ({
-              nth: holiday.weekNumbers,
-              weekday: holiday.dayOfWeek
-            })) || [],
-            customClosedDates: specialHolidays?.map((holiday: any) => 
-              holiday.startDate.split('T')[0]
-            ) || []
+            closedDays: settings.weekly_closed_days || [1],
+            nthWeekdayRules: settings.nth_weekday_rules || [],
+            customClosedDates: settings.specific_holidays || []
           }))
         }
       } catch (error) {

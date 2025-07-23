@@ -11,10 +11,8 @@ import {
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, getWeekOfMonth } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { useAuth } from '../../contexts/AuthContext'
-import axios from 'axios'
+import { supabase } from '../../lib/supabase-client'
 import toast from 'react-hot-toast'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 interface NthWeekdayRule {
   nth: number[] // 第何週 [1, 2, 3, 4, 5]
@@ -64,34 +62,38 @@ const AdvancedHolidaySettings: React.FC = () => {
   const loadHolidaySettings = async () => {
     setIsLoading(true)
     try {
-      const response = await axios.get(`${API_BASE_URL}/business-hours/settings/${salonId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
+      // Supabaseから休日設定を取得
+      const { data: settings, error } = await supabase
+        .from('holiday_settings')
+        .select('*')
+        .eq('salon_id', salonId)
+        .single()
       
-      if (response.data) {
-        const { weeklyClosedDays, regularHolidays, specialHolidays } = response.data
-        
-        // APIデータを内部形式に変換
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error
+      }
+      
+      if (settings) {
         setHolidaySettings({
-          weeklyClosedDays: weeklyClosedDays || [],
-          nthWeekdayRules: regularHolidays?.map((holiday: any) => ({
-            nth: holiday.weekNumbers,
-            weekday: holiday.dayOfWeek
-          })) || [],
-          specificHolidays: specialHolidays?.map((holiday: any) => 
-            holiday.startDate.split('T')[0]
-          ) || []
+          weeklyClosedDays: settings.weekly_closed_days || [],
+          nthWeekdayRules: settings.nth_weekday_rules || [],
+          specificHolidays: settings.specific_holidays || []
+        })
+      } else {
+        // 設定が存在しない場合はデフォルト値を使用
+        setHolidaySettings({
+          weeklyClosedDays: [1], // 月曜日
+          nthWeekdayRules: [],
+          specificHolidays: []
         })
       }
     } catch (error) {
       console.error('Holiday settings load error:', error)
       toast.error('休日設定の読み込みに失敗しました')
       
-      // エラー時はデモデータで初期化
+      // エラー時はデフォルト値で初期化
       setHolidaySettings({
-        weeklyClosedDays: [1], // 月曜日
+        weeklyClosedDays: [1],
         nthWeekdayRules: [],
         specificHolidays: []
       })
@@ -158,35 +160,41 @@ const AdvancedHolidaySettings: React.FC = () => {
   const saveHolidaySettings = async () => {
     setIsSaving(true)
     try {
-      // 内部形式をAPI形式に変換
-      const apiData = {
-        weeklyClosedDays: holidaySettings.weeklyClosedDays,
-        regularHolidays: holidaySettings.nthWeekdayRules.map((rule, index) => ({
-          id: `regular_${index}`,
-          dayOfWeek: rule.weekday,
-          weekNumbers: rule.nth,
-          isActive: true
-        })),
-        specialHolidays: holidaySettings.specificHolidays.map((date, index) => ({
-          id: `temp_${index}`,
-          startDate: `${date}T00:00:00`,
-          endDate: `${date}T23:59:59`,
-          name: '特別休業日',
-          allowBooking: false
-        })),
-        businessHours: [], // 営業時間は別途管理
-        bookingSettings: {
-          allowBookingOnHolidays: false,
-          allowBookingOutsideBusinessHours: false
-        }
+      // 既存の設定を確認
+      const { data: existing, error: checkError } = await supabase
+        .from('holiday_settings')
+        .select('id')
+        .eq('salon_id', salonId)
+        .single()
+      
+      const settingsData = {
+        salon_id: salonId,
+        weekly_closed_days: holidaySettings.weeklyClosedDays,
+        nth_weekday_rules: holidaySettings.nthWeekdayRules,
+        specific_holidays: holidaySettings.specificHolidays,
+        updated_at: new Date().toISOString()
       }
       
-      await axios.put(`${API_BASE_URL}/business-hours/settings/${salonId}`, apiData, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      let result
+      if (existing && !checkError) {
+        // 更新
+        result = await supabase
+          .from('holiday_settings')
+          .update(settingsData)
+          .eq('salon_id', salonId)
+      } else {
+        // 新規作成
+        result = await supabase
+          .from('holiday_settings')
+          .insert({
+            ...settingsData,
+            created_at: new Date().toISOString()
+          })
+      }
+      
+      if (result.error) {
+        throw result.error
+      }
       
       toast.success('休日設定を保存しました')
       
