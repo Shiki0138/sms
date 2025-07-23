@@ -10,6 +10,11 @@ import {
 } from 'lucide-react'
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, getWeekOfMonth } from 'date-fns'
 import { ja } from 'date-fns/locale'
+import { useAuth } from '../../contexts/AuthContext'
+import axios from 'axios'
+import toast from 'react-hot-toast'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 interface NthWeekdayRule {
   nth: number[] // 第何週 [1, 2, 3, 4, 5]
@@ -29,6 +34,9 @@ interface HolidayPreview {
 }
 
 const AdvancedHolidaySettings: React.FC = () => {
+  const { user } = useAuth()
+  const salonId = user?.id || 'default-salon' // 実際のサロンIDロジックに合わせて修正が必要
+  
   const [holidaySettings, setHolidaySettings] = useState<HolidaySettings>({
     weeklyClosedDays: [1], // デフォルト：月曜日
     nthWeekdayRules: [], // デフォルト：なし
@@ -56,19 +64,37 @@ const AdvancedHolidaySettings: React.FC = () => {
   const loadHolidaySettings = async () => {
     setIsLoading(true)
     try {
-      // デモデータで初期化
-      setHolidaySettings({
-        weeklyClosedDays: [1], // 月曜日
-        nthWeekdayRules: [
-          { nth: [2, 4], weekday: 2 } // 毎月第2・第4火曜日（例）
-        ],
-        specificHolidays: [
-          '2025-01-01', // 元日
-          '2025-12-31'  // 大晦日
-        ]
+      const response = await axios.get(`${API_BASE_URL}/business-hours/settings/${salonId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       })
+      
+      if (response.data) {
+        const { weeklyClosedDays, regularHolidays, specialHolidays } = response.data
+        
+        // APIデータを内部形式に変換
+        setHolidaySettings({
+          weeklyClosedDays: weeklyClosedDays || [],
+          nthWeekdayRules: regularHolidays?.map((holiday: any) => ({
+            nth: holiday.weekNumbers,
+            weekday: holiday.dayOfWeek
+          })) || [],
+          specificHolidays: specialHolidays?.map((holiday: any) => 
+            holiday.startDate.split('T')[0]
+          ) || []
+        })
+      }
     } catch (error) {
       console.error('Holiday settings load error:', error)
+      toast.error('休日設定の読み込みに失敗しました')
+      
+      // エラー時はデモデータで初期化
+      setHolidaySettings({
+        weeklyClosedDays: [1], // 月曜日
+        nthWeekdayRules: [],
+        specificHolidays: []
+      })
     } finally {
       setIsLoading(false)
     }
@@ -132,12 +158,43 @@ const AdvancedHolidaySettings: React.FC = () => {
   const saveHolidaySettings = async () => {
     setIsSaving(true)
     try {
-      // デモ用の保存処理
-      console.log('休日設定を保存:', holidaySettings)
-      alert('休日設定を保存しました')
+      // 内部形式をAPI形式に変換
+      const apiData = {
+        weeklyClosedDays: holidaySettings.weeklyClosedDays,
+        regularHolidays: holidaySettings.nthWeekdayRules.map((rule, index) => ({
+          id: `regular_${index}`,
+          dayOfWeek: rule.weekday,
+          weekNumbers: rule.nth,
+          isActive: true
+        })),
+        specialHolidays: holidaySettings.specificHolidays.map((date, index) => ({
+          id: `temp_${index}`,
+          startDate: `${date}T00:00:00`,
+          endDate: `${date}T23:59:59`,
+          name: '特別休業日',
+          allowBooking: false
+        })),
+        businessHours: [], // 営業時間は別途管理
+        bookingSettings: {
+          allowBookingOnHolidays: false,
+          allowBookingOutsideBusinessHours: false
+        }
+      }
+      
+      await axios.put(`${API_BASE_URL}/business-hours/settings/${salonId}`, apiData, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      toast.success('休日設定を保存しました')
+      
+      // 保存後に再読み込みして同期
+      await loadHolidaySettings()
     } catch (error) {
       console.error('Save error:', error)
-      alert('保存に失敗しました')
+      toast.error('保存に失敗しました')
     } finally {
       setIsSaving(false)
     }

@@ -259,6 +259,41 @@ function App() {
     customClosedDates: ['2025-01-01', '2025-12-31'] as string[] // YYYY-MM-DD format
   })
   
+  // Fetch holiday settings from API
+  useEffect(() => {
+    const fetchHolidaySettings = async () => {
+      if (!user?.id) return
+      
+      try {
+        const response = await axios.get(`${API_BASE_URL}/business-hours/settings/${user.id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+        
+        if (response.data) {
+          const { weeklyClosedDays, regularHolidays, specialHolidays } = response.data
+          
+          setBusinessSettings(prev => ({
+            ...prev,
+            closedDays: weeklyClosedDays || [1],
+            nthWeekdayRules: regularHolidays?.map((holiday: any) => ({
+              nth: holiday.weekNumbers,
+              weekday: holiday.dayOfWeek
+            })) || [],
+            customClosedDates: specialHolidays?.map((holiday: any) => 
+              holiday.startDate.split('T')[0]
+            ) || []
+          }))
+        }
+      } catch (error) {
+        console.error('Failed to fetch holiday settings:', error)
+      }
+    }
+    
+    fetchHolidaySettings()
+  }, [user?.id])
+  
   // Calendar view state
   const [calendarView, setCalendarView] = useState<'day' | 'threeDay' | 'week' | 'month'>('week')
   const [calendarDate, setCalendarDate] = useState(new Date())
