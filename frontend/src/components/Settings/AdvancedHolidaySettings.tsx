@@ -13,7 +13,6 @@ import { ja } from 'date-fns/locale'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase-client'
 import toast from 'react-hot-toast'
-import HolidaySettingsDebug from './HolidaySettingsDebug'
 
 interface NthWeekdayRule {
   nth: number[] // 第何週 [1, 2, 3, 4, 5]
@@ -38,8 +37,38 @@ const AdvancedHolidaySettings: React.FC = () => {
   // 将来的には適切なtenantIdを使用すべき
   const tenantId = user?.id || 'default-tenant'
   
-  console.log('AdvancedHolidaySettings - User:', user)
-  console.log('AdvancedHolidaySettings - TenantId:', tenantId)
+  console.log('🔍 AdvancedHolidaySettings - Debug Info:')
+  console.log('  - User:', user)
+  console.log('  - TenantId:', tenantId)
+  console.log('  - Email:', user?.email)
+  console.log('  - Is greenroom51?', user?.email === 'greenroom51@gmail.com')
+  
+  // デバッグ用の状態
+  const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [allSettings, setAllSettings] = useState<any[]>([])
+  
+  // デバッグ情報を取得
+  useEffect(() => {
+    const loadDebugInfo = async () => {
+      try {
+        // Supabase認証情報を取得
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+        
+        // 全ての休日設定を取得
+        const { data: settings, error } = await supabase
+          .from('holiday_settings')
+          .select('*')
+          .order('tenantId')
+        
+        setDebugInfo({ supabaseUser })
+        setAllSettings(settings || [])
+      } catch (error) {
+        console.error('Debug info load error:', error)
+      }
+    }
+    
+    loadDebugInfo()
+  }, [])
   
   const [holidaySettings, setHolidaySettings] = useState<HolidaySettings>({
     weeklyClosedDays: [1], // デフォルト：月曜日
@@ -77,8 +106,12 @@ const AdvancedHolidaySettings: React.FC = () => {
       
       if (error) {
         if (error.code === 'PGRST116') { // No rows returned
-          console.log('No holiday settings found for tenant, using defaults')
+          console.log('⚠️ No holiday settings found for tenant, using defaults')
           console.log(`テナントID「${tenantId}」の休日設定が見つかりません。新規作成してください。`)
+          // デバッグ用アラート
+          if (user?.email === 'greenroom51@gmail.com') {
+            alert(`デバッグ: 休日設定が見つかりません\nテナントID: ${tenantId}\nこのIDで新規作成が必要です`)
+          }
         } else {
           console.error('Error loading holiday settings:', error)
           toast.error('休日設定の読み込みに失敗しました。Supabaseの設定を確認してください。')
@@ -86,11 +119,16 @@ const AdvancedHolidaySettings: React.FC = () => {
       }
       
       if (settings) {
+        console.log('✅ Holiday settings loaded successfully:', settings)
         setHolidaySettings({
           weeklyClosedDays: settings.weekly_closed_days || [],
           nthWeekdayRules: settings.nth_weekday_rules || [],
           specificHolidays: settings.specific_holidays || []
         })
+        // デバッグ用アラート
+        if (user?.email === 'greenroom51@gmail.com') {
+          alert(`デバッグ: 休日設定を読み込みました\n定休日: ${(settings.weekly_closed_days || []).map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${(settings.specific_holidays || []).length}件`)
+        }
       } else {
         // 設定が存在しない場合はデフォルト値を使用
         setHolidaySettings({
@@ -221,6 +259,14 @@ const AdvancedHolidaySettings: React.FC = () => {
       }
       
       toast.success(`休日設定を保存しました (テナントID: ${tenantId})`)
+      console.log('✅ Holiday settings saved successfully')
+      console.log('  - TenantId:', tenantId)
+      console.log('  - Settings:', settingsData)
+      
+      // デバッグ用アラート
+      if (user?.email === 'greenroom51@gmail.com') {
+        alert(`デバッグ: 保存成功\nテナントID: ${tenantId}\n定休日: ${settingsData.weekly_closed_days.map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${settingsData.specific_holidays.length}件`)
+      }
       
       // 保存後に再読み込みして同期
       await loadHolidaySettings()
@@ -301,6 +347,7 @@ const AdvancedHolidaySettings: React.FC = () => {
     
     // 毎週の定休日チェック
     if (holidaySettings.weeklyClosedDays.includes(dayOfWeek)) {
+      console.log(`📅 ${dateStr} is weekly holiday (day: ${dayOfWeek})`)
       return true
     }
     
@@ -309,13 +356,19 @@ const AdvancedHolidaySettings: React.FC = () => {
       if (dayOfWeek === rule.weekday) {
         const weekOfMonth = getWeekOfMonth(date, { weekStartsOn: 1 })
         if (rule.nth.includes(weekOfMonth)) {
+          console.log(`📅 ${dateStr} is nth weekday holiday (week: ${weekOfMonth}, day: ${dayOfWeek})`)
           return true
         }
       }
     }
     
     // 特定日チェック
-    return holidaySettings.specificHolidays.includes(dateStr)
+    if (holidaySettings.specificHolidays.includes(dateStr)) {
+      console.log(`📅 ${dateStr} is specific holiday`)
+      return true
+    }
+    
+    return false
   }
 
   if (isLoading) {
@@ -576,7 +629,133 @@ const AdvancedHolidaySettings: React.FC = () => {
       </div>
       
       {/* デバッグ情報 */}
-      <HolidaySettingsDebug />
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-8">
+        <h3 className="text-lg font-bold text-yellow-900 mb-4">🔍 デバッグ情報</h3>
+        
+        <div className="space-y-2 text-sm">
+          <div className="bg-white p-3 rounded border border-yellow-300">
+            <p className="font-semibold">現在のユーザー情報:</p>
+            <p>User ID: <code className="bg-gray-100 px-1">{user?.id || 'なし'}</code></p>
+            <p>Email: <code className="bg-gray-100 px-1">{user?.email || 'なし'}</code></p>
+            <p>Role: <code className="bg-gray-100 px-1">{user?.role || 'なし'}</code></p>
+            <p>Username: <code className="bg-gray-100 px-1">{user?.username || 'なし'}</code></p>
+            {user?.email === 'greenroom51@gmail.com' && (
+              <div className="mt-2 p-2 bg-green-100 rounded">
+                <p className="text-green-800 font-semibold">✓ greenroom51@gmail.com として認識されています</p>
+              </div>
+            )}
+          </div>
+
+          {debugInfo?.supabaseUser && (
+            <div className="bg-white p-3 rounded border border-yellow-300">
+              <p className="font-semibold">Supabase認証情報:</p>
+              <p>Supabase User ID: <code className="bg-gray-100 px-1">{debugInfo.supabaseUser.id}</code></p>
+              <p>Supabase Email: <code className="bg-gray-100 px-1">{debugInfo.supabaseUser.email}</code></p>
+              {debugInfo.supabaseUser.email === 'greenroom51@gmail.com' && (
+                <div className="mt-2 p-2 bg-blue-100 rounded">
+                  <p className="text-blue-800 text-xs">
+                    <strong>重要:</strong> 上記のSupabase User IDをtenantIdとして使用してください
+                  </p>
+                  <p className="text-blue-800 text-xs mt-1">
+                    あなたのSupabase User ID: <strong>{debugInfo.supabaseUser.id}</strong>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="bg-white p-3 rounded border border-yellow-300">
+            <p className="font-semibold mb-2">Supabaseに保存されている全ての休日設定:</p>
+            {allSettings.length === 0 ? (
+              <p className="text-gray-500">データがありません</p>
+            ) : (
+              <div className="space-y-2">
+                {allSettings.map((setting, index) => (
+                  <div key={index} className="bg-gray-50 p-2 rounded text-xs">
+                    <p><strong>Tenant ID:</strong> {setting.tenantId}</p>
+                    <p><strong>定休日:</strong> {JSON.stringify(setting.weekly_closed_days)}</p>
+                    <p><strong>第◯曜日:</strong> {JSON.stringify(setting.nth_weekday_rules)}</p>
+                    <p><strong>特別休日:</strong> {JSON.stringify(setting.specific_holidays)}</p>
+                    <p><strong>更新日時:</strong> {new Date(setting.updatedAt).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white p-3 rounded border border-yellow-300">
+            <p className="font-semibold">トラブルシューティング:</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs">
+              <li>上記の「User ID」が設定で使用されるテナントIDになります</li>
+              <li>保存した設定のTenant IDと現在のUser IDが一致しているか確認してください</li>
+              <li>ログイン状態によってUser IDが変わる場合があります（demo-user vs 実際のID）</li>
+              <li>本番環境では必ずログインして使用してください</li>
+            </ol>
+          </div>
+        </div>
+        
+        <div className="flex space-x-2 mt-4">
+          <button 
+            onClick={() => {
+              const loadDebugInfo = async () => {
+                try {
+                  const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+                  console.log('🔍 Debug reload - Supabase user:', supabaseUser)
+                  const { data: settings } = await supabase
+                    .from('holiday_settings')
+                    .select('*')
+                    .order('tenantId')
+                  
+                  setDebugInfo({ supabaseUser })
+                  setAllSettings(settings || [])
+                } catch (error) {
+                  console.error('Debug info load error:', error)
+                }
+              }
+              loadDebugInfo()
+            }}
+            className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
+          >
+            再読み込み
+          </button>
+          
+          {debugInfo?.supabaseUser?.email === 'greenroom51@gmail.com' && (
+            <button 
+              onClick={async () => {
+                if (confirm('既存のデータのtenantIDを修正しますか？')) {
+                  try {
+                    for (const setting of allSettings) {
+                      if (setting.tenantId !== debugInfo.supabaseUser.id) {
+                        const { error } = await supabase
+                          .from('holiday_settings')
+                          .update({ tenantId: debugInfo.supabaseUser.id })
+                          .eq('id', setting.id)
+                        
+                        if (error) {
+                          console.error('Update error:', error)
+                        }
+                      }
+                    }
+                    toast.success('修正しました。再読み込みしてください。')
+                    // 再読み込み
+                    const { data: settings } = await supabase
+                      .from('holiday_settings')
+                      .select('*')
+                      .order('tenantId')
+                    setAllSettings(settings || [])
+                  } catch (error) {
+                    console.error('Fix error:', error)
+                    toast.error('修正に失敗しました')
+                  }
+                }
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+            >
+              tenantIDを修正
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
