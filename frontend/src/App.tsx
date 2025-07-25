@@ -33,6 +33,7 @@ import ServiceHistoryModal from './components/ServiceHistoryModal'
 import FeatureRequestForm from './components/FeatureRequestForm'
 import FilteredCustomerView from './components/FilteredCustomerView'
 import SettingsPage from './pages/SettingsPage'
+import { HolidayDebugger } from './components/Settings/HolidayDebugger'
 // Import icons from lucide-react
 import {
   MessageSquare,
@@ -302,12 +303,18 @@ function App() {
       
       if (settings) {
         console.log('✅ Holiday settings loaded:', settings)
-        setBusinessSettings(prev => ({
-          ...prev,
-          closedDays: settings.weeklyClosedDays,
-          nthWeekdayRules: settings.nthWeekdayRules,
-          customClosedDates: settings.specificHolidays
-        }))
+        console.log('  - weeklyClosedDays from DB:', settings.weeklyClosedDays)
+        console.log('  - Previous closedDays:', businessSettings.closedDays)
+        setBusinessSettings(prev => {
+          const newSettings = {
+            ...prev,
+            closedDays: settings.weeklyClosedDays,
+            nthWeekdayRules: settings.nthWeekdayRules,
+            customClosedDates: settings.specificHolidays
+          }
+          console.log('  - New closedDays after update:', newSettings.closedDays)
+          return newSettings
+        })
         
         // デバッグ用アラート（greenroom51のみ）
         if (user?.email === 'greenroom51@gmail.com') {
@@ -508,8 +515,10 @@ function App() {
     }
     
     // 毎週の定休日チェック
+    // 曜日の対応を確認: 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
+    console.log(`  🔍 Checking if dayOfWeek ${dayOfWeek} is in closedDays [${businessSettings.closedDays.join(', ')}]`)
     if (businessSettings.closedDays && businessSettings.closedDays.includes(dayOfWeek)) {
-      console.log(`  ✅ ${dateString} is weekly closed day`)
+      console.log(`  ✅ ${dateString} is weekly closed day (dayOfWeek: ${dayOfWeek} = ${['日','月','火','水','木','金','土'][dayOfWeek]}曜日)`)
       return true
     }
     
@@ -1628,6 +1637,8 @@ function App() {
       {/* デバッグ情報表示用 */}
       <div id="holiday-debug-info"></div>
       <div id="holiday-check-debug"></div>
+      {/* 休日設定デバッガー */}
+      <HolidayDebugger />
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="px-4 sm:px-6 py-4">

@@ -145,6 +145,9 @@ const AdvancedHolidaySettings: React.FC = () => {
       
       if (settings) {
         console.log('✅ Holiday settings loaded successfully:', settings)
+        console.log('  🔍 weekly_closed_days from DB:', settings.weekly_closed_days)
+        console.log('  🔍 Converted to days:', settings.weekly_closed_days?.map((d: number) => `${d}(${['日','月','火','水','木','金','土'][d]})`).join(', '))
+        
         setHolidaySettings({
           weeklyClosedDays: settings.weekly_closed_days || [],
           nthWeekdayRules: settings.nth_weekday_rules || [],
@@ -152,7 +155,7 @@ const AdvancedHolidaySettings: React.FC = () => {
         })
         // デバッグ用アラート
         if (user?.email === 'greenroom51@gmail.com') {
-          alert(`デバッグ: 休日設定を読み込みました\n定休日: ${(settings.weekly_closed_days || []).map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${(settings.specific_holidays || []).length}件`)
+          alert(`デバッグ: 休日設定を読み込みました\n定休日: ${(settings.weekly_closed_days || []).map((d: number) => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${(settings.specific_holidays || []).length}件`)
         }
       } else {
         // 設定が存在しない場合は空の状態を維持
@@ -179,12 +182,21 @@ const AdvancedHolidaySettings: React.FC = () => {
   }
 
   const toggleWeeklyClosedDay = (dayIndex: number) => {
-    setHolidaySettings(prev => ({
-      ...prev,
-      weeklyClosedDays: prev.weeklyClosedDays.includes(dayIndex)
+    console.log(`🔄 Toggling weekday: ${dayIndex} (${['日','月','火','水','木','金','土'][dayIndex]}曜日)`)
+    console.log('  Current weeklyClosedDays:', holidaySettings.weeklyClosedDays)
+    
+    setHolidaySettings(prev => {
+      const newWeeklyClosedDays = prev.weeklyClosedDays.includes(dayIndex)
         ? prev.weeklyClosedDays.filter(day => day !== dayIndex)
         : [...prev.weeklyClosedDays, dayIndex]
-    }))
+      
+      console.log('  New weeklyClosedDays:', newWeeklyClosedDays)
+      
+      return {
+        ...prev,
+        weeklyClosedDays: newWeeklyClosedDays
+      }
+    })
   }
 
   const addSpecificHoliday = () => {
@@ -361,6 +373,9 @@ const AdvancedHolidaySettings: React.FC = () => {
   }
 
   const generateHolidayPreviews = () => {
+    console.log('📅 Generating holiday previews...')
+    console.log('  weeklyClosedDays:', holidaySettings.weeklyClosedDays)
+    
     const previews: HolidayPreview[] = []
     const startDate = startOfMonth(previewMonth)
     const endDate = endOfMonth(addMonths(previewMonth, 2)) // 3ヶ月分プレビュー
@@ -371,8 +386,10 @@ const AdvancedHolidaySettings: React.FC = () => {
       const dayOfWeek = getDay(day)
       if (holidaySettings.weeklyClosedDays.includes(dayOfWeek)) {
         const dayName = ['日', '月', '火', '水', '木', '金', '土'][dayOfWeek]
+        const dateStr = format(day, 'yyyy-MM-dd')
+        console.log(`  ✅ ${dateStr} (${dayName}曜日) is holiday - dayOfWeek: ${dayOfWeek}`)
         previews.push({
-          date: format(day, 'yyyy-MM-dd'),
+          date: dateStr,
           description: `定休日（${dayName}曜日）`,
           type: 'weekly'
         })
@@ -505,7 +522,7 @@ const AdvancedHolidaySettings: React.FC = () => {
                 .single()
               
               if (settings) {
-                alert(`現在の設定:\n\nテナントID: ${currentTenantId}\n定休日: ${(settings.weekly_closed_days || []).map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n第〇曜日: ${(settings.nth_weekday_rules || []).length}件\n特別休日: ${(settings.specific_holidays || []).length}件\n\n保存日時: ${new Date(settings.updatedAt).toLocaleString()}`)
+                alert(`現在の設定:\n\nテナントID: ${currentTenantId}\n定休日: ${(settings.weekly_closed_days || []).map((d: number) => ['日','月','火','水','木','金','土'][d]).join(', ')}\n第〇曜日: ${(settings.nth_weekday_rules || []).length}件\n特別休日: ${(settings.specific_holidays || []).length}件\n\n保存日時: ${new Date(settings.updatedAt).toLocaleString()}`)
               } else {
                 // 認証ユーザーのIDを取得して表示
                 const { data: { user } } = await supabase.auth.getUser()
