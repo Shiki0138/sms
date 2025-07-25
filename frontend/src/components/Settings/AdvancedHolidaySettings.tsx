@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase-client'
 import toast from 'react-hot-toast'
 import DebugAuthStatus from './DebugAuthStatus'
+import { EmergencyHolidayDebugger } from './EmergencyHolidayDebugger'
 
 interface NthWeekdayRule {
   nth: number[] // 第何週 [1, 2, 3, 4, 5]
@@ -138,39 +139,62 @@ const AdvancedHolidaySettings: React.FC = () => {
 
   const saveHolidaySettings = async () => {
     setIsSaving(true)
-    console.log('🚀 Starting UNIFIED saveHolidaySettings...')
+    console.log('🚀 Starting CRITICAL FIXED saveHolidaySettings...')
     console.log('  - tenantId:', tenantId)
     console.log('  - holidaySettings:', holidaySettings)
-    console.log('  - Using settings-manager.ts for unified save')
+    console.log('  - CRITICAL: Using DIRECT Supabase + settings-manager')
     
     try {
-      // 統一された設定管理システムを使用
-      const { saveHolidaySettings: saveToManager } = await import('../../lib/settings-manager')
+      // 方法1: 直接Supabase保存
+      console.log('📥 Step 1: Direct Supabase save...')
+      const { data: directResult, error: directError } = await supabase
+        .from('holiday_settings')
+        .upsert({
+          tenantId,
+          weekly_closed_days: holidaySettings.weeklyClosedDays,
+          nth_weekday_rules: holidaySettings.nthWeekdayRules,
+          specific_holidays: holidaySettings.specificHolidays,
+          updatedAt: new Date().toISOString()
+        }, {
+          onConflict: 'tenantId'
+        })
+        .select()
       
-      const result = await saveToManager(user, {
+      if (directError) {
+        console.error('❌ Direct save error:', directError)
+        throw directError
+      }
+      
+      console.log('✅ Direct save success:', directResult)
+      
+      // 方法2: settings-manager経由でも保存
+      console.log('📥 Step 2: Settings-manager save...')
+      const { saveHolidaySettings: saveToManager } = await import('../../lib/settings-manager')
+      const managerResult = await saveToManager(user, {
         weeklyClosedDays: holidaySettings.weeklyClosedDays,
         nthWeekdayRules: holidaySettings.nthWeekdayRules,
         specificHolidays: holidaySettings.specificHolidays
       })
       
-      if (result) {
-        console.log('✅ 統一設定管理システムで保存成功')
-        toast.success(`休日設定を保存しました`)
-        
-        // デバッグ用アラート
-        if (user?.email === 'greenroom51@gmail.com') {
-          alert(`デバッグ: 保存成功\n定休日: ${holidaySettings.weeklyClosedDays.map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}`)
-        }
-        
-        // App.tsxのSupabase監視機能が自動的に更新します
-        console.log('✅ 保存完了。App.tsxのSupabaseリアルタイム監視が自動更新します。')
-      } else {
-        console.error('❌ 統一設定管理システムで保存失敗')
-        toast.error('保存に失敗しました')
+      console.log('✅ Settings-manager result:', managerResult)
+      
+      // 方法3: 強制リロードでApp.tsxの状態を更新
+      console.log('📥 Step 3: Force reload to trigger App.tsx update...')
+      setTimeout(() => {
+        console.log('🔄 Forcing page reload for state sync...')
+        window.location.reload()
+      }, 1000)
+      
+      toast.success(`休日設定を保存しました（自動リロード中...)`)
+      
+      // デバッグ用アラート
+      if (user?.email === 'greenroom51@gmail.com') {
+        alert(`デバッグ: 保存成功\n定休日: ${holidaySettings.weeklyClosedDays.map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n1秒後にリロードします`)
       }
+      
     } catch (error) {
-      console.error('Save error:', error)
-      toast.error('保存に失敗しました')
+      console.error('❌ CRITICAL Save error:', error)
+      toast.error('保存に失敗しました: ' + error)
     } finally {
       setIsSaving(false)
     }
@@ -178,23 +202,55 @@ const AdvancedHolidaySettings: React.FC = () => {
 
   // ===== UI操作ハンドラー =====
   
-  const toggleWeeklyClosedDay = (dayIndex: number) => {
-    console.log(`🔄 Toggling weekday: ${dayIndex} (${['日','月','火','水','木','金','土'][dayIndex]}曜日)`)
+  const toggleWeeklyClosedDay = async (dayIndex: number) => {
+    console.log(`🔄 CRITICAL Toggling weekday: ${dayIndex} (${['日','月','火','水','木','金','土'][dayIndex]}曜日)`)
     console.log('  Current weeklyClosedDays:', holidaySettings.weeklyClosedDays)
     
-    setHolidaySettings(prev => {
-      const newWeeklyClosedDays = prev.weeklyClosedDays.includes(dayIndex)
-        ? prev.weeklyClosedDays.filter(day => day !== dayIndex)
-        : [...prev.weeklyClosedDays, dayIndex]
+    const newWeeklyClosedDays = holidaySettings.weeklyClosedDays.includes(dayIndex)
+      ? holidaySettings.weeklyClosedDays.filter(day => day !== dayIndex)
+      : [...holidaySettings.weeklyClosedDays, dayIndex]
+    
+    console.log('  New weeklyClosedDays:', newWeeklyClosedDays)
+    console.log(`  ✅ 即座DB保存開始: ${newWeeklyClosedDays.map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}`)
+    
+    // まずUIを更新
+    setHolidaySettings(prev => ({
+      ...prev,
+      weeklyClosedDays: newWeeklyClosedDays
+    }))
+    
+    // 即座データベースに保存
+    try {
+      console.log('📥 IMMEDIATE DB save on checkbox change...')
+      const { error } = await supabase
+        .from('holiday_settings')
+        .upsert({
+          tenantId,
+          weekly_closed_days: newWeeklyClosedDays,
+          nth_weekday_rules: holidaySettings.nthWeekdayRules,
+          specific_holidays: holidaySettings.specificHolidays,
+          updatedAt: new Date().toISOString()
+        }, {
+          onConflict: 'tenantId'
+        })
       
-      console.log('  New weeklyClosedDays:', newWeeklyClosedDays)
-      console.log(`  ✅ UI状態を更新: ${newWeeklyClosedDays.map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}`)
-      
-      return {
-        ...prev,
-        weeklyClosedDays: newWeeklyClosedDays
+      if (error) {
+        console.error('❌ Immediate save error:', error)
+        toast.error('保存エラー: ' + error.message)
+      } else {
+        console.log('✅ Immediate save success')
+        toast.success(`${['日','月','火','水','木','金','土'][dayIndex]}曜日を${newWeeklyClosedDays.includes(dayIndex) ? '追加' : '削除'}しました`)
+        
+        // 2秒後にリロードでApp.tsxの状態を更新
+        setTimeout(() => {
+          console.log('🔄 Auto-reload for state sync...')
+          window.location.reload()
+        }, 2000)
       }
-    })
+    } catch (error) {
+      console.error('❌ Immediate save failed:', error)
+      toast.error('保存に失敗しました')
+    }
   }
 
   const addSpecificHoliday = () => {
@@ -320,6 +376,9 @@ const AdvancedHolidaySettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 緊急デバッグシステム */}
+      <EmergencyHolidayDebugger />
+      
       {/* 認証状態デバッグ表示 */}
       <DebugAuthStatus />
       
