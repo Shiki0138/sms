@@ -29,17 +29,18 @@ const AuthRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={
-        isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />
+        isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
       } />
       <Route path="/register" element={
-        isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterForm />
+        isAuthenticated ? <Navigate to="/" replace /> : <RegisterForm />
       } />
-      <Route path="/dashboard" element={
+      <Route path="/" element={
         <PrivateRoute>
           <App />
         </PrivateRoute>
       } />
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

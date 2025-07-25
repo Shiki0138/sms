@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
-import { AppWithAuth } from './AppWithAuth'
+import AppWrapper from './AppWrapper'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './index.css'
 
@@ -30,7 +30,7 @@ ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AppWithAuth />
+        <AppWrapper />
         <Toaster 
           position="top-right"
           toastOptions={{

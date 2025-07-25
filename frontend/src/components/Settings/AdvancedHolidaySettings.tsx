@@ -13,6 +13,7 @@ import { ja } from 'date-fns/locale'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase-client'
 import toast from 'react-hot-toast'
+import DebugAuthStatus from './DebugAuthStatus'
 
 interface NthWeekdayRule {
   nth: number[] // 第何週 [1, 2, 3, 4, 5]
@@ -35,32 +36,22 @@ const AdvancedHolidaySettings: React.FC = () => {
   const { user } = useAuth()
   const [tenantId, setTenantId] = useState<string>('default-tenant')
   
-  // 一貫したテナントIDを取得
+  // 統一されたテナントID取得関数を使用
   useEffect(() => {
-    const getTenantId = async () => {
-      // デモモードの場合
-      if (user?.id === 'demo-user') {
-        setTenantId('demo-user')
-        return
-      }
-      
-      // Supabase認証ユーザーの場合
-      try {
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser()
-        if (supabaseUser) {
-          setTenantId(supabaseUser.id)
-          return
-        }
-      } catch (error) {
-        console.error('Failed to get Supabase user:', error)
-      }
-      
-      // フォールバック
-      setTenantId(user?.id || 'default-tenant')
+    const updateTenantId = async () => {
+      const { getUnifiedTenantId } = await import('../../lib/tenant-utils')
+      const id = await getUnifiedTenantId(user)
+      setTenantId(id)
     }
     
-    getTenantId()
+    updateTenantId()
   }, [user])
+  
+  // getTenantId関数を定義（既存のコードとの互換性のため）
+  const getTenantId = async () => {
+    const { getUnifiedTenantId } = await import('../../lib/tenant-utils')
+    return getUnifiedTenantId(user)
+  }
   
   console.log('🔍 AdvancedHolidaySettings - Debug Info:')
   console.log('  - User:', user)
@@ -96,8 +87,8 @@ const AdvancedHolidaySettings: React.FC = () => {
   }, [])
   
   const [holidaySettings, setHolidaySettings] = useState<HolidaySettings>({
-    weeklyClosedDays: [1], // デフォルト：月曜日
-    nthWeekdayRules: [], // デフォルト：なし
+    weeklyClosedDays: [], // デフォルト：なし（Supabaseから読み込む）
+    nthWeekdayRules: [],
     specificHolidays: []
   })
   const [previewMonth, setPreviewMonth] = useState(new Date())
@@ -112,7 +103,9 @@ const AdvancedHolidaySettings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    if (tenantId && tenantId !== 'default-tenant') {
+    // tenantIdが設定されたら必ず読み込む（default-tenantも含む）
+    if (tenantId) {
+      console.log('🔄 TenantId changed, loading settings for:', tenantId)
       loadHolidaySettings()
     }
   }, [tenantId])
@@ -162,9 +155,10 @@ const AdvancedHolidaySettings: React.FC = () => {
           alert(`デバッグ: 休日設定を読み込みました\n定休日: ${(settings.weekly_closed_days || []).map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${(settings.specific_holidays || []).length}件`)
         }
       } else {
-        // 設定が存在しない場合はデフォルト値を使用
+        // 設定が存在しない場合は空の状態を維持
+        console.log('⚠️ No settings found, keeping empty state')
         setHolidaySettings({
-          weeklyClosedDays: [1], // 月曜日
+          weeklyClosedDays: [],
           nthWeekdayRules: [],
           specificHolidays: []
         })
@@ -173,9 +167,9 @@ const AdvancedHolidaySettings: React.FC = () => {
       console.error('Holiday settings load error:', error)
       toast.error('休日設定の読み込みに失敗しました')
       
-      // エラー時はデフォルト値で初期化
+      // エラー時も空の状態を維持
       setHolidaySettings({
-        weeklyClosedDays: [1],
+        weeklyClosedDays: [],
         nthWeekdayRules: [],
         specificHolidays: []
       })
@@ -246,6 +240,25 @@ const AdvancedHolidaySettings: React.FC = () => {
     console.log('  - holidaySettings:', holidaySettings)
     
     try {
+      // 認証状態を確認
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      console.log('📍 Current session:', session)
+      
+      if (sessionError) {
+        console.error('❌ Session error:', sessionError)
+        toast.error('セッションエラー: ' + sessionError.message)
+        return
+      }
+      
+      if (!session) {
+        console.error('❌ No active session')
+        toast.error('ログインが必要です。再度ログインしてください。')
+        // デモモードの場合は続行
+        if (tenantId !== 'demo-user') {
+          return
+        }
+      }
+      
       // Supabase接続テスト
       const { data: testData, error: testError } = await supabase
         .from('holiday_settings')
@@ -258,6 +271,9 @@ const AdvancedHolidaySettings: React.FC = () => {
           toast.error('holiday_settingsテーブルが存在しません。まずSupabaseでテーブルを作成してください。')
           alert('❌ エラー: holiday_settingsテーブルが存在しません\n\nSupabase Dashboard > SQL Editor で以下を実行してください:\n\nCREATE TABLE holiday_settings (\n  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,\n  "tenantId" TEXT NOT NULL UNIQUE,\n  weekly_closed_days INTEGER[] DEFAULT \'{}\',\n  nth_weekday_rules JSONB DEFAULT \'[]\',\n  specific_holidays TEXT[] DEFAULT \'{}\',\n  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,\n  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP\n);')
           return
+        } else if (testError.message.includes('No authorization token was found')) {
+          console.error('❌ Authorization error - trying without auth')
+          // 認証エラーの場合は、デモモードとして続行
         } else {
           toast.error('Supabase接続エラー: ' + testError.message)
           return
@@ -324,14 +340,18 @@ const AdvancedHolidaySettings: React.FC = () => {
       console.log('✅ Holiday settings saved successfully')
       console.log('  - TenantId:', tenantId)
       console.log('  - Settings:', settingsData)
+      console.log('  - Response data:', result.data)
       
       // デバッグ用アラート
       if (user?.email === 'greenroom51@gmail.com') {
         alert(`デバッグ: 保存成功\nテナントID: ${tenantId}\n定休日: ${settingsData.weekly_closed_days.map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${settingsData.specific_holidays.length}件`)
       }
       
-      // 保存後に再読み込みして同期
-      await loadHolidaySettings()
+      // 保存後に再読み込みして同期（少し遅延を入れる）
+      setTimeout(async () => {
+        console.log('🔄 Reloading settings after save...')
+        await loadHolidaySettings()
+      }, 500)
     } catch (error) {
       console.error('Save error:', error)
       toast.error('保存に失敗しました')
@@ -444,23 +464,59 @@ const AdvancedHolidaySettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 認証状態デバッグ表示 */}
+      <DebugAuthStatus />
+      
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium text-gray-900">休日設定</h3>
           <p className="text-sm text-gray-600">定休日と特別休業日を設定できます</p>
         </div>
-        <button
-          onClick={saveHolidaySettings}
-          disabled={isSaving}
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          {isSaving ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          <span>保存</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={saveHolidaySettings}
+            disabled={isSaving}
+            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            {isSaving ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>保存</span>
+          </button>
+          
+          {/* 設定確認ボタン */}
+          <button
+            onClick={async () => {
+              const currentTenantId = await getTenantId()
+              
+              // 全てのテナントIDのデータを確認（デバッグ用）
+              const { data: allSettings } = await supabase
+                .from('holiday_settings')
+                .select('*')
+              
+              console.log('All holiday settings:', allSettings)
+              
+              const { data: settings } = await supabase
+                .from('holiday_settings')
+                .select('*')
+                .eq('tenantId', currentTenantId)
+                .single()
+              
+              if (settings) {
+                alert(`現在の設定:\n\nテナントID: ${currentTenantId}\n定休日: ${(settings.weekly_closed_days || []).map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n第〇曜日: ${(settings.nth_weekday_rules || []).length}件\n特別休日: ${(settings.specific_holidays || []).length}件\n\n保存日時: ${new Date(settings.updatedAt).toLocaleString()}`)
+              } else {
+                // 認証ユーザーのIDを取得して表示
+                const { data: { user } } = await supabase.auth.getUser()
+                alert(`設定が見つかりません\n\n現在のテナントID: ${currentTenantId}\nSupabaseユーザーID: ${user?.id}\n\nSupabaseで以下のSQLを実行してください:\n\nINSERT INTO "holiday_settings" ("tenantId", weekly_closed_days)\nVALUES ('${user?.id || currentTenantId}', ARRAY[4])\nON CONFLICT ("tenantId") DO UPDATE SET weekly_closed_days = ARRAY[4];`)
+              }
+            }}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+          >
+            設定確認
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

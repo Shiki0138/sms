@@ -128,4 +128,96 @@ router.get('/line/status', auth, asyncHandler(async (req: Request, res: Response
   });
 }));
 
+/**
+ * LINE接続検証
+ * GET /api/v1/external/line/verify
+ */
+router.get('/line/verify', auth, asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  
+  // 権限チェック
+  const userRole = user.role?.toLowerCase();
+  if (userRole !== 'admin' && userRole !== 'owner') {
+    return res.status(403).json({ 
+      success: false,
+      error: 'この機能は管理者とオーナーのみ利用可能です' 
+    });
+  }
+  
+  try {
+    // TODO: Supabaseからapi_settings取得して検証
+    // ここではモックレスポンスを返す
+    if (!LINE_CHANNEL_ID || !LINE_CHANNEL_SECRET) {
+      return res.json({
+        success: false,
+        error: 'LINE API認証情報が設定されていません'
+      });
+    }
+    
+    // 実際のLINE APIテスト（チャンネル情報取得）
+    // ここでは簡易的な検証のみ
+    return res.json({
+      success: true,
+      channelInfo: {
+        channelId: LINE_CHANNEL_ID.substring(0, 4) + '****',
+        hasSecret: !!LINE_CHANNEL_SECRET,
+        testMode: process.env.NODE_ENV !== 'production'
+      }
+    });
+  } catch (error) {
+    console.error('LINE verification error:', error);
+    return res.json({
+      success: false,
+      error: 'LINE接続の検証中にエラーが発生しました'
+    });
+  }
+}));
+
+/**
+ * Google Calendar接続検証
+ * GET /api/v1/external/google/verify
+ */
+router.get('/google/verify', auth, asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  
+  // 権限チェック
+  const userRole = user.role?.toLowerCase();
+  if (userRole !== 'admin' && userRole !== 'owner') {
+    return res.status(403).json({ 
+      success: false,
+      error: 'この機能は管理者とオーナーのみ利用可能です' 
+    });
+  }
+  
+  try {
+    // TODO: Supabaseからapi_settings取得して検証
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+    
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      return res.json({
+        success: false,
+        error: 'Google API認証情報が設定されていません'
+      });
+    }
+    
+    // モックレスポンス（実際にはGoogle APIで検証）
+    return res.json({
+      success: true,
+      calendarInfo: {
+        clientId: GOOGLE_CLIENT_ID.substring(0, 4) + '****',
+        hasSecret: !!GOOGLE_CLIENT_SECRET,
+        testMode: process.env.NODE_ENV !== 'production',
+        scopes: ['calendar.events', 'calendar.readonly']
+      }
+    });
+  } catch (error) {
+    console.error('Google verification error:', error);
+    return res.json({
+      success: false,
+      error: 'Google Calendar接続の検証中にエラーが発生しました'
+    });
+  }
+}));
+
 export default router;

@@ -262,118 +262,80 @@ function App() {
     customClosedDates: ['2025-01-01', '2025-12-31'] as string[] // YYYY-MM-DD format
   })
   
-  // 一貫したテナントIDを取得する関数
+  // businessSettings変更を追跡（デバッグ用）
+  useEffect(() => {
+    console.log('🔄 Business settings updated:', businessSettings)
+    console.log('  - Closed days:', businessSettings.closedDays)
+    console.log('  - Nth weekday rules:', businessSettings.nthWeekdayRules)
+    console.log('  - Custom closed dates:', businessSettings.customClosedDates)
+    
+    // 設定状態を画面に表示（デバッグ用）
+    const debugDiv = document.getElementById('holiday-debug-info')
+    if (debugDiv) {
+      debugDiv.innerHTML = `
+        <div style="position: fixed; top: 10px; right: 10px; background: #fffbeb; border: 2px solid #f59e0b; padding: 10px; border-radius: 8px; z-index: 9999; max-width: 300px;">
+          <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">🔍 休日設定デバッグ情報</h3>
+          <p style="margin: 5px 0; font-size: 12px;"><strong>定休日:</strong> ${businessSettings.closedDays.map(d => ['日','月','火','水','木','金','土'][d]).join(', ') || 'なし'}</p>
+          <p style="margin: 5px 0; font-size: 12px;"><strong>第◯曜日:</strong> ${businessSettings.nthWeekdayRules.length}件</p>
+          <p style="margin: 5px 0; font-size: 12px;"><strong>特別休日:</strong> ${businessSettings.customClosedDates.length}件</p>
+          <p style="margin: 5px 0; font-size: 12px; color: #666;">更新時刻: ${new Date().toLocaleTimeString()}</p>
+        </div>
+      `
+    }
+  }, [businessSettings])
+  
+  // 統一されたテナントID取得関数を使用
   const getTenantId = async () => {
-    // デモモードの場合
-    if (user?.id === 'demo-user') {
-      return 'demo-user'
-    }
-    
-    // Supabase認証ユーザーの場合
-    try {
-      const { data: { user: supabaseUser } } = await supabase.auth.getUser()
-      if (supabaseUser) {
-        return supabaseUser.id
-      }
-    } catch (error) {
-      console.error('Failed to get Supabase user:', error)
-    }
-    
-    // フォールバック
-    return user?.id || 'default-tenant'
+    const { getUnifiedTenantId } = await import('./lib/tenant-utils')
+    return getUnifiedTenantId(user)
   }
   
-  // Fetch holiday settings from Supabase
+  // 統一された設定管理システムを使用
   useEffect(() => {
-    const fetchHolidaySettings = async () => {
+    const initializeSettings = async () => {
       if (!user?.id) return
       
-      // 一貫したテナントIDを取得
-      const tenantId = await getTenantId()
+      const { loadHolidaySettings, subscribeToHolidaySettings } = await import('./lib/settings-manager')
       
-      console.log('App.tsx - User:', user)
-      console.log('App.tsx - TenantId for holiday fetch:', tenantId)
-      console.log('App.tsx - User email:', user?.email)
+      // 休日設定を読み込み
+      const settings = await loadHolidaySettings(user)
       
-      try {
-        const { data: settings, error } = await supabase
-          .from('holiday_settings')
-          .select('*')
-          .eq('tenantId', tenantId)
-          .single()
+      if (settings) {
+        console.log('✅ Holiday settings loaded:', settings)
+        setBusinessSettings(prev => ({
+          ...prev,
+          closedDays: settings.weeklyClosedDays,
+          nthWeekdayRules: settings.nthWeekdayRules,
+          customClosedDates: settings.specificHolidays
+        }))
         
-        if (error) {
-          if (error.code === 'PGRST116') { // No rows returned
-            console.log('No holiday settings found for tenant, using defaults')
-          } else {
-            console.error('Error loading holiday settings:', error)
-          }
+        // デバッグ用アラート（greenroom51のみ）
+        if (user?.email === 'greenroom51@gmail.com') {
+          alert(`休日設定を読み込みました\n定休日: ${settings.weeklyClosedDays.map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${settings.specificHolidays.length}件`)
         }
-        
-        if (settings) {
-          console.log('✅ App.tsx - Holiday settings loaded from Supabase:', settings)
-          console.log('  - weekly_closed_days:', settings.weekly_closed_days)
-          console.log('  - nth_weekday_rules:', settings.nth_weekday_rules)
-          console.log('  - specific_holidays:', settings.specific_holidays)
-          
-          setBusinessSettings(prev => {
-            const newSettings = {
-              ...prev,
-              closedDays: settings.weekly_closed_days || [1],
-              nthWeekdayRules: settings.nth_weekday_rules || [],
-              customClosedDates: settings.specific_holidays || []
-            }
-            console.log('📝 App.tsx - Updating businessSettings from:', prev, 'to:', newSettings)
-            return newSettings
-          })
-          
-          // デバッグ用アラート（greenroom51のみ）
-          if (user?.email === 'greenroom51@gmail.com') {
-            alert(`App.tsx: 休日設定を読み込みました\n定休日: ${(settings.weekly_closed_days || []).map(d => ['日','月','火','水','木','金','土'][d]).join(', ')}\n特別休日: ${(settings.specific_holidays || []).length}件`)
-          }
-        } else {
-          console.log('⚠️ App.tsx - No holiday settings found, keeping defaults')
-        }
-      } catch (error) {
-        console.error('Failed to fetch holiday settings:', error)
+      } else {
+        console.log('⚠️ No holiday settings found, using defaults')
       }
-    }
-    
-    let subscription: any = null
-    
-    // 設定を取得してから、リアルタイム更新の監視を開始
-    fetchHolidaySettings().then(() => {
-      // Supabaseのリアルタイム更新を監視
-      getTenantId().then(actualTenantId => {
-        subscription = supabase
-          .channel('holiday_settings_changes')
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'holiday_settings',
-            filter: `tenantId=eq.${actualTenantId}`
-          }, (payload) => {
-            console.log('Holiday settings changed:', payload)
-            if (payload.new) {
-              const settings = payload.new as any
-              setBusinessSettings(prev => ({
-                ...prev,
-                closedDays: settings.weekly_closed_days || [1],
-                nthWeekdayRules: settings.nth_weekday_rules || [],
-                customClosedDates: settings.specific_holidays || []
-              }))
-            }
-          })
-          .subscribe()
+      
+      // リアルタイム更新を監視
+      const subscription = await subscribeToHolidaySettings(user, (newSettings) => {
+        console.log('🔄 Holiday settings updated:', newSettings)
+        setBusinessSettings(prev => ({
+          ...prev,
+          closedDays: newSettings.weeklyClosedDays,
+          nthWeekdayRules: newSettings.nthWeekdayRules,
+          customClosedDates: newSettings.specificHolidays
+        }))
       })
-    })
-    
-    // クリーンアップ関数
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe()
+      
+      return () => {
+        if (subscription) {
+          subscription.unsubscribe()
+        }
       }
     }
+    
+    initializeSettings()
   }, [user?.id])
   
   // Calendar view state
@@ -531,6 +493,19 @@ function App() {
     console.log('  - businessSettings.closedDays:', businessSettings.closedDays)
     console.log('  - businessSettings.nthWeekdayRules:', businessSettings.nthWeekdayRules)
     console.log('  - businessSettings.customClosedDates:', businessSettings.customClosedDates)
+    
+    // 画面にも表示（開発用）
+    const debugCheckDiv = document.getElementById('holiday-check-debug')
+    if (debugCheckDiv) {
+      debugCheckDiv.innerHTML = `
+        <div style="position: fixed; bottom: 10px; right: 10px; background: #f0f9ff; border: 2px solid #0284c7; padding: 10px; border-radius: 8px; z-index: 9999; max-width: 400px;">
+          <h4 style="margin: 0 0 5px 0; font-size: 12px; font-weight: bold;">📅 休日チェック: ${dateString} (${['日','月','火','水','木','金','土'][dayOfWeek]}曜日)</h4>
+          <p style="margin: 2px 0; font-size: 11px;">定休日: ${businessSettings.closedDays.includes(dayOfWeek) ? '✅ YES' : '❌ NO'}</p>
+          <p style="margin: 2px 0; font-size: 11px;">設定値: [${businessSettings.closedDays.join(', ')}]</p>
+          <p style="margin: 2px 0; font-size: 10px; color: #666;">最終チェック: ${new Date().toLocaleTimeString()}</p>
+        </div>
+      `
+    }
     
     // 毎週の定休日チェック
     if (businessSettings.closedDays && businessSettings.closedDays.includes(dayOfWeek)) {
@@ -1650,6 +1625,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* デバッグ情報表示用 */}
+      <div id="holiday-debug-info"></div>
+      <div id="holiday-check-debug"></div>
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="px-4 sm:px-6 py-4">
@@ -2479,32 +2457,18 @@ const AuthenticatedApp = () => {
   )
 }
 
-// 認証プロバイダーでラップされたルートコンポーネント
+// 認証プロバイダーは AppWrapper で既に提供されているため、ここでは追加しない
 const RootApp = () => {
   const enableLogin = import.meta.env.VITE_ENABLE_LOGIN === 'true'
   
   // 本番環境では常に認証を要求
   if (!enableLogin && import.meta.env.DEV) {
     console.warn('⚠️ 開発モード：認証をバイパスしています')
-    return (
-      <>
-        <SubscriptionProvider>
-          <App />
-        </SubscriptionProvider>
-      </>
-    )
+    return <App />
   }
   
-  // ログイン機能が有効な場合は認証プロバイダーでラップ
-  return (
-    <>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <AuthenticatedApp />
-        </SubscriptionProvider>
-      </AuthProvider>
-    </>
-  )
+  // ログイン機能が有効な場合は AuthenticatedApp を返す
+  return <AuthenticatedApp />
 }
 
 export default RootApp

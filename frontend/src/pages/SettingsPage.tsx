@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Settings, Clock, Bell, Shield, CreditCard, Database, Users, Calendar, Globe, MessageSquare, Instagram, Smartphone, Package, Brain, Save, Menu } from 'lucide-react';
 import ExternalAPISettings from '../components/Settings/ExternalAPISettings';
 import AdvancedHolidaySettings from '../components/Settings/AdvancedHolidaySettings';
-import PaymentMethodSettings from '../components/Settings/PaymentMethodSettings';
-import { ReminderSettings } from '../components/Settings/ReminderSettings';
+import HolidaySettingsDebug from '../components/Settings/HolidaySettingsDebug';
+import PaymentMethodSettingsDB from '../components/Settings/PaymentMethodSettingsDB';
+import { ReminderSettingsDB } from '../components/Settings/ReminderSettingsDB';
 import SubscriptionManagement from '../components/Settings/SubscriptionManagement';
-import MenuManagement from '../components/Settings/MenuManagement';
+import MenuManagementDB from '../components/Settings/MenuManagementDB';
 import DataBackupSettings from '../components/Settings/DataBackupSettings';
 import OpenAISettings from '../components/Settings/OpenAISettings';
 import NotificationSettings from '../components/Settings/NotificationSettings';
@@ -71,7 +72,10 @@ const SettingsPage: React.FC = () => {
             <div className="flex-1 bg-white shadow rounded-lg">
               <div className="p-6">
               {activeTab === 'business-hours' && (
-                <AdvancedHolidaySettings />
+                <div className="space-y-6">
+                  <HolidaySettingsDebug />
+                  <AdvancedHolidaySettings />
+                </div>
               )}
               {activeTab === 'api-settings' && (
                 <ExternalAPISettings />
@@ -95,19 +99,19 @@ const SettingsPage: React.FC = () => {
                 </div>
               )}
               {activeTab === 'menu-management' && (
-                <MenuManagement />
+                <MenuManagementDB />
               )}
               {activeTab === 'notifications' && (
                 <NotificationSettings />
               )}
               {activeTab === 'reminder-settings' && (
-                <ReminderSettings />
+                <ReminderSettingsDB />
               )}
               {activeTab === 'ai-settings' && (
                 <OpenAISettings />
               )}
               {activeTab === 'payment-methods' && (
-                <PaymentMethodSettings />
+                <PaymentMethodSettingsDB />
               )}
               {activeTab === 'subscription' && (
                 <SubscriptionManagement />

@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase-client'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import ApiCredentialsModal from './ApiCredentialsModal'
+import ExternalAPITestPanel from './ExternalAPITestPanel'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
@@ -252,6 +253,11 @@ const ExternalAPISettings: React.FC<ExternalAPISettingsProps> = ({ defaultTab })
           </div>
         </div>
       </div>
+      
+      {/* API接続テストパネル（管理者のみ） */}
+      {canConfigureAPIs && (
+        <ExternalAPITestPanel />
+      )}
       
       {/* API認証情報モーダル */}
       {showCredentialsModal && (

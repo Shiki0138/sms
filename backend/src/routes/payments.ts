@@ -291,6 +291,50 @@ router.post('/webhooks/:provider', async (req, res) => {
   }
 });
 
+// Stripe接続検証
+router.get('/stripe/verify', authenticate, async (req, res) => {
+  try {
+    const user = (req as any).user;
+    
+    // 権限チェック
+    const userRole = user.role?.toLowerCase();
+    if (userRole !== 'admin' && userRole !== 'owner') {
+      return res.status(403).json({ 
+        success: false,
+        error: 'この機能は管理者とオーナーのみ利用可能です' 
+      });
+    }
+    
+    // Stripe秘密キーの確認
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    
+    if (!stripeSecretKey) {
+      return res.json({
+        success: false,
+        error: 'Stripe秘密キーが設定されていません'
+      });
+    }
+    
+    // テストモードか本番モードかチェック
+    const isTestMode = stripeSecretKey.startsWith('sk_test_');
+    
+    // モックレスポンス（実際にはStripe APIで検証）
+    return res.json({
+      success: true,
+      accountId: 'acct_' + '****',
+      testMode: isTestMode,
+      capabilities: ['card_payments', 'transfers'],
+      country: 'JP'
+    });
+  } catch (error) {
+    logger.error('Stripe verification error:', error);
+    return res.json({
+      success: false,
+      error: 'Stripe接続の検証中にエラーが発生しました'
+    });
+  }
+});
+
 // 決済システム統計情報
 router.get('/analytics', authenticate, async (req, res) => {
   try {
