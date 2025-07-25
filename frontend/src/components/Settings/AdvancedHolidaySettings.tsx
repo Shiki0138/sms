@@ -533,6 +533,61 @@ const AdvancedHolidaySettings: React.FC = () => {
           >
             設定確認
           </button>
+          
+          {/* 緊急修正ボタン */}
+          <button
+            onClick={async () => {
+              if (!confirm('緊急修正: 定休日を月曜日（1）に変更しますか？')) return
+              
+              try {
+                const currentTenantId = await getTenantId()
+                console.log('🚑 緊急修正: 月曜日に変更中...', currentTenantId)
+                
+                const { data, error } = await supabase
+                  .from('holiday_settings')
+                  .update({
+                    weekly_closed_days: [1], // 月曜日に修正
+                    updatedAt: new Date().toISOString()
+                  })
+                  .eq('tenantId', currentTenantId)
+                  .select()
+                
+                if (error) {
+                  console.error('修正エラー:', error)
+                  alert('修正に失敗しました: ' + error.message)
+                } else {
+                  console.log('✅ 修正成功:', data)
+                  alert('✅ 定休日を月曜日に修正しました！\nページをリロードして確認してください。')
+                  
+                  // 設定を再読み込み
+                  await loadHolidaySettings()
+                }
+              } catch (error) {
+                console.error('修正エラー:', error)
+                alert('修正中にエラーが発生しました')
+              }
+            }}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-bold"
+          >
+            🚑 緊急修正(月曜日に変更)
+          </button>
+        </div>
+      </div>
+      
+      {/* 緊急修正アラート */}
+      <div className="bg-red-50 border-2 border-red-500 rounded-lg p-4 mb-6">
+        <div className="flex items-start space-x-3">
+          <div className="text-red-500 text-2xl">🚑</div>
+          <div>
+            <h4 className="text-red-800 font-bold text-lg mb-2">緊急修正が必要です</h4>
+            <p className="text-red-700 text-sm mb-3">
+              現在、UIでは月曜日にチェックが入っていますが、データベースには木曜日(4)が保存されています。<br/>
+              そのため予約カレンダーでは木曜日が休日として表示されています。
+            </p>
+            <p className="text-red-700 text-sm font-bold">
+              上の「🚑 緊急修正(月曜日に変更)」ボタンをクリックして修正してください。
+            </p>
+          </div>
         </div>
       </div>
 
